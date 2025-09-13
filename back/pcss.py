@@ -216,7 +216,7 @@ class PCSSEARCH:
                             if idx < len(authors) and self.koreanChecker(authors[idx]):
                                 # 이미 name_dict에 값이 있을 것이므로 가져오기
                                 target_authors.append(
-                                    authors[idx] + f'({self.name_dict[authors[idx]]})'
+                                    authors[idx] + f' ({self.name_dict[authors[idx]]})'
                                 )
                         return target_authors
 
@@ -227,7 +227,7 @@ class PCSSEARCH:
                                 'title': title,
                                 'author_name': authors,
                                 'author_url': authors_url,
-                                'target_author': [authors[0] + f'({self.name_dict[authors[0]]})'],
+                                'target_author': [authors[0] + f' ({self.name_dict[authors[0]]})'],
                                 'conference': conf,
                                 'year': year,
                                 'source': url
@@ -252,7 +252,7 @@ class PCSSEARCH:
                                 'title': title, 
                                 'author_name': authors,
                                 'author_url': authors_url,
-                                'target_author': [authors[-1] + f'({self.name_dict[authors[-1]]})'],
+                                'target_author': [authors[-1] + f' ({self.name_dict[authors[-1]]})'],
                                 'conference': conf,
                                 'year': year,
                                 'source': url
@@ -263,7 +263,7 @@ class PCSSEARCH:
                         if self.koreanChecker(authors[0]):
                             target.append(authors[0] + f'({self.name_dict[authors[0]]})')
                         if len(authors) > 1 and self.koreanChecker(authors[-1]):
-                            target.append(authors[-1] + f'({self.name_dict[authors[-1]]})')
+                            target.append(authors[-1] + f' ({self.name_dict[authors[-1]]})')
                         if target:
                             self.CrawlData.append({
                                 'title': title,
@@ -279,7 +279,7 @@ class PCSSEARCH:
                         target = []
                         for auth in authors:
                             if self.koreanChecker(auth):
-                                target.append(auth + f'({self.name_dict[auth]})')
+                                target.append(auth + f' ({self.name_dict[auth]})')
                         if target:
                             self.CrawlData.append({
                                 'title': title,
@@ -335,6 +335,7 @@ class PCSSEARCH:
                 async def authorCounter(data):
                     data_copy = copy.deepcopy(data)
                     new_authors = []
+                    totals_by_author = {}
                     multi_name_option = False  # 필요에 따라 True로 변경 가능
                     
                     if not multi_name_option:
@@ -342,8 +343,9 @@ class PCSSEARCH:
                             if not self.koreanChecker(author):
                                 new_authors.append(author)
                                 continue
-                            stats = await self.authorNumChecker(author, data['author_url'][index], session)
-                            new_authors.append(author + stats)
+                            result = await self.authorNumChecker(author, data['author_url'][index], session)
+                            new_authors.append(author + result['stats'])
+                            totals_by_author[author] = result["total"]
                     else:
                         llm_result = self.multi_name_llm(data_copy['author_name'])
                         for index, (author, result) in enumerate(llm_result.items()):
@@ -352,6 +354,17 @@ class PCSSEARCH:
                                 continue
                             stats = await self.authorNumChecker(author, data['author_url'][index], session)
                     data_copy["author_name"] = new_authors
+                    # --- target_author 순서대로 논문 수 리스트 생성 ---
+                    def strip_score(s: str) -> str:
+                        """'Hanbin Hong (1.0)' -> 'Hanbin Hong'"""
+                        return re.sub(r'\s*\(\d+(?:\.\d+)?\)\s*$', '', s).strip()
+
+                    target_names = [strip_score(t) for t in data_copy.get("target_author", [])]
+
+                    total_list = [totals_by_author.get(name, 0) for name in target_names]
+                    data_copy["total_papers"] = total_list
+                    # ---------------------------------------------------
+
                     self.resultData.append(data_copy)
 
                 if self.countOption:
@@ -588,20 +601,25 @@ class PCSSEARCH:
                             'title': title,
                             'authors': author_list
                         })
+            
+            paperCnt = 0
+            for paper in papers:
+                authors = paper["authors"]
+                if target_author in authors:
+                    paperCnt += 1
+                    if authors[0] == target_author:
+                        stats["first_author"] += 1
+                        stats["first_or_second_author"] += 1  # 1저자도 2저자 조건에 포함됨
+                    elif len(authors) > 1 and authors[1] == target_author:
+                        stats["first_or_second_author"] += 1
+                    elif authors[-1] == target_author:
+                        stats["last_author"] += 1
+                    stats["co_author"] += 1
 
-                for paper in papers:
-                    authors = paper["authors"]
-                    if target_author in authors:
-                        if authors[0] == target_author:
-                            stats["first_author"] += 1
-                            stats["first_or_second_author"] += 1  # 1저자도 2저자 조건에 포함됨
-                        elif len(authors) > 1 and authors[1] == target_author:
-                            stats["first_or_second_author"] += 1
-                        elif authors[-1] == target_author:
-                            stats["last_author"] += 1
-                        stats["co_author"] += 1
-
-            return f"({stats['first_author']},{stats['first_or_second_author']},{stats['last_author']},{stats['co_author']})"
+            return {
+                "stats": f"({stats['first_author']},{stats['first_or_second_author']},{stats['last_author']},{stats['co_author']})",
+                "total": paperCnt
+            }
         except Exception as e:
             self.write_log(traceback.format_exc())
             return stats

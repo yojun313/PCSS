@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="icon" type="image/png" href="/favicon.png">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PCSS Result</title>
@@ -71,7 +70,7 @@
     }
     .year-header, .conference-header {
       font-size: 13px;
-      color: #C80150;
+      color: #333;
       font-weight: bold;
       padding: 4px 8px;
       background-color: #f2f2f2;
@@ -125,15 +124,26 @@
       margin-right: 5px;
     }
     .authors a,
-    a.conference-link,
     a.author-link {
       text-decoration: none;
-      color: #C80150;
+      color: #C80150;   /* 저자 이름은 기존 색 */
+    }
+
+    a.conference-link {
+      text-decoration: none;
+      color: #333;      /* 학회명은 검정 */
+    }
+
+    a.conference-link:hover {
+      text-decoration: underline;
     }
     .authors a:hover,
     a.conference-link:hover,
     a.author-link:hover {
       text-decoration: underline;
+    }
+    a.author-link {
+      white-space: pre;
     }
 
     /* source 링크 */
@@ -157,6 +167,9 @@
       font-weight: bold;
       font-size: 16px;
     }
+    .year-header .author-wrapper { color: #C80150; }
+    .year-header .author-wrapper .paper-count { color: inherit; }   /* 부모 색 물려받기 */
+    .year-header .author-wrapper a.author-link { color: inherit; }  /* 링크도 동일 색 */
 
     /* 반응형 디자인 */
     @media (max-width: 768px) {
@@ -260,19 +273,23 @@
       }
       .year-header, .conference-header {
         background-color: #3a3a3a;
-        color: #ff88a2;
+        color: #e0e0e0;
       }
       .card-title {
         color: #e0e0e0;
       }
       .authors a,
-      a.conference-link,
       a.author-link {
         color: #ff88a2;
+        white-space: pre;
+      }
+      a.conference-link {
+        color: #e0e0e0;
       }
       .user a {
         color: #4da6ff;
       }
+      .year-header .author-wrapper { color: #ff88a2; }
     }
   </style>
 </head>
@@ -378,81 +395,108 @@
           }
           const authorList = Object.keys(groupedPapers);
 
-          // 2. 괄호 안의 숫자를 파싱하는 헬퍼 함수
-          function getNumberInParentheses(str) {
-            // 예: "William Won(0.2)" -> 0.2
-            //     "Ni Kang(0.9)"     -> 0.9
-            const match = str.match(/\(([\d.]+)\)/);
-            if (match) {
-              return parseFloat(match[1]);
-            }
-            return 0;
+          // 타깃 저자 문자열 정규화: "Name (1.0)" → 공백/소수점 표기를 정규화
+          function normTA(s) {
+            if (!s) return "";
+            const m = s.match(/\(([\d.]+)\)\s*$/);
+            if (!m) return s.trim();
+            return s.replace(/\s*\(([\d.]+)\)\s*$/, ` (${m[1]})`).trim();
           }
 
-          // 3. 괄호 안 숫자를 기준으로 내림차순 정렬
+          // 해당 author(=타깃 저자 1명)의 count를 referencePaper.total_papers에서 찾아 반환
+          function getHeaderCount(author, groupedPapersForAuthor) {
+            const firstYear = Object.keys(groupedPapersForAuthor)[0];
+            const firstConf = Object.keys(groupedPapersForAuthor[firstYear])[0];
+            const referencePaper = groupedPapersForAuthor[firstYear][firstConf][0];
+
+            const ta = (referencePaper && Array.isArray(referencePaper.target_author))
+              ? referencePaper.target_author
+              : [];
+            const tp = (referencePaper && Array.isArray(referencePaper.total_papers))
+              ? referencePaper.total_papers
+              : [];
+
+            const idx = ta.findIndex(t => normTA(t) === normTA(author));
+            return (idx >= 0 && idx < tp.length) ? tp[idx] : 0;
+          }
+
+
+          // Paper count 기준 내림차순 정렬
+          // total_papers 기준 내림차순 정렬
           authorList.sort((a, b) => {
-            return getNumberInParentheses(b) - getNumberInParentheses(a);
+            const cb = getHeaderCount(b, groupedPapers[b]);
+            const ca = getHeaderCount(a, groupedPapers[a]);
+            return cb - ca;
           });
-          
+
+
           // 각 저자별 섹션 생성
           for (const author of authorList) {
-              const authorSection = document.createElement("div");
-              authorSection.className = "year-section";
-              
-              // 저자 헤더 생성
-              const authorHeader = document.createElement("div");
-              authorHeader.className = "year-header";
-              
-              // 저자 문자열에서 이름과 괄호 부분 분리
-              const bracketIndex = author.indexOf('(');
-              let nameOnly = author, bracketPart = '';
-              if (bracketIndex !== -1) {
-                  nameOnly = author.substring(0, bracketIndex).trim();
-                  bracketPart = author.substring(bracketIndex);
+            const authorSection = document.createElement("div");
+            authorSection.className = "year-section";
+
+            // 저자 헤더 생성
+            const authorHeader = document.createElement("div");
+            authorHeader.className = "year-header";
+
+            // 저자 문자열에서 이름/괄호 분리
+            const bracketIndex = author.indexOf('(');
+            let nameOnly = author, bracketPart = '';
+            if (bracketIndex !== -1) {
+              nameOnly = author.substring(0, bracketIndex).trim();
+              bracketPart = author.substring(bracketIndex);
+            }
+
+            // 첫 논문 데이터 참조해서 URL 결정
+            const firstYear = Object.keys(groupedPapers[author])[0];
+            const firstConference = Object.keys(groupedPapers[author][firstYear])[0];
+            const referencePaper = groupedPapers[author][firstYear][firstConference][0];
+
+            // 저자명 링크들 만들기
+            const authorsArray = author.split(',').map(a => a.trim());
+            const linkHtmls = authorsArray.map(authorStr => {
+              const idx = authorStr.indexOf('(');
+              let nameOnlyInner = authorStr;
+              let bracketPartInner = '';
+              if (idx !== -1) {
+                nameOnlyInner = authorStr.substring(0, idx); // 공백 유지 (trim 제거)
+                // 괄호 앞에 정확히 한 칸만 보장
+                const bracket = authorStr.substring(idx);            // "(1.0) ..."
+                bracketPartInner = ' ' + bracket.replace(/^\s+/, ''); // 앞쪽 공백 정규화
               }
-              
-              // 첫 번째 논문 데이터를 참조하여 저자 URL 결정
-              const firstYear = Object.keys(groupedPapers[author])[0];
-              const firstConference = Object.keys(groupedPapers[author][firstYear])[0];
-              const referencePaper = groupedPapers[author][firstYear][firstConference][0];
-              let targetAuthorUrl = '#';
+              let authorUrl = '#';
               if (referencePaper.author_name && referencePaper.author_url) {
-                  const matchedIndex = referencePaper.author_name.findIndex(n => n.includes(nameOnly));
-                  if (matchedIndex !== -1) {
-                      targetAuthorUrl = referencePaper.author_url[matchedIndex];
-                  }
+                const i = referencePaper.author_name.findIndex(n =>
+                  n.includes(nameOnlyInner.trim()) // 여기서만 trim
+                );
+                if (i !== -1) authorUrl = referencePaper.author_url[i];
               }
-              
-              // 저자 이름을 링크로 변환 (콤마 구분된 경우 처리)
-              const authorsArray = author.split(',').map(a => a.trim());
-              const linkHtmls = authorsArray.map(authorStr => {
-                  const idx = authorStr.indexOf('(');
-                  let nameOnlyInner = authorStr, bracketPartInner = '';
-                  if (idx !== -1) {
-                      nameOnlyInner = authorStr.substring(0, idx).trim();
-                      bracketPartInner = authorStr.substring(idx);
-                  }
-                  let authorUrl = '#';
-                  if (referencePaper.author_name && referencePaper.author_url) {
-                      const i = referencePaper.author_name.findIndex(n => n.includes(nameOnlyInner));
-                      if (i !== -1) authorUrl = referencePaper.author_url[i];
-                  }
-                  return `<a href="${authorUrl}" class="author-link" target="_blank">${nameOnlyInner}</a>${bracketPartInner}`;
-              });
-              
-              authorHeader.innerHTML = `${linkHtmls.join(', ')}<span class="toggle-icon" style="margin-left:auto;">▼</span>`;
-              // 토글 기능 이벤트 추가
-              authorHeader.addEventListener("click", () => {
-                  const content = authorSection.querySelector(".year-content");
-                  const icon = authorHeader.querySelector(".toggle-icon");
-                  if (!content.style.display || content.style.display === "none") {
-                      content.style.display = "block";
-                      icon.textContent = "▼";
-                  } else {
-                      content.style.display = "none";
-                      icon.textContent = "▶";
-                  }
-              });
+              return `<a href="${authorUrl}" class="author-link" target="_blank">${nameOnlyInner}${bracketPartInner}</a>`;
+            });
+
+            // ★ 여기서 Paper count 계산하고 헤더에 반영 (오른쪽 정렬)
+            const headerCount = getHeaderCount(author, groupedPapers[author]);
+            authorHeader.innerHTML = `
+              <span class="author-wrapper">
+                ${linkHtmls.join(', ')}
+                <span class="paper-count" style="margin-left:6px; font-weight:normal;">
+                  - Paper count: ${headerCount}
+                </span>
+              </span>
+              <span class="toggle-icon" style="margin-left:auto;">▼</span>
+            `;
+            // 토글 이벤트
+            authorHeader.addEventListener("click", () => {
+              const content = authorSection.querySelector(".year-content");
+              const icon = authorHeader.querySelector(".toggle-icon");
+              if (!content.style.display || content.style.display === "none") {
+                content.style.display = "block";
+                icon.textContent = "▼";
+              } else {
+                content.style.display = "none";
+                icon.textContent = "▶";
+              }
+            });
               
               const authorContent = document.createElement("div");
               authorContent.className = "year-content";
@@ -476,8 +520,17 @@
                       
                       const conferenceHeader = document.createElement("div");
                       conferenceHeader.className = "conference-header";
-                      conferenceHeader.innerHTML = `<span class="conference-link">${conference}</span>`;
-                      // 토글 아이콘 추가
+
+                      // 이 컨퍼런스 그룹의 첫 논문에서 source 꺼내기
+                      const confSource = groupedPapers[author][year][conference][0]?.source || "#";
+
+                      // 텍스트를 링크로
+                      conferenceHeader.innerHTML = `
+                        <a class="conference-link" href="${confSource}" target="_blank" rel="noopener">
+                          ${conference}
+                        </a>
+                      `;
+                                            
                       const confToggleIcon = document.createElement("span");
                       confToggleIcon.className = "toggle-icon";
                       confToggleIcon.style.marginLeft = "auto";
@@ -502,28 +555,6 @@
                       groupedPapers[author][year][conference].forEach(paper => {
                         const card = document.createElement("div");
                         card.className = "card";
-
-                        // 1) 메타 한 줄: "2025 – ISCA (DBLP)"
-                        const meta = document.createElement("div");
-                        meta.className = "paper-meta";
-
-                        // source 라벨을 도메인별로 보기 좋게
-                        let sourceLabel = "Source";
-                        try {
-                          const host = new URL(paper.source || "#").hostname;
-                          if (/dblp/i.test(host)) sourceLabel = "DBLP";
-                          else if (/arxiv/i.test(host)) sourceLabel = "arXiv";
-                        } catch (e) {}
-                        const srcA = document.createElement("a");
-                        srcA.href = paper.source || "#";
-                        srcA.target = "_blank";
-                        srcA.textContent = `(${sourceLabel})`;
-
-                        // "연도 – 학회" + (source)
-                        const metaText = document.createTextNode(`${paper.year} – ${conference} `);
-                        meta.appendChild(metaText);
-                        meta.appendChild(srcA);
-                        card.appendChild(meta);
 
                         // 2) 제목
                         const titleEl = document.createElement("div");

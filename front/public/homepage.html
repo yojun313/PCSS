@@ -342,27 +342,39 @@
             <select id="endyear" name="endyear">
               <script>
                 const endSelect = document.getElementById("endyear");
+
                 function updateEndYearOptions(startValue) {
-                  endSelect.innerHTML = ""; // 기존 옵션 제거
+                  // 1) 현재 선택된 끝 연도 값 저장
+                  const prev = endSelect.value ? parseInt(endSelect.value, 10) : null;
+
+                  // 2) 옵션 재생성
+                  endSelect.innerHTML = "";
                   for (let i = startValue; i <= 2025; i++) {
-                    let option = document.createElement("option");
-                    option.value = i;
-                    option.textContent = i;
-                    endSelect.appendChild(option);
+                    const opt = document.createElement("option");
+                    opt.value = i;
+                    opt.textContent = i;
+                    endSelect.appendChild(opt);
+                  }
+
+                  // 3) 이전 선택이 여전히 유효하면 유지, 아니면 시작 연도로 설정
+                  if (prev !== null && prev >= startValue && prev <= 2025) {
+                    endSelect.value = String(prev);
+                  } else {
+                    endSelect.value = String(startValue);
                   }
                 }
-                
-                // 기본값 설정
+
+                // 기본값: 시작 연도(초기 기본 2024)에 맞춰 렌더링
                 updateEndYearOptions(2024);
-                
-                // 시작 연도 변경 시 끝 연도 업데이트
-                startSelect.addEventListener("change", function() {
-                  updateEndYearOptions(parseInt(this.value));
+
+                // 시작 연도 변경 시: 끝 연도 옵션 갱신하되, 기존 선택 유지 가능하면 유지
+                startSelect.addEventListener("change", function () {
+                  const s = parseInt(this.value, 10);
+                  updateEndYearOptions(s);
                 });
               </script>
             </select>
           </div>
-
 
           <!-- 라디오 버튼 -->
           <div class="form-group">

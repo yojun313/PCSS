@@ -394,6 +394,7 @@ class PCSSEARCH:
     # 메인 함수
     def main(self, conf_list):
         try:
+            self.target_conf_list = conf_list
             result_json_path = asyncio.run(self.MultiConfCollector(conf_list))
 
             return result_json_path
@@ -585,6 +586,7 @@ class PCSSEARCH:
                 publ_list = publ_list.find_all("li", class_=re.compile(r"entry"))  
                 for paper in publ_list:
                     if paper.has_attr('id') and paper['id'].split('/')[1] in self.conf_param_list:
+                        conf = paper['id'].split('/')[1]
                         pass
                     else:
                         continue
@@ -599,14 +601,16 @@ class PCSSEARCH:
 
                         papers.append({
                             'title': title,
-                            'authors': author_list
+                            'authors': author_list,
+                            'conf': conf
                         })
             
             paperCnt = 0
             for paper in papers:
                 authors = paper["authors"]
                 if target_author in authors:
-                    paperCnt += 1
+                    if paper['conf'] in self.target_conf_list:
+                        paperCnt += 1
                     if authors[0] == target_author:
                         stats["first_author"] += 1
                         stats["first_or_second_author"] += 1  # 1저자도 2저자 조건에 포함됨

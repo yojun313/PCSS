@@ -609,8 +609,7 @@ class PCSSEARCH:
             for paper in papers:
                 authors = paper["authors"]
                 if target_author in authors:
-                    if paper['conf'] in self.target_conf_list:
-                        paperCnt += 1
+                    paperCnt += 1
                     if authors[0] == target_author:
                         stats["first_author"] += 1
                         stats["first_or_second_author"] += 1  # 1저자도 2저자 조건에 포함됨

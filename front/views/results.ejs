@@ -420,13 +420,28 @@
             return (idx >= 0 && idx < tp.length) ? tp[idx] : 0;
           }
 
+          function getDisplayedCountForAuthor(author) {
+            const byYear = groupedPapers[author];
+            const uniq = new Set(); // 같은 논문이 중복 들어오는 경우 대비
+            for (const year in byYear) {
+              for (const conf in byYear[year]) {
+                byYear[year][conf].forEach(paper => {
+                  // paper에 고유키가 있으면 그걸, 없으면 title로 대체
+                  const key = paper.id || paper.doi || paper.arxiv_id || paper.url || paper.title;
+                  uniq.add(key);
+                });
+              }
+            }
+            return uniq.size;
+          }
+
 
           // Paper count 기준 내림차순 정렬
-          // total_papers 기준 내림차순 정렬
           authorList.sort((a, b) => {
-            const cb = getHeaderCount(b, groupedPapers[b]);
-            const ca = getHeaderCount(a, groupedPapers[a]);
-            return cb - ca;
+            const cb = getDisplayedCountForAuthor(b);
+            const ca = getDisplayedCountForAuthor(a);
+            if (cb !== ca) return cb - ca;
+            return a.localeCompare(b);
           });
 
 
@@ -475,7 +490,8 @@
             });
 
             // ★ 여기서 Paper count 계산하고 헤더에 반영 (오른쪽 정렬)
-            const headerCount = getHeaderCount(author, groupedPapers[author]);
+            const headerCount = getDisplayedCountForAuthor(author);
+
             authorHeader.innerHTML = `
               <span class="author-wrapper">
                 ${linkHtmls.join(', ')}

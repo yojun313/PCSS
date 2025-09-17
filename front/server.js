@@ -1,3 +1,4 @@
+const fix = false;
 const express = require('express');
 const app = express();
 app.use(express.json({ limit: '50mb' }));
@@ -57,11 +58,17 @@ app.get('/conferences', (req, res) => {
 });
 
 app.get('/', (req, res) => {
+  if (fix) {
+    res.sendFile(path.join(__dirname, 'public', 'fix.html'));
+  } else {
     res.sendFile(path.join(__dirname, 'public', 'homepage.html'));
+  }
 });
 
+
+// 필요하면 별도 접근용 beta 라우트 유지
 app.get('/beta', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'fix.html'));
+  res.sendFile(path.join(__dirname, 'public', 'homepage.html'));
 });
 
 // GlobalInputData를 JSON으로 반환하는 라우트

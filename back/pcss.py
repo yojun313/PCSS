@@ -21,6 +21,7 @@ import json
 import sys
 from pymongo import MongoClient
 from dotenv import load_dotenv
+from bson import ObjectId
 
 load_dotenv()
 
@@ -65,6 +66,8 @@ class PCSSEARCH:
         self.mongo_client = MongoClient(MONGO_URI)
         self.mongo_db = self.mongo_client[DB_NAME]
         self.mongo_col = self.mongo_db[COLLECTION_NAME]
+        self.errors_col = self.mongo_db["errors"]
+        self.run_id = None
 
         # MongoDB에서 모든 이름-스코어 가져오기
         self.name_dict = {
@@ -671,14 +674,30 @@ class PCSSEARCH:
 
 
     def write_log(self, message):
-        # 현재 시간 추가
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        log_message = f"[{timestamp}] {message}\n"
-
-        # 로그 파일에 메시지 추가
-        with open(self.log_file_path, 'a') as file:
-            file.write(log_message)
-
+        try:
+            # 문서가 없으면 새로 생성
+            if self.run_id is None:
+                self.run_id = ObjectId()
+                self.errors_col.insert_one({
+                    "_id": self.run_id,
+                    "started_at": datetime.utcnow(),
+                    "errors": [{
+                        "timestamp": datetime.utcnow(),
+                        "message": message
+                    }]
+                })
+            else:
+                self.errors_col.update_one(
+                    {"_id": self.run_id},
+                    {"$push": {
+                        "errors": {
+                            "timestamp": datetime.utcnow(),
+                            "message": message
+                        }
+                    }}
+                )
+        except Exception as e:
+            pass
 
     def Requester(self, url, headers={}, params={}, proxies={}, cookies={}):
         try:

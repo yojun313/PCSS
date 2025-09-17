@@ -6,6 +6,8 @@ import httpx
 from bs4 import BeautifulSoup
 import os
 import pandas as pd
+from fastapi.middleware.cors import CORSMiddleware
+
 
 conf_df = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data', 'conf.csv'))
 conf_param_list = conf_df['param'].tolist()
@@ -150,12 +152,27 @@ async def author_stats(payload: AuthorStatsRequest):
 
     return result
 
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://pcss.r-e.kr",
+        "https://pcss.r-e.kr",
+        "http://pcss.r-e.kr:3000",
+        "http://pcss.r-e.kr:8000",
+        "http://localhost:3000",
+        "http://localhost:8000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 if __name__ == "__main__":
     import uvicorn
-    # 외부에서도 접속 가능하도록 host=0.0.0.0
     uvicorn.run(
-        "author_api:app",          # 현재 파일 이름이 main.py일 때
+        app,             # <- 문자열("author_api:app") 대신 객체(app)로!
         host="0.0.0.0",
         port=8000,
-        reload=True          # 코드 변경 시 자동 재시작 (개발용)
+        reload=True
     )

@@ -486,7 +486,12 @@
                 );
                 if (i !== -1) authorUrl = referencePaper.author_url[i];
               }
-              return `<a href="${authorUrl}" class="author-link" target="_blank">${nameOnlyInner}${bracketPartInner}</a>`;
+              return `<a href="#"
+                class="author-link"
+                data-author="${nameOnlyInner.trim()}"
+                data-profile-url="${authorUrl || ''}">
+                ${nameOnlyInner}${bracketPartInner}
+              </a>`;
             });
 
             // ★ 여기서 Paper count 계산하고 헤더에 반영 (오른쪽 정렬)
@@ -495,6 +500,7 @@
             authorHeader.innerHTML = `
               <span class="author-wrapper">
                 ${linkHtmls.join(', ')}
+                <span class="author-inline-stats" style="margin-left:6px; color:#888;"></span>
                 <span class="paper-count" style="margin-left:6px; font-weight:normal;">
                   - Paper count: ${headerCount}
                 </span>
@@ -613,6 +619,97 @@
               container.appendChild(authorSection);
           }
       }
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      // author 클릭 시: API POST -> 새 탭에 결과 표시 -> 현재 페이지에 stats 반영
+      container.addEventListener("click", async (e) => {
+        const a = e.target.closest("a.author-link");
+        if (!a) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const target_author = a.dataset.author?.trim() || a.textContent.trim();
+        const profileUrl = a.dataset.profileUrl || a.getAttribute("href") || "";
+        const apiUrl = "http://pcss.r-e.kr:8000/author-stats";  // API 엔드포인트
+
+        // 유효성 체크
+        if (!target_author || !profileUrl) {
+          alert("저자 이름 또는 프로필 URL이 없습니다.");
+          return;
+        }
+
+        try {
+          const resp = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              target_author,
+              url: profileUrl,
+              include_papers: true
+            })
+          });
+
+          if (!resp.ok) {
+            const msg = await resp.text();
+            throw new Error(msg || `HTTP ${resp.status}`);
+          }
+
+          const data = await resp.json(); // { stats: "(5,5,0,5)", total: 5, papers: [...] }
+
+          // 1) 현재 페이지: author 이름 옆에 통계 표시
+          let statsSpan = a.parentElement.querySelector(".author-inline-stats");
+          if (!statsSpan) {
+            statsSpan = document.createElement("span");
+            statsSpan.className = "author-inline-stats";
+            statsSpan.style.marginLeft = "6px";
+            statsSpan.style.color = "#888";
+            a.after(statsSpan);
+          }
+          statsSpan.textContent = data.stats; // 예: "(5,5,0,5)"
+
+          // 2) 새 탭 열어 결과 표시 (JSON pretty)
+          const win = window.open("", "_blank");
+          if (win) {
+            const pretty = escapeHtml(JSON.stringify(data, null, 2));
+            win.document.write(`
+              <!doctype html>
+              <html>
+              <head>
+                <meta charset="utf-8" />
+                <title>Author Stats - ${escapeHtml(target_author)}</title>
+                <style>
+                  body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 16px; }
+                  pre { white-space: pre-wrap; word-break: break-word; }
+                  h1 { font-size: 18px; margin: 0 0 12px; }
+                </style>
+              </head>
+              <body>
+                <h1>Author: ${escapeHtml(target_author)}</h1>
+                <pre>${pretty}</pre>
+              </body>
+              </html>
+            `);
+            win.document.close();
+          } else {
+            // 팝업 차단 등으로 새창 실패 시 대체: Blob 다운로드
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const tmp = document.createElement("a");
+            tmp.href = url;
+            tmp.download = `author_stats_${target_author.replace(/\s+/g, "_")}.json`;
+            tmp.click();
+            URL.revokeObjectURL(url);
+          }
+        } catch (err) {
+          alert("통계 조회 실패: " + (err?.message || err));
+        }
+      });
     </script>
   </div>
   <footer class="footer">

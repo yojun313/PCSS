@@ -101,6 +101,43 @@ app.post('/results', (req, res) => {
     res.render('results', { pythonResult, options: globalInputData, error: null });
 });
 
+app.post('/author-stats', (req, res) => {
+  let { name, url, stats, total, papers } = req.body;
+
+  // stats: "(0,2,50,86)" 또는 '["0","2","50","86"]' 등 다양한 형태 대비
+  let statArray = [];
+  try {
+    if (Array.isArray(stats)) {
+      statArray = stats.map(Number);
+    } else if (typeof stats === 'string') {
+      // JSON 배열 문자열이면 파싱
+      if (stats.trim().startsWith('[')) {
+        statArray = JSON.parse(stats).map(Number);
+      } else {
+        // "(0,2,50,86)" 또는 "0,2,50,86"
+        statArray = stats.replace(/[()"']/g, '').split(',').map(s => Number(s.trim()));
+      }
+    }
+  } catch (e) {
+    statArray = [];
+  }
+
+  // papers: JSON 문자열일 수 있음
+  try {
+    if (typeof papers === 'string') papers = JSON.parse(papers);
+  } catch (e) {
+    papers = [];
+  }
+
+  res.render('author-stats', {
+    name: name || '',
+    url: url || '#',
+    total: Number(total) || 0,
+    stats: statArray,       // ejs에서 배열로 사용
+    papers: papers || []
+  });
+});
+
 const logRequest = require('./logRequest');
 app.post('/submit', async (req, res) => {
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;

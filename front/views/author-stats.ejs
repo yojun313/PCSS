@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title><%= name %> - 통계</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f8f9fa; margin:20px; }
+    h1 { color:#C80150; text-align:center; }
+    .profile { text-align:center; margin-bottom:20px; }
+    .profile a { color:#C80150; text-decoration:none; }
+    .card { background:#fff; border:1px solid #ddd; border-radius:6px; margin:8px auto; padding:12px; max-width:900px; box-shadow:0 1px 4px rgba(0,0,0,.1); }
+    .title { font-weight:bold; font-size:15px; margin-bottom:4px; }
+    .authors { color:#555; font-size:13px; }
+    .conf { font-size:12px; color:#888; margin-top:4px; }
+  </style>
+</head>
+<body>
+  <%
+    // 서버에서 숫자 배열로 보정된다고 가정
+    const s = Array.isArray(stats) ? stats : [];
+  %>
+
+  <h1><%= name %> - 통계 정보</h1>
+  <div class="profile"><a href="<%= url %>" target="_blank">DBLP 프로필</a></div>
+
+  <% if (s.length === 4) { %>
+    <table style="margin:0 auto;border-collapse:collapse;font-size:15px;">
+      <thead>
+        <tr>
+          <th style="border:1px solid #ddd;padding:6px;background:#f2f2f2;">구분</th>
+          <th style="border:1px solid #ddd;padding:6px;background:#f2f2f2;">논문 수</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="border:1px solid #ddd;padding:6px;">1저자 논문 수</td><td style="border:1px solid #ddd;padding:6px;"><%= s[0] %></td></tr>
+        <tr><td style="border:1px solid #ddd;padding:6px;">1 또는 2저자 논문 수</td><td style="border:1px solid #ddd;padding:6px;"><%= s[1] %></td></tr>
+        <tr><td style="border:1px solid #ddd;padding:6px;">마지막 저자 논문 수</td><td style="border:1px solid #ddd;padding:6px;"><%= s[2] %></td></tr>
+        <tr><td style="border:1px solid #ddd;padding:6px;">공동 저자 논문 수</td><td style="border:1px solid #ddd;padding:6px;"><%= s[3] %></td></tr>
+      </tbody>
+    </table>
+  <% } else { %>
+    <p style="text-align:center; color:#888;">통계 데이터가 올바르지 않습니다.</p>
+  <% } %>
+
+  <% if (papers && papers.length) { %>
+    <% papers.forEach(p => { %>
+      <div class="card">
+        <div class="title"><%= p.title %></div>
+        <div class="authors"><%= p.authors.join(', ') %></div>
+        <div class="conf">학회: <%= p.conf %></div>
+      </div>
+    <% }) %>
+  <% } else { %>
+    <p style="text-align:center; color:#888;">논문 데이터가 없습니다.</p>
+  <% } %>
+</body>
+</html>

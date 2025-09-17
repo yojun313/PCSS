@@ -227,6 +227,18 @@
       text-decoration: underline;
     }
 
+    .paper-author-link {
+      color: #C80150;        /* 기본 글자색: 붉은색 */
+      cursor: pointer;       /* 손가락 모양 커서 */
+      font-weight: normal;   /* 필요시 bold 가능 */
+      transition: color 0.2s ease, text-decoration 0.2s ease;
+    }
+
+    .paper-author-link:hover {
+      color: #ff3366;        /* hover 시 조금 더 밝은 빨강 */
+      text-decoration: underline; /* 밑줄 효과 */
+    }
+
     /* 다크 모드 스타일 */
     @media (prefers-color-scheme: dark) {
       body {
@@ -503,21 +515,24 @@
 
                 // 저자 리스트
                 const authorsList = document.createElement("div");
-                authorsList.className = "authors";
-                paper.author_name.forEach((name, idx) => {
-                  const link = document.createElement("a");
-                  link.href = paper.author_url[idx] || "#";
-                  link.textContent = name;
-                  link.className = "paper-author-link";  // ✅ 논문 저자만 클릭
-                  link.dataset.author = name;
-                  link.dataset.profileUrl = paper.author_url[idx] || "";
-                  link.addEventListener("click", ev => ev.stopPropagation());
-                  authorsList.appendChild(link);
-                  if (idx < paper.author_name.length - 1) {
-                    authorsList.appendChild(document.createTextNode(", "));
-                  }
-                });
-                card.appendChild(authorsList);
+                  authorsList.className = "authors";
+
+                  paper.author_name.forEach((name, idx) => {
+                    const authorEl = document.createElement("span");
+                    authorEl.textContent = name;
+                    authorEl.className = "paper-author-link";
+                    authorEl.dataset.author = name;
+                    authorEl.dataset.profileUrl = paper.author_url[idx] || "";
+
+                    authorEl.style.cursor = "pointer"; // 클릭 가능하게 표시
+
+                    authorsList.appendChild(authorEl);
+                    if (idx < paper.author_name.length - 1) {
+                      authorsList.appendChild(document.createTextNode(", "));
+                    }
+                  });
+                  card.appendChild(authorsList);
+
 
                 conferenceContent.appendChild(card);
               });
@@ -544,20 +559,58 @@
           .replace(/>/g, "&gt;");
       }
 
+      function openAuthorStatsInNewTab(payload) {
+        // payload: { name, url, stats, total, papers }
+
+        // 폼 생성 (새 탭)
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/author-stats';
+        form.target = '_blank';
+
+        // 각 필드 추가 (papers는 문자열 길 수 있으니 textarea로)
+        const fields = {
+          name: payload.name,
+          url: payload.url,
+          stats: Array.isArray(payload.stats) ? JSON.stringify(payload.stats) : String(payload.stats),
+          total: String(payload.total),
+          papers: JSON.stringify(payload.papers || [])
+        };
+
+        Object.entries(fields).forEach(([k, v]) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = k;
+          input.value = v;
+          form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+        form.remove();
+      }
+
       // 카드 내 저자 클릭 시 API 호출
       container.addEventListener("click", async e => {
-        const a = e.target.closest("a.paper-author-link");
-        if (!a) return;
+        // span.paper-author-link를 찾도록 수정
+        const authorEl = e.target.closest(".paper-author-link");
+        if (!authorEl) return;
 
-        e.preventDefault();     // ← 링크 기본 동작 막기
-        e.stopPropagation();
 
-        const target_author = a.dataset.author?.trim() || a.textContent.trim();
-        const profileUrl = a.dataset.profileUrl || a.getAttribute("href") || "";
-        if (!target_author || !profileUrl) {
-          alert("저자 이름 또는 프로필 URL이 없습니다.");
+        const target_author = authorEl.getAttribute("data-author")?.trim() || authorEl.textContent.trim();
+        const profileUrl = authorEl.getAttribute("data-profile-url") || "";
+        
+        if (!target_author) {
+          alert("저자 이름이 없습니다.");
           return;
         }
+
+        if (!profileUrl) {
+          alert("프로필 URL이 없습니다.");
+          return;
+        }
+
+        console.log("저자 클릭:", target_author, profileUrl); // 디버깅용
 
         try {
           const resp = await fetch("http://pcss.r-e.kr:8000/author-stats", {
@@ -569,37 +622,47 @@
               include_papers: true
             })
           });
+          
           if (!resp.ok) throw new Error(await resp.text() || `HTTP ${resp.status}`);
           const data = await resp.json();
 
-          // ① 새 탭에 JSON 출력
-          const win = window.open("", "_blank");
-          if (win) {
-            const pretty = escapeHtml(JSON.stringify(data, null, 2));
-            win.document.write(`
-              <!doctype html>
-              <html><head><meta charset="utf-8">
-              <title>${escapeHtml(target_author)}</title></head>
-              <body><pre>${pretty}</pre></body></html>
-            `);
-            win.document.close();
-          }
+          const payload = {
+            name: target_author,
+            stats: data.stats,
+            total: data.total,
+            url: profileUrl,
+            papers: data.papers
+          };
+          openAuthorStatsInNewTab(payload);
 
           // ② 현재 페이지에 통계값 붙이기
-          //    예: (0,0,0,0) 형식
-          const stat = Array.isArray(data.stats) ? data.stats.join(",") : "0,0,0,0";
-          let badge = a.parentNode.querySelector(".author-stats-badge");
-          if (!badge) {
+          let stat;
+          if (data.stats && typeof data.stats === 'string') {
+            // API가 "(5.5,0.5)" 형태의 문자열을 반환하므로 괄호를 제거합니다.
+            stat = data.stats.replace(/[()]/g, ''); 
+          } else if (Array.isArray(data.stats)) {
+            // 만약 API가 나중에 배열 형태로 응답을 주더라도 호환되도록 남겨둡니다.
+            stat = data.stats.join(',');
+          } else {
+            // stats 값이 없거나 예기치 않은 형식일 경우 기본값을 사용합니다.
+            stat = "0,0,0,0"; 
+          }
+          // 클릭된 저자(authorEl)의 바로 다음 형제 요소를 확인합니다.
+          let badge = authorEl.nextElementSibling;
+
+          // 다음 형제 요소가 뱃지가 아니거나 존재하지 않는 경우, 새로 생성합니다.
+          if (!badge || !badge.classList.contains('author-stats-badge')) {
             badge = document.createElement("span");
             badge.className = "author-stats-badge";
-            badge.style.marginLeft = "4px";
-            badge.style.fontSize = "11px";
-            badge.style.color = "#888";
-            a.parentNode.insertBefore(badge, a.nextSibling);
+            // 클릭된 저자 바로 뒤에 뱃지를 삽입합니다.
+            authorEl.insertAdjacentElement('afterend', badge);
           }
+
+          // 뱃지의 텍스트를 업데이트합니다.
           badge.textContent = ` (${stat})`;
 
         } catch (err) {
+          console.error("API 요청 실패:", err);
           alert("통계 조회 실패: " + (err?.message || err));
         }
       });

@@ -549,7 +549,7 @@
         const a = e.target.closest("a.paper-author-link");
         if (!a) return;
 
-        e.preventDefault();
+        e.preventDefault();     // ← 링크 기본 동작 막기
         e.stopPropagation();
 
         const target_author = a.dataset.author?.trim() || a.textContent.trim();
@@ -572,6 +572,7 @@
           if (!resp.ok) throw new Error(await resp.text() || `HTTP ${resp.status}`);
           const data = await resp.json();
 
+          // ① 새 탭에 JSON 출력
           const win = window.open("", "_blank");
           if (win) {
             const pretty = escapeHtml(JSON.stringify(data, null, 2));
@@ -583,10 +584,26 @@
             `);
             win.document.close();
           }
+
+          // ② 현재 페이지에 통계값 붙이기
+          //    예: (0,0,0,0) 형식
+          const stat = Array.isArray(data.stats) ? data.stats.join(",") : "0,0,0,0";
+          let badge = a.parentNode.querySelector(".author-stats-badge");
+          if (!badge) {
+            badge = document.createElement("span");
+            badge.className = "author-stats-badge";
+            badge.style.marginLeft = "4px";
+            badge.style.fontSize = "11px";
+            badge.style.color = "#888";
+            a.parentNode.insertBefore(badge, a.nextSibling);
+          }
+          badge.textContent = ` (${stat})`;
+
         } catch (err) {
           alert("통계 조회 실패: " + (err?.message || err));
         }
       });
+
     </script>
 
   </div>

@@ -60,6 +60,10 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'homepage.html'));
 });
 
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'fix.html'));
+});
+
 // GlobalInputData를 JSON으로 반환하는 라우트
 app.get('/loading-data', (req, res) => {
     // globalInputData가 없을 때 처리 (필요 시)

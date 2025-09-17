@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PCSS – 점검중</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+      color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      flex-direction: column;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: rgba(200, 1, 80, 1);
+      margin-bottom: 16px;
+    }
+
+    p {
+      font-size: 1.1rem;
+      color: #555;
+      margin: 0 20px;
+      line-height: 1.6;
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 10px;
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .footer a {
+      color: #007bff;
+      text-decoration: none;
+      margin: 0 4px;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #181818;
+        color: #e0e0e0;
+      }
+      h1 {
+        color: #ff88a2;
+      }
+      p {
+        color: #ccc;
+      }
+      .footer {
+        color: #aaa;
+      }
+      .footer a {
+        color: #4da6ff;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>PCSS 점검중입니다</h1>
+  <p>현재 서비스 안정화를 위해 시스템 점검을 진행하고 있습니다.<br>
+     잠시 후 다시 이용해 주세요.</p>
+
+  <div class="footer">
+    <span>문의: </span>
+    <a href="mailto:yojun313@postech.ac.kr">yojun313@postech.ac.kr</a>
+  </div>
+</body>
+</html>

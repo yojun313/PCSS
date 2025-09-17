@@ -19,6 +19,10 @@ from datetime import datetime
 import asyncio
 import json
 import sys
+from pymongo import MongoClient
+from dotenv import load_dotenv
+
+load_dotenv()
 
 TIMEOUT = 10
 TRYNUM = 10
@@ -34,6 +38,11 @@ if com == 'z8':
 elif com == 'cluster':
     LLM_SERVER = '141.223.16.196'
     PORT = "8089"
+    
+    
+MONGO_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+DB_NAME = "pcss"
+COLLECTION_NAME = "llm_names"
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -52,8 +61,16 @@ class PCSSEARCH:
         self.speed          = 3
         self.current_year   = 2025
         
-        self.json_filename  = os.path.join(os.path.dirname(__file__), '..', '..', "llm_name.json")
-        self.name_dict      = self.load_name_dict()
+        # PCSSEARCH 클래스 내부에 추가
+        self.mongo_client = MongoClient(MONGO_URI)
+        self.mongo_db = self.mongo_client[DB_NAME]
+        self.mongo_col = self.mongo_db[COLLECTION_NAME]
+
+        # MongoDB에서 모든 이름-스코어 가져오기
+        self.name_dict = {
+            doc["name"]: doc["score"]
+            for doc in self.mongo_col.find({}, {"_id": 0, "name": 1, "score": 1})
+        }
 
         self.llm_api_option = True
         self.api_url = f"http://{LLM_SERVER}:{PORT}/api/process"
@@ -469,7 +486,11 @@ class PCSSEARCH:
         formatted_value = "{:.1f}".format(value)
 
         self.name_dict[name] = formatted_value
-        self.save_name_dict()
+        self.mongo_col.update_one(
+            {"name": name},
+            {"$set": {"score": formatted_value, "updated_at": datetime.utcnow()}},
+            upsert=True
+        )
 
         return formatted_value  # 🔹 결과 반환 (0.0 ~ 1.0)
 
@@ -707,7 +728,7 @@ class PCSSEARCH:
             os.system("clear")
 
 if __name__ == "__main__":
-    pcssearch_obj = PCSSEARCH(1, 0.5, 2024, 2024)
+    pcssearch_obj = PCSSEARCH(1, 0.5, 2024, 2024, False)
     conf_list = ['CCS']
     pcssearch_obj.main(conf_list)
     

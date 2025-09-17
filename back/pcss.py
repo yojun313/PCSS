@@ -52,7 +52,7 @@ class PCSSEARCH:
         self.speed          = 3
         self.current_year   = 2025
         
-        self.json_filename  = os.path.join(os.path.dirname(__file__), 'data', "llm_name.json")
+        self.json_filename  = os.path.join(os.path.dirname(__file__), '..', "llm_name.json")
         self.name_dict      = self.load_name_dict()
 
         self.llm_api_option = True

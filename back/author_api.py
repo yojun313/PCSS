@@ -10,7 +10,7 @@ import pandas as pd
 conf_df = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data', 'conf.csv'))
 conf_param_list = conf_df['param'].tolist()
 
-app = FastAPI(title="Author Stats API", version="1.0.0")
+app = FastAPI(title="PCSS API", version="1.0.0")
 
 
 class AuthorStatsRequest(BaseModel):

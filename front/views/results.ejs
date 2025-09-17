@@ -352,12 +352,12 @@
     <div id="papers-container"></div>
     
     <script>
-      // 헬퍼 함수: 토글 가능한 헤더 생성
+      // 토글 가능한 헤더 생성
       function createToggleHeader(text, headerClass) {
         const header = document.createElement("div");
         header.className = headerClass;
         header.innerHTML = text + '<span class="toggle-icon" style="margin-left:auto;">▼</span>';
-        header.addEventListener("click", function() {
+        header.addEventListener("click", () => {
           const content = header.nextElementSibling;
           const icon = header.querySelector(".toggle-icon");
           if (!content.style.display || content.style.display === "none") {
@@ -370,255 +370,173 @@
         });
         return header;
       }
-      
-      // papers 변수는 서버에서 전달된 데이터
+
       const papers = <%- JSON.stringify(pythonResult) %>;
       const container = document.getElementById("papers-container");
-      
+
       if (!papers || Object.keys(papers).length === 0) {
-          alert("검색 조건을 만족하는 논문이 존재하지 않습니다.");
-          container.innerHTML = `
-              <div style="text-align:center; padding:20px; background:#fff4f4; border:1px solid #f5c2c2; border-radius:8px; color:#c71d1d;">
-                  검색 조건을 만족하는 논문이 존재하지 않습니다.
-              </div>`;
+        alert("검색 조건을 만족하는 논문이 존재하지 않습니다.");
+        container.innerHTML = `
+          <div style="text-align:center; padding:20px; background:#fff4f4; border:1px solid #f5c2c2; border-radius:8px; color:#c71d1d;">
+            검색 조건을 만족하는 논문이 존재하지 않습니다.
+          </div>`;
       } else {
-          // 그룹화: target_author > year > conference
-          const groupedPapers = {};
-          for (const key in papers) {
-              const paper = papers[key];
-              paper.target_author.forEach(author => {
-                  if (!groupedPapers[author]) groupedPapers[author] = {};
-                  if (!groupedPapers[author][paper.year]) groupedPapers[author][paper.year] = {};
-                  if (!groupedPapers[author][paper.year][paper.conference]) groupedPapers[author][paper.year][paper.conference] = [];
-                  groupedPapers[author][paper.year][paper.conference].push(paper);
-              });
-          }
-          const authorList = Object.keys(groupedPapers);
-
-          // 타깃 저자 문자열 정규화: "Name (1.0)" → 공백/소수점 표기를 정규화
-          function normTA(s) {
-            if (!s) return "";
-            const m = s.match(/\(([\d.]+)\)\s*$/);
-            if (!m) return s.trim();
-            return s.replace(/\s*\(([\d.]+)\)\s*$/, ` (${m[1]})`).trim();
-          }
-
-          // 해당 author(=타깃 저자 1명)의 count를 referencePaper.total_papers에서 찾아 반환
-          function getHeaderCount(author, groupedPapersForAuthor) {
-            const firstYear = Object.keys(groupedPapersForAuthor)[0];
-            const firstConf = Object.keys(groupedPapersForAuthor[firstYear])[0];
-            const referencePaper = groupedPapersForAuthor[firstYear][firstConf][0];
-
-            const ta = (referencePaper && Array.isArray(referencePaper.target_author))
-              ? referencePaper.target_author
-              : [];
-            const tp = (referencePaper && Array.isArray(referencePaper.total_papers))
-              ? referencePaper.total_papers
-              : [];
-
-            const idx = ta.findIndex(t => normTA(t) === normTA(author));
-            return (idx >= 0 && idx < tp.length) ? tp[idx] : 0;
-          }
-
-          function getDisplayedCountForAuthor(author) {
-            const byYear = groupedPapers[author];
-            const uniq = new Set(); // 같은 논문이 중복 들어오는 경우 대비
-            for (const year in byYear) {
-              for (const conf in byYear[year]) {
-                byYear[year][conf].forEach(paper => {
-                  // paper에 고유키가 있으면 그걸, 없으면 title로 대체
-                  const key = paper.id || paper.doi || paper.arxiv_id || paper.url || paper.title;
-                  uniq.add(key);
-                });
-              }
+        // target_author > year > conference 로 그룹화
+        const groupedPapers = {};
+        for (const key in papers) {
+          const paper = papers[key];
+          paper.target_author.forEach(author => {
+            if (!groupedPapers[author]) groupedPapers[author] = {};
+            if (!groupedPapers[author][paper.year]) groupedPapers[author][paper.year] = {};
+            if (!groupedPapers[author][paper.year][paper.conference]) {
+              groupedPapers[author][paper.year][paper.conference] = [];
             }
-            return uniq.size;
+            groupedPapers[author][paper.year][paper.conference].push(paper);
+          });
+        }
+
+        function getDisplayedCountForAuthor(author) {
+          const byYear = groupedPapers[author];
+          const uniq = new Set();
+          for (const year in byYear) {
+            for (const conf in byYear[year]) {
+              byYear[year][conf].forEach(paper => {
+                const key = paper.id || paper.doi || paper.arxiv_id || paper.url || paper.title;
+                uniq.add(key);
+              });
+            }
           }
+          return uniq.size;
+        }
 
+        const authorList = Object.keys(groupedPapers);
+        authorList.sort((a, b) => {
+          const cb = getDisplayedCountForAuthor(b);
+          const ca = getDisplayedCountForAuthor(a);
+          if (cb !== ca) return cb - ca;
+          return a.localeCompare(b);
+        });
 
-          // Paper count 기준 내림차순 정렬
-          authorList.sort((a, b) => {
-            const cb = getDisplayedCountForAuthor(b);
-            const ca = getDisplayedCountForAuthor(a);
-            if (cb !== ca) return cb - ca;
-            return a.localeCompare(b);
+        // 저자별 전체 섹션 생성
+        for (const author of authorList) {
+          const authorSection = document.createElement("div");
+          authorSection.className = "year-section";
+
+          const authorHeader = document.createElement("div");
+          authorHeader.className = "year-header";
+          const headerCount = getDisplayedCountForAuthor(author);
+          authorHeader.innerHTML = `
+            <span class="author-wrapper">
+              ${escapeHtml(author)}
+              <span class="paper-count" style="margin-left:6px; font-weight:normal;">
+                - Paper count: ${headerCount}
+              </span>
+            </span>
+            <span class="toggle-icon" style="margin-left:auto;">▼</span>
+          `;
+          authorHeader.addEventListener("click", () => {
+            const content = authorSection.querySelector(".year-content");
+            const icon = authorHeader.querySelector(".toggle-icon");
+            if (!content.style.display || content.style.display === "none") {
+              content.style.display = "block";
+              icon.textContent = "▼";
+            } else {
+              content.style.display = "none";
+              icon.textContent = "▶";
+            }
           });
 
+          const authorContent = document.createElement("div");
+          authorContent.className = "year-content";
 
-          // 각 저자별 섹션 생성
-          for (const author of authorList) {
-            const authorSection = document.createElement("div");
-            authorSection.className = "year-section";
+          // 연도 섹션
+          for (const year in groupedPapers[author]) {
+            const yearSection = document.createElement("div");
+            yearSection.className = "conference-section";
 
-            // 저자 헤더 생성
-            const authorHeader = document.createElement("div");
-            authorHeader.className = "year-header";
+            const yearHeaderEl = createToggleHeader(`${year}`, "conference-header");
+            yearSection.appendChild(yearHeaderEl);
 
-            // 저자 문자열에서 이름/괄호 분리
-            const bracketIndex = author.indexOf('(');
-            let nameOnly = author, bracketPart = '';
-            if (bracketIndex !== -1) {
-              nameOnly = author.substring(0, bracketIndex).trim();
-              bracketPart = author.substring(bracketIndex);
+            const yearContent = document.createElement("div");
+            yearContent.className = "conference-content";
+
+            // 학회 섹션
+            for (const conference in groupedPapers[author][year]) {
+              const conferenceSection = document.createElement("div");
+              conferenceSection.className = "conference-section";
+
+              const conferenceHeader = document.createElement("div");
+              conferenceHeader.className = "conference-header";
+              const confSource = groupedPapers[author][year][conference][0]?.source || "#";
+              conferenceHeader.innerHTML = `
+                <a class="conference-link" href="${confSource}" target="_blank" rel="noopener">
+                  ${conference}
+                </a>
+                <span class="toggle-icon" style="margin-left:auto;">▼</span>
+              `;
+              const confToggleIcon = conferenceHeader.querySelector(".toggle-icon");
+              confToggleIcon.addEventListener("click", e => {
+                e.preventDefault();
+                e.stopPropagation();
+                const content = conferenceSection.querySelector(".conference-content");
+                if (!content.style.display || content.style.display === "none") {
+                  content.style.display = "block";
+                  confToggleIcon.textContent = "▼";
+                } else {
+                  content.style.display = "none";
+                  confToggleIcon.textContent = "▶";
+                }
+              });
+
+              const conferenceContent = document.createElement("div");
+              conferenceContent.className = "conference-content";
+
+              // 논문 카드
+              groupedPapers[author][year][conference].forEach(paper => {
+                const card = document.createElement("div");
+                card.className = "card";
+
+                const titleEl = document.createElement("div");
+                titleEl.className = "card-title";
+                titleEl.textContent = paper.title;
+                card.appendChild(titleEl);
+
+                // 저자 리스트
+                const authorsList = document.createElement("div");
+                authorsList.className = "authors";
+                paper.author_name.forEach((name, idx) => {
+                  const link = document.createElement("a");
+                  link.href = paper.author_url[idx] || "#";
+                  link.textContent = name;
+                  link.className = "paper-author-link";  // ✅ 논문 저자만 클릭
+                  link.dataset.author = name;
+                  link.dataset.profileUrl = paper.author_url[idx] || "";
+                  link.addEventListener("click", ev => ev.stopPropagation());
+                  authorsList.appendChild(link);
+                  if (idx < paper.author_name.length - 1) {
+                    authorsList.appendChild(document.createTextNode(", "));
+                  }
+                });
+                card.appendChild(authorsList);
+
+                conferenceContent.appendChild(card);
+              });
+
+              conferenceSection.appendChild(conferenceHeader);
+              conferenceSection.appendChild(conferenceContent);
+              yearContent.appendChild(conferenceSection);
             }
 
-            // 첫 논문 데이터 참조해서 URL 결정
-            const firstYear = Object.keys(groupedPapers[author])[0];
-            const firstConference = Object.keys(groupedPapers[author][firstYear])[0];
-            const referencePaper = groupedPapers[author][firstYear][firstConference][0];
-
-            // 저자명 링크들 만들기
-            const authorsArray = author.split(',').map(a => a.trim());
-            const linkHtmls = authorsArray.map(authorStr => {
-              const idx = authorStr.indexOf('(');
-              let nameOnlyInner = authorStr;
-              let bracketPartInner = '';
-              if (idx !== -1) {
-                nameOnlyInner = authorStr.substring(0, idx); // 공백 유지 (trim 제거)
-                // 괄호 앞에 정확히 한 칸만 보장
-                const bracket = authorStr.substring(idx);            // "(1.0) ..."
-                bracketPartInner = ' ' + bracket.replace(/^\s+/, ''); // 앞쪽 공백 정규화
-              }
-              let authorUrl = '#';
-              if (referencePaper.author_name && referencePaper.author_url) {
-                const i = referencePaper.author_name.findIndex(n =>
-                  n.includes(nameOnlyInner.trim()) // 여기서만 trim
-                );
-                if (i !== -1) authorUrl = referencePaper.author_url[i];
-              }
-              return `<a href="#"
-                class="author-link"
-                data-author="${nameOnlyInner.trim()}"
-                data-profile-url="${authorUrl || ''}">
-                ${nameOnlyInner}${bracketPartInner}
-              </a>`;
-            });
-
-            // ★ 여기서 Paper count 계산하고 헤더에 반영 (오른쪽 정렬)
-            const headerCount = getDisplayedCountForAuthor(author);
-
-            authorHeader.innerHTML = `
-              <span class="author-wrapper">
-                ${linkHtmls.join(', ')}
-                <span class="author-inline-stats" style="margin-left:6px; color:#888;"></span>
-                <span class="paper-count" style="margin-left:6px; font-weight:normal;">
-                  - Paper count: ${headerCount}
-                </span>
-              </span>
-              <span class="toggle-icon" style="margin-left:auto;">▼</span>
-            `;
-            // 토글 이벤트
-            authorHeader.addEventListener("click", () => {
-              const content = authorSection.querySelector(".year-content");
-              const icon = authorHeader.querySelector(".toggle-icon");
-              if (!content.style.display || content.style.display === "none") {
-                content.style.display = "block";
-                icon.textContent = "▼";
-              } else {
-                content.style.display = "none";
-                icon.textContent = "▶";
-              }
-            });
-              
-              const authorContent = document.createElement("div");
-              authorContent.className = "year-content";
-              
-              // 연도별 섹션 생성
-              for (const year in groupedPapers[author]) {
-                  const yearSection = document.createElement("div");
-                  yearSection.className = "conference-section";
-                  
-                  // 연도 헤더: toggle 기능 추가
-                  const yearHeaderEl = createToggleHeader(`${year}`, "conference-header");
-                  yearSection.appendChild(yearHeaderEl);
-                  
-                  const yearContent = document.createElement("div");
-                  yearContent.className = "conference-content";
-                  
-                  // 학회별 섹션 생성
-                  for (const conference in groupedPapers[author][year]) {
-                      const conferenceSection = document.createElement("div");
-                      conferenceSection.className = "conference-section";
-                      
-                      const conferenceHeader = document.createElement("div");
-                      conferenceHeader.className = "conference-header";
-
-                      // 이 컨퍼런스 그룹의 첫 논문에서 source 꺼내기
-                      const confSource = groupedPapers[author][year][conference][0]?.source || "#";
-
-                      // 텍스트를 링크로
-                      conferenceHeader.innerHTML = `
-                        <a class="conference-link" href="${confSource}" target="_blank" rel="noopener">
-                          ${conference}
-                        </a>
-                      `;
-                                            
-                      const confToggleIcon = document.createElement("span");
-                      confToggleIcon.className = "toggle-icon";
-                      confToggleIcon.style.marginLeft = "auto";
-                      confToggleIcon.textContent = "▼";
-                      conferenceHeader.appendChild(confToggleIcon);
-                      confToggleIcon.addEventListener("click", (event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        const content = conferenceSection.querySelector(".conference-content");
-                        if (!content.style.display || content.style.display === "none") {
-                            content.style.display = "block";
-                            confToggleIcon.textContent = "▼";
-                        } else {
-                            content.style.display = "none";
-                            confToggleIcon.textContent = "▶";
-                        }
-                      });
-                      
-                      const conferenceContent = document.createElement("div");
-                      conferenceContent.className = "conference-content";
-                      
-                      groupedPapers[author][year][conference].forEach(paper => {
-                        const card = document.createElement("div");
-                        card.className = "card";
-
-                        // 2) 제목
-                        const titleEl = document.createElement("div");
-                        titleEl.className = "card-title";
-                        titleEl.textContent = paper.title;
-                        card.appendChild(titleEl);
-
-                        // 3) 저자 (콤팩트하게)
-                        const authorsList = document.createElement("div");
-                        authorsList.className = "authors";
-                        paper.author_name.forEach((a, index) => {
-                          const link = document.createElement("a");
-                          link.href = paper.author_url[index] || "#";
-                          link.textContent = a;
-                          link.target = "_blank";
-                          authorsList.appendChild(link);
-                          if (index < paper.author_name.length - 1) {
-                            authorsList.appendChild(document.createTextNode(', '));
-                          }
-                        });
-                        card.appendChild(authorsList);
-
-                        // 최종 추가
-                        conferenceContent.appendChild(card);
-                      });
-
-
-                      
-                      conferenceSection.appendChild(conferenceHeader);
-                      conferenceSection.appendChild(conferenceContent);
-                      yearContent.appendChild(conferenceSection);
-                  }
-                  
-                  yearSection.appendChild(yearContent);
-                  authorContent.appendChild(yearSection);
-              }
-              
-              authorSection.appendChild(authorHeader);
-              authorSection.appendChild(authorContent);
-              container.appendChild(authorSection);
+            yearSection.appendChild(yearContent);
+            authorContent.appendChild(yearSection);
           }
+
+          authorSection.appendChild(authorHeader);
+          authorSection.appendChild(authorContent);
+          container.appendChild(authorSection);
+        }
       }
+
       function escapeHtml(s) {
         return String(s)
           .replace(/&/g, "&amp;")
@@ -626,9 +544,9 @@
           .replace(/>/g, "&gt;");
       }
 
-      // author 클릭 시: API POST -> 새 탭에 결과 표시 -> 현재 페이지에 stats 반영
-      container.addEventListener("click", async (e) => {
-        const a = e.target.closest("a.author-link");
+      // 카드 내 저자 클릭 시 API 호출
+      container.addEventListener("click", async e => {
+        const a = e.target.closest("a.paper-author-link");
         if (!a) return;
 
         e.preventDefault();
@@ -636,16 +554,13 @@
 
         const target_author = a.dataset.author?.trim() || a.textContent.trim();
         const profileUrl = a.dataset.profileUrl || a.getAttribute("href") || "";
-        const apiUrl = "http://pcss.r-e.kr:8000/author-stats";  // API 엔드포인트
-
-        // 유효성 체크
         if (!target_author || !profileUrl) {
           alert("저자 이름 또는 프로필 URL이 없습니다.");
           return;
         }
 
         try {
-          const resp = await fetch(apiUrl, {
+          const resp = await fetch("http://pcss.r-e.kr:8000/author-stats", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -654,63 +569,26 @@
               include_papers: true
             })
           });
+          if (!resp.ok) throw new Error(await resp.text() || `HTTP ${resp.status}`);
+          const data = await resp.json();
 
-          if (!resp.ok) {
-            const msg = await resp.text();
-            throw new Error(msg || `HTTP ${resp.status}`);
-          }
-
-          const data = await resp.json(); // { stats: "(5,5,0,5)", total: 5, papers: [...] }
-
-          // 1) 현재 페이지: author 이름 옆에 통계 표시
-          let statsSpan = a.parentElement.querySelector(".author-inline-stats");
-          if (!statsSpan) {
-            statsSpan = document.createElement("span");
-            statsSpan.className = "author-inline-stats";
-            statsSpan.style.marginLeft = "6px";
-            statsSpan.style.color = "#888";
-            a.after(statsSpan);
-          }
-          statsSpan.textContent = data.stats; // 예: "(5,5,0,5)"
-
-          // 2) 새 탭 열어 결과 표시 (JSON pretty)
           const win = window.open("", "_blank");
           if (win) {
             const pretty = escapeHtml(JSON.stringify(data, null, 2));
             win.document.write(`
               <!doctype html>
-              <html>
-              <head>
-                <meta charset="utf-8" />
-                <title>Author Stats - ${escapeHtml(target_author)}</title>
-                <style>
-                  body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 16px; }
-                  pre { white-space: pre-wrap; word-break: break-word; }
-                  h1 { font-size: 18px; margin: 0 0 12px; }
-                </style>
-              </head>
-              <body>
-                <h1>Author: ${escapeHtml(target_author)}</h1>
-                <pre>${pretty}</pre>
-              </body>
-              </html>
+              <html><head><meta charset="utf-8">
+              <title>${escapeHtml(target_author)}</title></head>
+              <body><pre>${pretty}</pre></body></html>
             `);
             win.document.close();
-          } else {
-            // 팝업 차단 등으로 새창 실패 시 대체: Blob 다운로드
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const tmp = document.createElement("a");
-            tmp.href = url;
-            tmp.download = `author_stats_${target_author.replace(/\s+/g, "_")}.json`;
-            tmp.click();
-            URL.revokeObjectURL(url);
           }
         } catch (err) {
           alert("통계 조회 실패: " + (err?.message || err));
         }
       });
     </script>
+
   </div>
   <footer class="footer">
     <div class="footer-container">

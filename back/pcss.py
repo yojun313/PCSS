@@ -90,7 +90,6 @@ class PCSSEARCH:
         self.CrawlData = []
         self.FinalData = {}
 
-        self.log_file_path = os.path.join(os.path.dirname(__file__), 'log', f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt")  # 로그 파일 이름
         self.db_path = os.path.join(os.path.dirname(__file__), 'db')
         
         if self.proxy_option == True:

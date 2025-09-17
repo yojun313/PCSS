@@ -90,9 +90,14 @@ app.post('/results', (req, res) => {
     res.render('results', { pythonResult, options: globalInputData, error: null });
 });
 
+const logRequest = require('./logRequest');
+app.post('/submit', async (req, res) => {
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const body = req.body;
 
-app.post('/submit', (req, res) => {
-    globalInputData = req.body;
+    await logRequest(ip, '/submit', body);
+
+    globalInputData = body;
     res.sendFile(path.join(__dirname, 'public', 'loading.html'));
 });
 

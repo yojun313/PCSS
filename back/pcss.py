@@ -696,7 +696,7 @@ class PCSSEARCH:
                     return await response.text()
             except (aiohttp.ClientError, asyncio.TimeoutError, Exception) as e:
                 if trynum >= TRYNUM:
-                    return self.error_dump(1003, self.error_detector(), url)
+                    self.write_log(traceback.format_exc())
                 trynum += 1
 
 

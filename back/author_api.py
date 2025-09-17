@@ -154,7 +154,7 @@ if __name__ == "__main__":
     import uvicorn
     # 외부에서도 접속 가능하도록 host=0.0.0.0
     uvicorn.run(
-        "main:app",          # 현재 파일 이름이 main.py일 때
+        "author_api:app",          # 현재 파일 이름이 main.py일 때
         host="0.0.0.0",
         port=8000,
         reload=True          # 코드 변경 시 자동 재시작 (개발용)

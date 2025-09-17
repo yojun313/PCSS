@@ -170,8 +170,9 @@ app.add_middleware(
 
 if __name__ == "__main__":
     import uvicorn
+    # reload를 쓰려면 반드시 "모듈:앱" 문자열로!
     uvicorn.run(
-        app,             # <- 문자열("author_api:app") 대신 객체(app)로!
+        "api:app",
         host="0.0.0.0",
         port=8000,
         reload=True

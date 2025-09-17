@@ -56,9 +56,9 @@ app.get('/conferences', (req, res) => {
         .on('error', (err) => logError(`CSV 파일 읽기 오류: ${err.message}`));
 });
 
-// app.get('/', (req, res) => {
-//     res.sendFile(path.join(__dirname, 'public', 'homepage.html'));
-// });
+app.get('/beta', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'homepage.html'));
+});
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'fix.html'));

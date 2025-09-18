@@ -35,6 +35,15 @@ interface LogStats {
   byUncertainty: Array<{ key: string; count: number }>
   byConference: Array<{ key: string; count: number }>
   byHour: Array<{ key: string; count: number }>
+  llmNames: {
+    totalNames: number
+    avgScore: number
+    maxScore: number
+    minScore: number
+    latestUpdate: string
+    scoreDistribution: Array<{ key: string; count: number }>
+    recentNames: Array<{ name: string; score: string; updated_at: string }>
+  }
 }
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D", "#FFC658", "#FF7C7C"]
@@ -238,7 +247,7 @@ export default function PCSSStatsPage() {
       {/* Summary Cards */}
       {stats && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">총 요청 수</CardTitle>
@@ -268,6 +277,17 @@ export default function PCSSStatsPage() {
                 <div className="text-2xl font-bold">{(stats.byIp?.length || 0).toLocaleString()}</div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">총 이름 수</CardTitle>
+                <Database className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.llmNames.totalNames.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">평균 점수: {stats.llmNames.avgScore.toFixed(1)}</p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Date Range */}
@@ -287,10 +307,11 @@ export default function PCSSStatsPage() {
           </Card>
 
           <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">개요</TabsTrigger>
               <TabsTrigger value="options">옵션 분석</TabsTrigger>
               <TabsTrigger value="conferences">컨퍼런스</TabsTrigger>
+              <TabsTrigger value="names">이름 통계</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
@@ -319,6 +340,84 @@ export default function PCSSStatsPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {renderTopTable("선택된 컨퍼런스", stats.byConference || [], 20)}
                 {renderChart("상위 컨퍼런스", stats.byConference || [], "bar", 15)}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="names" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">총 이름 수</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.llmNames.totalNames.toLocaleString()}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">평균 점수</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.llmNames.avgScore.toFixed(1)}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">최고 점수</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.llmNames.maxScore}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">최저 점수</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.llmNames.minScore}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    최근 업데이트
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground font-mono">{stats.llmNames.latestUpdate}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {renderChart("점수 분포", stats.llmNames.scoreDistribution || [], "bar")}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">최근 추가된 이름 (Top 10)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>이름</TableHead>
+                          <TableHead>점수</TableHead>
+                          <TableHead>업데이트 시간</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {stats.llmNames.recentNames.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{item.name}</TableCell>
+                            <TableCell>{item.score}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground font-mono">{item.updated_at}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
           </Tabs>

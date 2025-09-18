@@ -36,6 +36,7 @@ export async function GET() {
 
     const db = client.db(DB_NAME)
     const collection = db.collection(LOG_COLLECTION)
+    const llmNamesCollection = db.collection("llm_names")
 
     // Fetch all documents
     const docs = await collection
@@ -45,6 +46,39 @@ export async function GET() {
           projection: { _id: 0, date: 1, logs: 1 },
         },
       )
+      .toArray()
+
+    const llmNamesStats = await llmNamesCollection
+      .aggregate([
+        {
+          $group: {
+            _id: null,
+            totalNames: { $sum: 1 },
+            avgScore: { $avg: { $toDouble: "$score" } },
+            maxScore: { $max: { $toDouble: "$score" } },
+            minScore: { $min: { $toDouble: "$score" } },
+            latestUpdate: { $max: "$updated_at" },
+          },
+        },
+      ])
+      .toArray()
+
+    const scoreDistribution = await llmNamesCollection
+      .aggregate([
+        {
+          $group: {
+            _id: "$score",
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ])
+      .toArray()
+
+    const recentNames = await llmNamesCollection
+      .find({}, { projection: { name: 1, score: 1, updated_at: 1 } })
+      .sort({ updated_at: -1 })
+      .limit(10)
       .toArray()
 
     if (docs.length === 0) {
@@ -145,6 +179,24 @@ export async function GET() {
       byHour: Object.entries(byHour)
         .map(([key, count]) => ({ key, count }))
         .sort((a, b) => a.key.localeCompare(b.key)),
+      llmNames: {
+        totalNames: llmNamesStats[0]?.totalNames || 0,
+        avgScore: llmNamesStats[0]?.avgScore || 0,
+        maxScore: llmNamesStats[0]?.maxScore || 0,
+        minScore: llmNamesStats[0]?.minScore || 0,
+        latestUpdate: llmNamesStats[0]?.latestUpdate
+          ? new Date(llmNamesStats[0].latestUpdate).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })
+          : "-",
+        scoreDistribution: scoreDistribution.map((item) => ({
+          key: item._id,
+          count: item.count,
+        })),
+        recentNames: recentNames.map((item) => ({
+          name: item.name,
+          score: item.score,
+          updated_at: new Date(item.updated_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }),
+        })),
+      },
     }
 
     return NextResponse.json(result)

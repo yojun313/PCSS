@@ -6,6 +6,7 @@ from pymongo import MongoClient
 import datetime
 
 MONGO_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+print(MONGO_URI)
 DB_NAME = "pcss"
 COLLECTION_NAME = "llm_names"
 

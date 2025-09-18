@@ -3,7 +3,7 @@ import os
 import re
 import json
 from pymongo import MongoClient
-import datetime
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()

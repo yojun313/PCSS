@@ -13,6 +13,7 @@ log/
 user_history/
 db/
 __pycache__/
+all_authors.json
 
 
 # PyCharm 관련 파일 및 폴더 무시

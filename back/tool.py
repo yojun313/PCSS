@@ -6,6 +6,12 @@ import os
 import re
 import json
 import random
+from pymongo import MongoClient
+import datetime
+
+MONGO_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+DB_NAME = "pcss"
+COLLECTION_NAME = "llm_names"
 
 conf_df = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data', 'conf.csv'))
 conf_list = conf_df['param'].tolist()
@@ -112,37 +118,16 @@ def local_saver(startyear, endyear, conf_list):
             with open(os.path.join(conf_path, edited_url), "w", encoding="utf-8") as file:
                 file.write(response.text)           
 
-def collect_author(confList):      
-    final_author_list = []
-    db_path = os.path.join(os.path.dirname(__file__), 'db')
-    conf_cnt = len(confList)
-    for conf_index, conf in enumerate(confList):
-        param = conf
-        folder_path = os.path.join(db_path, param)
-        file_list = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
-        for record_path in file_list:
-
-            with open(record_path, "r", encoding="utf-8") as file:
-                response = file.read()
-
-            soup = BeautifulSoup(response, "lxml")
-            papers = soup.find_all('li', class_='entry inproceedings')
-
-            # 🔥 `extend()`를 사용하여 리스트 추가 성능 개선
-            final_author_list.extend(
-                [author.get_text(strip=True) for paper in papers for author in paper.select('span[itemprop="author"] span[itemprop="name"]') if author.get_text(strip=True) not in final_author_list]
-            )
-            
-            final_author_list = list(set(final_author_list))
-
-            print(f"\r[{conf_index+1}/{conf_cnt}] {len(final_author_list)}", end='')
-
-        # 📌 파일 저장은 마지막에 한 번만 수행하여 I/O 부담 줄이기
-        output_file_path = os.path.join(os.path.dirname(__file__), 'data', 'all_authors.txt')
-        with open(output_file_path, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(final_author_list) + '\n')
-
 def calculate_author():
+    
+    mongo_client = MongoClient(MONGO_URI)
+    mongo_db = mongo_client[DB_NAME]
+    mongo_col = mongo_db[COLLECTION_NAME]
+    
+    name_dict = {
+        doc["name"]: doc["score"]
+        for doc in mongo_col.find({}, {"_id": 0, "name": 1, "score": 1})
+    }
     
     def llm_api_answer(query, model):
         # 전송할 데이터
@@ -166,26 +151,10 @@ def calculate_author():
         except requests.exceptions.RequestException as e:
             return "Error communicating with the server: {e}"
     
-    def load_name_dict():
-        """ JSON 파일에서 name_dict 불러오기 """
-        if os.path.exists(json_filename):
-            with open(json_filename, "r", encoding="utf-8") as file:
-                return json.load(file)
-        return {}  # 파일이 없으면 빈 딕셔너리 반환
-
-    def save_name_dict():
-        """ name_dict를 JSON 파일로 저장 """
-        with open(json_filename, "w", encoding="utf-8") as file:
-            json.dump(name_dict, file, ensure_ascii=False, indent=4)
-    
-    def single_name_llm(name):
-        
-        if name in name_dict:
-            return name_dict[name]
-        
+    def single_name_llm(name, llm_model):        
         result = llm_api_answer(
             query = f"Express the likelihood of this {name} being Korean using only a number between 0~1. You need to say number only",
-            model = model
+            model = llm_model
         )
 
         # 🔹 숫자만 추출 (지수 표기법 방지)
@@ -201,37 +170,36 @@ def calculate_author():
         # 🔹 소수점 1자리까지 포맷팅
         formatted_value = "{:.1f}".format(value)
 
-        name_dict[name] = formatted_value
+        mongo_col.update_one(
+            {"name": name},
+            {"$set": {"score": formatted_value, "updated_at": datetime.utcnow()}},
+            upsert=True
+        )
 
         return formatted_value  # 🔹 결과 반환 (0.0 ~ 1.0)
-
+    
     LLM_SERVER = '141.223.16.196'
     PORT = "8089"
     api_url = f"http://{LLM_SERVER}:{PORT}/api/process"
     model = 'llama3.3:70b-instruct-q8_0'
-    json_filename  = os.path.join(os.path.dirname(__file__), 'data', "llm_name.json")
-    name_dict = load_name_dict()
     
-    with open(os.path.join(os.path.dirname(__file__), 'data', 'all_authors.txt'), "r", encoding="utf-8") as f:
-        lines = f.readlines()
-
+    file_path = os.path.join(os.path.dirname(__file__), 'data', 'all_authors.json')
+    # JSON 파일 읽기
+    with open(file_path, 'r', encoding='utf-8') as f:
+        names = json.load(f)  # JSON 데이터를 리스트로 불러옴    
+    
     # 개행 문자 제거
-    names = [line.strip() for line in lines]
+    names = [name.strip() for name in names]
     names = list(set(names))
+    names = [name for name in names if name not in name_dict]
+    
     total = len(names)
     
     counter = 0  # 처리한 이름 개수를 추적
-
     for name in names:
-        result = single_name_llm(name)
+        result = single_name_llm(name, model)
         print(f"[{counter}/{total}] {name} : {result}")
-
         counter += 1
-        if counter % 10000 == 0:  # 100개마다 저장
-            save_name_dict()
-
-    # 마지막 저장 (1000의 배수가 아니어도 실행)
-    save_name_dict()
 
 def kornametoeng(name, option=1):
     if option == 1:

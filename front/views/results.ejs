@@ -302,6 +302,17 @@
         color: #4da6ff;
       }
       .year-header .author-wrapper { color: #ff88a2; }
+      .paper-author-link {
+        color: #ff88a2;        /* 기본 글자색: 붉은색 */
+        cursor: pointer;       /* 손가락 모양 커서 */
+        font-weight: normal;   /* 필요시 bold 가능 */
+        transition: color 0.2s ease, text-decoration 0.2s ease;
+      }
+
+      .paper-author-link:hover {
+        color: #ff88a2;        /* hover 시 조금 더 밝은 빨강 */
+        text-decoration: underline; /* 밑줄 효과 */
+      }
     }
   </style>
 </head>

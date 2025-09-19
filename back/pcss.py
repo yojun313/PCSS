@@ -228,6 +228,7 @@ class PCSSEARCH:
                     # 조건별 필터링/저장
                     # ----------------------------------------------------
                     authors = authors_origin
+                    authors = [re.sub(r'\d+', '', name).strip() for name in authors]
                     def store_if_korean(idx_list):
                         """idx_list에 해당하는 저자가 한국인이면 저장"""
                         target_authors = []

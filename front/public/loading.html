@@ -276,7 +276,7 @@
             option: "선택 옵션",
             startyear: "연도 범위",
             threshold: "한국인 판단 기준값",
-            CountOption: "저자별 총 논문 수",
+            //CountOption: "저자별 총 논문 수",
             selectedConferences: "선택 학회",
           };
 
@@ -323,9 +323,9 @@
               value = data['uncertainty'];
             } else if (key === 'startyear' || key === 'endyear') {
               value = data['startyear'] + " ~ " + data['endyear'];
-            } else if (key === 'CountOption') {
-              value = data[key];
-            }
+            } //else if (key === 'CountOption') {
+              //value = data[key];
+            //}
             cellValue.textContent = value;
             row.appendChild(cellKey);
             row.appendChild(cellValue);

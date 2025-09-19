@@ -10,7 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 conf_df = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data', 'conf.csv'))
-conf_param_list = conf_df['param'].tolist()
+conf_param_list = dict(zip(conf_df["param"], conf_df["conference"]))
+
 
 app = FastAPI(title="PCSS API", version="1.0.0")
 
@@ -65,6 +66,12 @@ def compute_author_stats(
     papers: List[Dict[str, Any]] = []
 
     for publ_list in publ_lists or []:
+        
+        for item in publ_list.find_all("li", recursive=False):
+            if "year" in item.get("class", []):
+                current_year = item.get_text(strip=True)
+                break
+                
         entries = publ_list.find_all("li", class_=re.compile(r"entry"))
         for paper in entries:
             # ID에서 conf 키 추출
@@ -78,7 +85,8 @@ def compute_author_stats(
             if conf_param_list is not None:
                 if conf is None or conf not in conf_param_list:
                     continue
-
+            
+            conf = conf_param_list[conf]
             title_tag = paper.find("span", class_="title")
             if not title_tag:
                 continue
@@ -105,7 +113,7 @@ def compute_author_stats(
                 {
                     "title": title,
                     "authors": author_list,
-                    "conf": conf,
+                    "conf": f"{conf} {current_year}",
                 }
             )
 

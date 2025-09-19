@@ -396,7 +396,7 @@
             </select>
           </div>
           <!-- 예 / 아니오 선택 -->
-          <div class="form-group">
+          <!-- <div class="form-group">
             <label>저자별 총 논문 수:</label>
             <div style="display:flex;gap:10px;align-items:center;">
               <input type="radio" id="count-yes" name="CountOption" value="yes">
@@ -405,7 +405,7 @@
               <input type="radio" id="count-no" name="CountOption" value="no" checked>
               <label for="count-no">아니오</label>
             </div>
-          </div>
+          </div> -->
           <!-- 제출 버튼 -->
           <button type="button" id="submit-btn">Submit</button>
         </form>
@@ -413,12 +413,11 @@
       <details class="pcss-notice" style="margin:16px 0;" open>
         <summary>사용 전 안내</summary>
         <div class="notice-body">
-          <p><strong>저자별 총 논문 수</strong>를 <strong>예</strong>로 설정하면,
+          <!-- <p><strong>저자별 총 논문 수</strong>를 <strong>예</strong>로 설정하면,
             각 저자에 대해 DBLP 조회가 추가로 발생하여 <u>요청 수가 크게 늘어날 수 있습니다</u>.
             <strong>넓은 연도 범위</strong>와 <strong>많은 학회</strong>를 동시에 선택한 상태에선
             서버·DBLP 모두에 부담이 커질 수 있으니 가급적 <strong>범위를 좁혀</strong> 사용하세요.<br>
-            또한, <strong>“저자별 총 논문 수”를 '예'로 설정하면 결과 생성 시간이 오래 걸릴 수 있습니다.</strong>
-          </p>
+          </p> -->
 
 
           <p><strong>결과 페이지 표기 규칙</strong></p>
@@ -427,9 +426,6 @@
               <code>(한국인 확률)</code> — 
               Llama <code>Llama3.3:70b-instruct-q8_0</code>가 한국인으로 판별한 확률입니다
               (예: <code>홍길동 (0.87)</code> → 87%).
-            </li>
-            <li><strong>“저자별 총 논문 수: 예”</strong>일 때 표시되는 <strong>괄호의 숫자</strong>는 
-              해당 저자의 <u>논문 수(1저자, 1 또는 2저자, 마지막 저자, 공동 저자)</u>를 의미합니다. 예) Gildong Hong(3,4,5,7)
             </li>
           </ul>
 

@@ -12,9 +12,10 @@ endyear = InputData['endyear']
 # Possible 값을 Boolean으로 변환
 threshold = InputData['uncertainty']
 conf_list = InputData['selectedConferences']
-countOption = InputData['CountOption']
+# countOption = InputData['CountOption']
 
-countOption = True if countOption == 'yes' else False
+# countOption = True if countOption == 'yes' else False
+countOption = False
 
 pcssearch_obj = PCSSEARCH(int(option), float(threshold), int(startyear), int(endyear), countOption)
 pcssearch_obj.main(conf_list)

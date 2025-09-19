@@ -18,8 +18,6 @@ API_SINGLE = f"http://{LLM_SERVER}:{PORT}/api/process"
 API_BATCH = f"http://{LLM_SERVER}:{PORT}/api/batch"
 MODEL = "llama3.3:70b-instruct-q8_0"
 
-BATCH_SIZE = 3  # 요청당 이름 개수
-
 def update_score(mongo_col, name, score):
     mongo_col.update_one(
         {"name": name},
@@ -48,7 +46,7 @@ def send_batch(names):
     except requests.exceptions.RequestException:
         return []
 
-def calculate_author():
+def calculate_author(batch_size):
     mongo_client = MongoClient(MONGO_URI)
     mongo_db = mongo_client[DB_NAME]
     mongo_col = mongo_db[COLLECTION_NAME]
@@ -70,8 +68,8 @@ def calculate_author():
     total = len(names)
     counter = 0
 
-    for i in range(0, total, BATCH_SIZE):
-        sub = names[i : i + BATCH_SIZE]
+    for i in range(0, total, batch_size):
+        sub = names[i : i + batch_size]
         responses = send_batch(sub)
         for name, text in zip(sub, responses):
             score = parse_number(text)
@@ -80,4 +78,5 @@ def calculate_author():
             counter += 1
 
 if __name__ == "__main__":
-    calculate_author()
+    batch_size = int(input("Enter batch size: "))
+    calculate_author(batch_size)

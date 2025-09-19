@@ -78,5 +78,7 @@ def calculate_author(batch_size):
             counter += 1
 
 if __name__ == "__main__":
-    batch_size = int(input("Enter batch size: "))
-    calculate_author(batch_size)
+    # batch_size = int(input("Enter batch size: "))
+    # calculate_author(batch_size)
+    res = send_batch(["Yojun Moon"])
+    print(res)

@@ -82,7 +82,7 @@ def add_author():
     mongo_db = mongo_client[DB_NAME]
     mongo_col = mongo_db[COLLECTION_NAME]
     
-    with open(os.path.join(os.path.dirname(__file__), "data", "llm_names.json"), "r", encoding="utf-8") as f:
+    with open(os.path.join(os.path.dirname(__file__), "data", "llm_name.json"), "r", encoding="utf-8") as f:
         names = json.load(f)
         
     total = len(names)

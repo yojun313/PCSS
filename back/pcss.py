@@ -236,7 +236,7 @@ class PCSSEARCH:
                             if idx < len(authors) and self.koreanChecker(authors[idx]):
                                 # 이미 name_dict에 값이 있을 것이므로 가져오기
                                 target_authors.append(
-                                    authors[idx] + f' ({self.name_dict[authors[idx]]})'
+                                    authors[idx] + f' ({round(self.name_dict[authors[idx]], 1)})'
                                 )
                         return target_authors
 
@@ -247,7 +247,7 @@ class PCSSEARCH:
                                 'title': title,
                                 'author_name': authors,
                                 'author_url': authors_url,
-                                'target_author': [authors[0] + f' ({self.name_dict[authors[0]]})'],
+                                'target_author': [authors[0] + f' ({round(self.name_dict[authors[0]],1)})'],
                                 'conference': conf,
                                 'year': year,
                                 'source': url
@@ -272,7 +272,7 @@ class PCSSEARCH:
                                 'title': title, 
                                 'author_name': authors,
                                 'author_url': authors_url,
-                                'target_author': [authors[-1] + f' ({self.name_dict[authors[-1]]})'],
+                                'target_author': [authors[-1] + f' ({round(self.name_dict[authors[-1]], 1)})'],
                                 'conference': conf,
                                 'year': year,
                                 'source': url
@@ -281,9 +281,9 @@ class PCSSEARCH:
                         # 1저자 또는 마지막 저자
                         target = []
                         if self.koreanChecker(authors[0]):
-                            target.append(authors[0] + f'({self.name_dict[authors[0]]})')
+                            target.append(authors[0] + f'({round(self.name_dict[authors[0]], 1)})')
                         if len(authors) > 1 and self.koreanChecker(authors[-1]):
-                            target.append(authors[-1] + f' ({self.name_dict[authors[-1]]})')
+                            target.append(authors[-1] + f' ({round(self.name_dict[authors[-1]], 1)})')
                         if target:
                             self.CrawlData.append({
                                 'title': title,
@@ -299,7 +299,7 @@ class PCSSEARCH:
                         target = []
                         for auth in authors:
                             if self.koreanChecker(auth):
-                                target.append(auth + f' ({self.name_dict[auth]})')
+                                target.append(auth + f' ({round(self.name_dict[auth], 1)})')
                         if target:
                             self.CrawlData.append({
                                 'title': title,
@@ -457,7 +457,7 @@ class PCSSEARCH:
     def single_name_llm(self, name):
         
         try:
-            return self.name_dict[name]
+            return round(self.name_dict[name], 1)
         except KeyError:
             pass
         

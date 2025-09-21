@@ -22,6 +22,7 @@ import sys
 from pymongo import MongoClient
 from dotenv import load_dotenv
 from bson import ObjectId
+import math
 
 load_dotenv()
 
@@ -98,6 +99,14 @@ class PCSSEARCH:
     def init_proxy(self):
         with open(self.proxy_path, "r", encoding="utf-8") as f:
             self.proxy_list = [line.strip() for line in f]  # strip()을 사용하여 개행 문자 제거 (필요한 경우)
+    
+    def get_score(self, name):
+        score = self.name_dict.get(name)
+        if score is None:
+            return None
+        # 소수점 첫째 자리까지 "내림" 후 항상 한 자리까지 표현
+        return f"{math.floor(score * 10) / 10:.1f}"
+        
     
     def async_proxy(self):
         proxy_server = random.choice(self.proxy_list)
@@ -236,7 +245,7 @@ class PCSSEARCH:
                             if idx < len(authors) and self.koreanChecker(authors[idx]):
                                 # 이미 name_dict에 값이 있을 것이므로 가져오기
                                 target_authors.append(
-                                    authors[idx] + f' ({round(self.name_dict[authors[idx]], 1)})'
+                                    authors[idx] + f' ({self.get_score(authors[idx])})'
                                 )
                         return target_authors
 
@@ -247,7 +256,7 @@ class PCSSEARCH:
                                 'title': title,
                                 'author_name': authors,
                                 'author_url': authors_url,
-                                'target_author': [authors[0] + f' ({round(self.name_dict[authors[0]],1)})'],
+                                'target_author': [authors[0] + f' ({self.get_score(authors[0])})'],
                                 'conference': conf,
                                 'year': year,
                                 'source': url
@@ -272,7 +281,7 @@ class PCSSEARCH:
                                 'title': title, 
                                 'author_name': authors,
                                 'author_url': authors_url,
-                                'target_author': [authors[-1] + f' ({round(self.name_dict[authors[-1]], 1)})'],
+                                'target_author': [authors[-1] + f' ({self.get_score(authors[-1])})'],
                                 'conference': conf,
                                 'year': year,
                                 'source': url
@@ -281,9 +290,9 @@ class PCSSEARCH:
                         # 1저자 또는 마지막 저자
                         target = []
                         if self.koreanChecker(authors[0]):
-                            target.append(authors[0] + f'({round(self.name_dict[authors[0]], 1)})')
+                            target.append(authors[0] + f'({self.get_score(authors[0])})')
                         if len(authors) > 1 and self.koreanChecker(authors[-1]):
-                            target.append(authors[-1] + f' ({round(self.name_dict[authors[-1]], 1)})')
+                            target.append(authors[-1] + f' ({self.get_score(authors[-1])})')
                         if target:
                             self.CrawlData.append({
                                 'title': title,
@@ -299,7 +308,7 @@ class PCSSEARCH:
                         target = []
                         for auth in authors:
                             if self.koreanChecker(auth):
-                                target.append(auth + f' ({round(self.name_dict[auth], 1)})')
+                                target.append(auth + f' ({self.get_score(auth)})')
                         if target:
                             self.CrawlData.append({
                                 'title': title,

@@ -78,7 +78,7 @@ def calculate_author(batch_size):
             print(f"[{counter}/{total}] {name} : {score}")
             counter += 1
             
-def add_author(batch_size: int = 500):
+def add_author(batch_size: int = 50000):
     """JSON의 name/results를 MongoDB에 빠르게 upsert"""
     mongo_client = MongoClient(MONGO_URI)
     mongo_db = mongo_client[DB_NAME]

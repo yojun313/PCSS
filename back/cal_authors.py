@@ -5,6 +5,7 @@ import json
 from pymongo import MongoClient
 from datetime import datetime, timezone
 from dotenv import load_dotenv
+from pymongo import UpdateOne
 
 load_dotenv()
 
@@ -76,19 +77,40 @@ def calculate_author(batch_size):
             update_score(mongo_col, name, score)
             print(f"[{counter}/{total}] {name} : {score}")
             counter += 1
-
-def add_author():
+            
+def add_author(batch_size: int = 500):
+    """JSON의 name/results를 MongoDB에 빠르게 upsert"""
     mongo_client = MongoClient(MONGO_URI)
     mongo_db = mongo_client[DB_NAME]
     mongo_col = mongo_db[COLLECTION_NAME]
-    
-    with open(os.path.join(os.path.dirname(__file__), "data", "llm_name.json"), "r", encoding="utf-8") as f:
-        names = json.load(f)
-        
-    total = len(names)
-    for i, name in enumerate(names):
-        update_score(mongo_col, name['name'], name['results'])
-        print(f"[{i+1}/{total}] {name['name']} : {name['results']}")
+
+    file_path = os.path.join(os.path.dirname(__file__), "data", "llm_name.json")
+    with open(file_path, "r", encoding="utf-8") as f:
+        authors = json.load(f)
+
+    ops = []
+    now = datetime.now(timezone.utc)
+    total = len(authors)
+
+    for i, item in enumerate(authors, start=1):
+        ops.append(
+            UpdateOne(
+                {"name": item["name"]},
+                {"$set": {"score": round(item["results"], 1), "updated_at": now}},
+                upsert=True,
+            )
+        )
+
+        # 일정 개수씩 bulk_write 실행 → 메모리 과다 방지
+        if len(ops) >= batch_size:
+            mongo_col.bulk_write(ops, ordered=False)
+            ops.clear()
+            print(f"[{i}/{total}] bulk committed")
+
+    # 남은 작업 처리
+    if ops:
+        mongo_col.bulk_write(ops, ordered=False)
+        print(f"[{total}/{total}] final bulk committed")
     
     
 if __name__ == "__main__":

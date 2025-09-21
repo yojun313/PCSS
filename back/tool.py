@@ -297,8 +297,31 @@ def kornametoeng(name, option=1):
         except Exception as e:
             print("에러 발생:", str(e))
 
+def csvToJson():
+    json_file = os.path.join(os.path.dirname(__file__), 'data', 'ollama_final_result.json')
+
+    with open(json_file, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    cleaned = []
+    seen = set()
+
+    for item in data:
+        # 이름에서 숫자 제거 & 공백 정리
+        clean_name = re.sub(r"\d+", "", item["name"]).strip()
+
+        # 중복 이름은 스킵
+        if clean_name not in seen:
+            cleaned.append({
+                "name": clean_name,
+                "results": item["results"]
+            })
+            seen.add(clean_name)
+
+    # 결과 저장
+    with open("llm_names.json", "w", encoding="utf-8") as f:
+        json.dump(cleaned, f, ensure_ascii=False, indent=2)
 
 conf_list = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data', 'conf.csv'))['param'].tolist()
 if __name__ == '__main__':
-    #local_saver(2010, 2025, conf_list)
-    authorNumChecker("Jaehyuk Huh", "https://dblp.org/pid/83/5240.html")
+    csvToJson()

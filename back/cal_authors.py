@@ -3,7 +3,7 @@ import os
 import re
 import json
 from pymongo import MongoClient
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -21,7 +21,7 @@ MODEL = "llama3.3:70b-instruct-q8_0"
 def update_score(mongo_col, name, score):
     mongo_col.update_one(
         {"name": name},
-        {"$set": {"score": round(score, 1), "updated_at": datetime.utcnow()}},
+        {"$set": {"score": round(score, 1), "updated_at": datetime.now(timezone.utc)}},
         upsert=True,
     )
 
@@ -77,6 +77,19 @@ def calculate_author(batch_size):
             print(f"[{counter}/{total}] {name} : {score}")
             counter += 1
 
+def add_author():
+    mongo_client = MongoClient(MONGO_URI)
+    mongo_db = mongo_client[DB_NAME]
+    mongo_col = mongo_db[COLLECTION_NAME]
+    
+    with open(os.path.join(os.path.dirname(__file__), "data", "llm_names.json"), "r", encoding="utf-8") as f:
+        names = json.load(f)
+        
+    total = len(names)
+    for i, name in enumerate(names):
+        update_score(mongo_col, name['name'], name['results'])
+        print(f"[{i+1}/{total}] {name['name']} : {name['results']}")
+    
+    
 if __name__ == "__main__":
-    batch_size = int(input("Enter batch size: "))
-    calculate_author(batch_size)
+    add_author()

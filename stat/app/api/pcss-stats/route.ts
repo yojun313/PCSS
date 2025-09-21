@@ -57,7 +57,6 @@ export async function GET() {
             avgScore: { $avg: { $toDouble: "$score" } },
             maxScore: { $max: { $toDouble: "$score" } },
             minScore: { $min: { $toDouble: "$score" } },
-            latestUpdate: { $max: "$updated_at" },
           },
         },
       ])
@@ -76,8 +75,7 @@ export async function GET() {
       .toArray()
 
     const recentNames = await llmNamesCollection
-      .find({}, { projection: { name: 1, score: 1, updated_at: 1 } })
-      .sort({ updated_at: -1 })
+      .find({}, { projection: { name: 1, score: 1} })
       .limit(10)
       .toArray()
 
@@ -194,7 +192,6 @@ export async function GET() {
         recentNames: recentNames.map((item) => ({
           name: item.name,
           score: item.score,
-          updated_at: new Date(item.updated_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }),
         })),
       },
     }

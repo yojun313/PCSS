@@ -172,7 +172,7 @@ def calculate_author():
 
         mongo_col.update_one(
             {"name": name},
-            {"$set": {"score": formatted_value, "updated_at": datetime.utcnow()}},
+            {"$set": {"score": formatted_value}},
             upsert=True
         )
 

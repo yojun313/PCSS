@@ -42,7 +42,7 @@ interface LogStats {
     minScore: number
     latestUpdate: string
     scoreDistribution: Array<{ key: string; count: number }>
-    recentNames: Array<{ name: string; score: string; updated_at: string }>
+    recentNames: Array<{ name: string; score: string; }>
   }
 }
 
@@ -411,7 +411,6 @@ export default function PCSSStatsPage() {
                           <TableRow key={index}>
                             <TableCell className="font-medium">{item.name}</TableCell>
                             <TableCell>{item.score}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground font-mono">{item.updated_at}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

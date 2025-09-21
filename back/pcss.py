@@ -491,7 +491,7 @@ class PCSSEARCH:
         self.name_dict[name] = formatted_value
         self.mongo_col.update_one(
             {"name": name},
-            {"$set": {"score": formatted_value, "updated_at": datetime.utcnow()}},
+            {"$set": {"score": formatted_value}},
             upsert=True
         )
 

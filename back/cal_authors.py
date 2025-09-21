@@ -22,7 +22,7 @@ MODEL = "llama3.3:70b-instruct-q8_0"
 def update_score(mongo_col, name, score):
     mongo_col.update_one(
         {"name": name},
-        {"$set": {"score": round(score, 1), "updated_at": datetime.now(timezone.utc)}},
+        {"$set": {"score": round(score, 1)}},
         upsert=True,
     )
 
@@ -96,7 +96,7 @@ def add_author(batch_size: int = 50000):
         ops.append(
             UpdateOne(
                 {"name": item["name"]},
-                {"$set": {"score": round(item["results"], 1), "updated_at": now}},
+                {"$set": {"score": round(item["results"], 1)}},
                 upsert=True,
             )
         )
@@ -111,7 +111,19 @@ def add_author(batch_size: int = 50000):
     if ops:
         mongo_col.bulk_write(ops, ordered=False)
         print(f"[{total}/{total}] final bulk committed")
-    
+
+def edit_json():
+    file_path = os.path.join(os.path.dirname(__file__), "data", "llm_name.json")
+    with open(file_path, "r", encoding="utf-8") as f:
+        authors = json.load(f)
+
+    new_names = []
+    for item in authors:
+        new_names.append({"name": item["name"], "score": item["results"]})
+
+    with open(os.path.join(os.path.dirname(__file__), "data", "llm_name2.json"), "w", encoding="utf-8") as f:
+        json.dump(new_names, f, ensure_ascii=False, indent=2)
+
     
 if __name__ == "__main__":
-    add_author()
+    edit_json()

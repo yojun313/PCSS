@@ -378,46 +378,6 @@ export default function PCSSStatsPage() {
                   </CardContent>
                 </Card>
               </div>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    최근 업데이트
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground font-mono">{stats.llmNames.latestUpdate}</p>
-                </CardContent>
-              </Card>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {renderChart("점수 분포", stats.llmNames.scoreDistribution || [], "bar")}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">최근 추가된 이름 (Top 10)</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>이름</TableHead>
-                          <TableHead>점수</TableHead>
-                          <TableHead>업데이트 시간</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {stats.llmNames.recentNames.map((item, index) => (
-                          <TableRow key={index}>
-                            <TableCell className="font-medium">{item.name}</TableCell>
-                            <TableCell>{item.score}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </div>
             </TabsContent>
           </Tabs>
         </>

@@ -63,15 +63,14 @@ def compute_author_stats(
 
         current_year = None
 
-        # publ-list 내부의 <li>를 순서대로 접근
         for li in publ_list.find_all("li", recursive=False):
 
-            # 1) 연도 업데이트
+            # 연도 업데이트
             if "year" in li.get("class", []):
                 current_year = li.get_text(strip=True)
                 continue
 
-            # 2) entry 처리
+            # entry 처리
             if not re.search(r"entry", " ".join(li.get("class", []))):
                 continue  # year도 entry도 아닌 li는 무시
 
@@ -79,7 +78,6 @@ def compute_author_stats(
                 # year 이전 entry는 무시
                 continue
 
-            # -------- conf 추출 --------
             conf = None
             if li.has_attr("id"):
                 parts = li["id"].split("/")

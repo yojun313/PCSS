@@ -42,9 +42,6 @@ def compute_author_stats(
     target_author: str,
     max_retry: int = 10
 ) -> Dict[str, Any]:
-    """
-    질문에 주신 크롤링/집계 로직을 함수형으로 재작성.
-    """
     stats = {
         "first_author": 0,
         "first_or_second_author": 0,
@@ -54,56 +51,64 @@ def compute_author_stats(
 
     soup = BeautifulSoup(html, "lxml")
 
-    # publ-list가 로드될 때까지 재시도 (질문 코드 호환)
     trynum = 1
     publ_lists = soup.find_all("ul", class_="publ-list")
     while (publ_lists is None or len(publ_lists) == 0) and trynum < max_retry:
-        # BeautifulSoup은 정적 파싱이라 같은 html에서 반복해도 결과가 바뀌지 않지만,
-        # 원본 코드의 구조를 최대한 유지합니다.
         publ_lists = soup.find_all("ul", class_="publ-list")
         trynum += 1
 
     papers: List[Dict[str, Any]] = []
 
-    for publ_list in publ_lists or []:
-        
-        for item in publ_list.find_all("li", recursive=False):
-            if "year" in item.get("class", []):
-                current_year = item.get_text(strip=True)
-                break
-                
-        entries = publ_list.find_all("li", class_=re.compile(r"entry"))
-        for paper in entries:
-            # ID에서 conf 키 추출
+    for publ_list in publ_lists:
+
+        current_year = None
+
+        # publ-list 내부의 <li>를 순서대로 접근
+        for li in publ_list.find_all("li", recursive=False):
+
+            # 1) 연도 업데이트
+            if "year" in li.get("class", []):
+                current_year = li.get_text(strip=True)
+                continue
+
+            # 2) entry 처리
+            if not re.search(r"entry", " ".join(li.get("class", []))):
+                continue  # year도 entry도 아닌 li는 무시
+
+            if current_year is None:
+                # year 이전 entry는 무시
+                continue
+
+            # -------- conf 추출 --------
             conf = None
-            if paper.has_attr("id"):
-                parts = paper["id"].split("/")
+            if li.has_attr("id"):
+                parts = li["id"].split("/")
                 if len(parts) > 1:
                     conf = parts[1]
 
-            # conf 필터가 있으면 pass/continue 결정
+            # conf 필터링
             if conf_param_list is not None:
                 if conf is None or conf not in conf_param_list:
                     continue
-            
+
             conf = conf_param_list[conf]
-            title_tag = paper.find("span", class_="title")
+
+            # -------- title --------
+            title_tag = li.find("span", class_="title")
             if not title_tag:
                 continue
             title = title_tag.get_text(strip=True)
 
-            # 질문 코드의 방식: authors를 cite.data.tts-content 아래에서 span[itemprop=name]로 추출,
-            # 마지막 요소는 제거(pop) (사이트마다 마지막이 '…' 등인 경우가 있어 보임)
-            middle = paper.find("cite", class_="data tts-content")
+            # -------- authors --------
+            middle = li.find("cite", class_="data tts-content")
             if not middle:
-                # 구조가 다를 때를 대비해 fallback: paper 내부에서 직접 탐색
-                middle = paper
+                middle = li  # fallback
 
             authors = middle.select('span[itemprop="name"]:not(.title)')
             author_list = [a.get_text(strip=True) for a in authors]
 
             if len(author_list) > 0:
-                # 원본 코드 호환: 마지막 요소 제거
+                # 기존 코드의 마지막 요소 제거 로직 유지
                 author_list.pop()
 
             if not author_list:
@@ -116,7 +121,7 @@ def compute_author_stats(
                     "conf": f"{conf} {current_year}",
                 }
             )
-
+            
     # 통계 집계
     paperCnt = 0
     for paper in papers:

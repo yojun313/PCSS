@@ -2,7 +2,7 @@ import requests
 import re
 from app.config import API_URL, LLM_MODEL
 from app.data import name_dict
-from app.db import mongo_col
+from app.db import name_col
 import math
 
 def single_name_llm(name):
@@ -30,7 +30,7 @@ def single_name_llm(name):
     formatted_value = "{:.1f}".format(value)
 
     name_dict[name] = formatted_value
-    mongo_col.update_one(
+    name_col.update_one(
         {"name": name},
         {"$set": {"score": formatted_value}},
         upsert=True

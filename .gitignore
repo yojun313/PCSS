@@ -11,7 +11,11 @@ res/
 urls/
 log/
 user_history/
-db/
+
+
+conf_html/
+urls/
+
 __pycache__/
 all_authors.json
 

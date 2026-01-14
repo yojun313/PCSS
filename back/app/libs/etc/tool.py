@@ -117,11 +117,11 @@ def calculate_author():
     
     mongo_client = MongoClient(MONGO_URI)
     mongo_db = mongo_client[DB_NAME]
-    mongo_col = mongo_db[COLLECTION_NAME]
+    name_col = mongo_db[COLLECTION_NAME]
     
     name_dict = {
         doc["name"]: doc["score"]
-        for doc in mongo_col.find({}, {"_id": 0, "name": 1, "score": 1})
+        for doc in name_col.find({}, {"_id": 0, "name": 1, "score": 1})
     }
     
     def llm_api_answer(query, model):
@@ -165,7 +165,7 @@ def calculate_author():
         # 🔹 소수점 1자리까지 포맷팅
         formatted_value = "{:.1f}".format(value)
 
-        mongo_col.update_one(
+        name_col.update_one(
             {"name": name},
             {"$set": {"score": formatted_value}},
             upsert=True

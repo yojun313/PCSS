@@ -19,8 +19,8 @@ API_SINGLE = f"http://{LLM_SERVER}:{PORT}/api/process"
 API_BATCH = f"http://{LLM_SERVER}:{PORT}/api/batch"
 MODEL = "llama3.3:70b-instruct-q8_0"
 
-def update_score(mongo_col, name, score):
-    mongo_col.update_one(
+def update_score(name_col, name, score):
+    name_col.update_one(
         {"name": name},
         {"$set": {"score": round(score, 1)}},
         upsert=True,
@@ -50,12 +50,12 @@ def send_batch(names):
 def calculate_author(batch_size):
     mongo_client = MongoClient(MONGO_URI)
     mongo_db = mongo_client[DB_NAME]
-    mongo_col = mongo_db[COLLECTION_NAME]
+    name_col = mongo_db[COLLECTION_NAME]
 
     # DB에 이미 저장된 이름: score만 뽑기
     name_dict = {
         doc["name"]: doc["score"]
-        for doc in mongo_col.find({}, {"_id": 0, "name": 1, "score": 1})
+        for doc in name_col.find({}, {"_id": 0, "name": 1, "score": 1})
     }
 
     file_path = os.path.join(os.path.dirname(__file__), "data", "all_authors.json")
@@ -74,7 +74,7 @@ def calculate_author(batch_size):
         responses = send_batch(sub)
         for name, text in zip(sub, responses):
             score = parse_number(text)
-            update_score(mongo_col, name, score)
+            update_score(name_col, name, score)
             print(f"[{counter}/{total}] {name} : {score}")
             counter += 1
             
@@ -82,7 +82,7 @@ def add_author(batch_size: int = 50000):
     """JSON의 name/results를 MongoDB에 빠르게 upsert"""
     mongo_client = MongoClient(MONGO_URI)
     mongo_db = mongo_client[DB_NAME]
-    mongo_col = mongo_db[COLLECTION_NAME]
+    name_col = mongo_db[COLLECTION_NAME]
 
     file_path = os.path.join(os.path.dirname(__file__), "data", "llm_name.json")
     with open(file_path, "r", encoding="utf-8") as f:
@@ -103,13 +103,13 @@ def add_author(batch_size: int = 50000):
 
         # 일정 개수씩 bulk_write 실행 → 메모리 과다 방지
         if len(ops) >= batch_size:
-            mongo_col.bulk_write(ops, ordered=False)
+            name_col.bulk_write(ops, ordered=False)
             ops.clear()
             print(f"[{i}/{total}] bulk committed")
 
     # 남은 작업 처리
     if ops:
-        mongo_col.bulk_write(ops, ordered=False)
+        name_col.bulk_write(ops, ordered=False)
         print(f"[{total}/{total}] final bulk committed")
 
 def edit_json():

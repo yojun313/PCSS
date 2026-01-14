@@ -13,9 +13,9 @@ import asyncio
 from dotenv import load_dotenv
 from bson import ObjectId
 from app.db import errors_col
-from libs.req import asyncRequester
+from app.libs.req import asyncRequester
 from app.data import conf_param_dict, conf_param_list
-from libs.llm import get_name_score, single_name_llm
+from app.libs.llm import get_name_score, single_name_llm
 from typing import List, Dict, Any
 import httpx
 

@@ -23,13 +23,3 @@ app.add_middleware(
 )
 
 app.include_router(search_router, prefix="/api")
-
-if __name__ == "__main__":
-    import uvicorn
-    # reload를 쓰려면 반드시 "모듈:앱" 문자열로!
-    uvicorn.run(
-        "api:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
-    )

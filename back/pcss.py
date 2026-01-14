@@ -58,8 +58,6 @@ class PCSSEARCH:
         self.endyear        = int(endyear)       
         self.countOption    = countOption             
 
-        self.proxy_option   = False
-        self.proxy_path     = "C:/Users/magel/Documents/아이피샵(유동프록시).txt"
         self.speed          = 3
         self.current_year   = 2025
         
@@ -92,9 +90,7 @@ class PCSSEARCH:
         self.FinalData = {}
 
         self.db_path = os.path.join(os.path.dirname(__file__), 'db')
-        
-        if self.proxy_option == True:
-            self.init_proxy()
+    
 
     def init_proxy(self):
         with open(self.proxy_path, "r", encoding="utf-8") as f:
@@ -107,13 +103,6 @@ class PCSSEARCH:
         # 소수점 첫째 자리까지 "내림" 후 항상 한 자리까지 표현
         return f"{math.floor(score * 10) / 10:.1f}"
         
-    
-    def async_proxy(self):
-        proxy_server = random.choice(self.proxy_list)
-        if self.proxy_option == True:
-            return 'http://' + str(proxy_server)
-        else:
-            return None
     
     # 한 Conference에 대한 연도별 url 크롤링 함수
     async def conf_crawl(self, conf, session, conf_name):

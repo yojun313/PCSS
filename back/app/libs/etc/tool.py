@@ -16,11 +16,6 @@ COLLECTION_NAME = "llm_names"
 conf_df = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data', 'conf.csv'))
 conf_list = conf_df['param'].tolist()
 
-def random_proxy():
-    iplist = []
-    proxy_server = random.choice(iplist)
-    return {"http": 'http://' + proxy_server, 'https': 'http://' + proxy_server}
-
 def authorNumChecker(target_author, url):
     try:
         stats = {

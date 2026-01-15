@@ -12,7 +12,7 @@ from datetime import datetime
 import asyncio
 from dotenv import load_dotenv
 from app.libs.req import asyncRequester
-from app.data import conf_param_dict, conf_param_list
+from app.data import conf_param_dict, conf_param_list, param_conf_dict
 from app.libs.llm import get_name_score, single_name_llm
 from app.libs.logging import write_log
 from app.config import FORCE_CRAWL
@@ -620,7 +620,8 @@ def compute_author_stats(
 
             if not author_list:
                 continue
-
+            
+            conf = param_conf_dict(conf)
             papers.append(
                 {
                     "title": title,

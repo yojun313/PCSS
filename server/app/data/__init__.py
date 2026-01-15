@@ -22,6 +22,7 @@ else:
 conf_df = pd.read_csv(os.path.join(os.path.dirname(__file__), 'conf.csv'))
 conf_param_list = conf_df['param'].tolist()
 conf_param_dict = conf_df.set_index('conference')['param'].to_dict()
+param_conf_dict = conf_df.set_index('param')['conference'].to_dict()
 
 def get_conferences_for_ui():
     # script.js가 기대하는: [{kind, conference}, ...]

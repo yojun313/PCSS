@@ -5,230 +5,308 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PCSS Loading</title>
   <style>
-    /* 라이트 모드 기본 */
-    h1 {
-      text-align: center;
-      margin-bottom: 40px;
-      color: rgba(200, 1, 80, 1);
-    }
-
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      background-color: #f9f9f9;
-      color: #333;
-    }
-
-    .main-content-wrapper {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 100%;
-    }
-
-    .wrapper {
-      display: flex;
-      gap: 20px;
-      width: 90%;
-      max-width: 1200px;
-    }
-
-    .left-column {
-      flex: 1;
-    }
-
-    .right-column {
-      flex: 2;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    /* 옵션 테이블 */
-    .options-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      background-color: #ffffff;
-      color: #333;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      overflow: hidden;
-      margin-bottom: 20px;
-    }
-
-    .options-table th, .options-table td {
-      padding: 10px;
-      border: 1px solid #ddd;
-      text-align: left;
-    }
-
-    .options-table th {
-      background-color: #f2f2f2;
-      color: #C80150;
-      font-size: 18px;
-    }
-
-    .option-label {
-      background-color: #fafafa;
-      font-weight: bold;
-    }
-
-    /* 로딩 영역 */
-    #loading {
-      text-align: center;
-      margin-bottom: 20px;
-      width: 100%;
-    }
-
-    #loading h2 {
-      font-size: 2rem;
-      margin-bottom: 12px;
-      color: #C80150;
-      font-weight: bold;
-    }
-
-    #loading p {
-      font-size: 1.2rem;
-      margin-bottom: 10px;
-      color: #555;
-    }
-
-    .spinner {
-      border: 5px solid #f3f3f3;
-      border-top: 5px solid #C80150;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* 로그 출력 */
-    pre#output {
-      margin-top: 12px;
-      width: 100%;
-      height: 45vh;
-      background: #ffffff;
-      color: #333;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 12px;
-      overflow: auto;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-    }
-
-    /* Footer */
-    .footer {
-      text-align: center;
-      font-size: 12px;
-      margin-top: 20px;
-      padding: 10px 0;
-      color: #666;
-    }
-
-    .footer-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .footer-container p {
-      margin: 0;
-      font-weight: bold;
-    }
-
-    .user {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 13px;
-    }
-
-    .user a {
-      text-decoration: none;
-      transition: color 0.3s;
-      color: #007bff;
-    }
-
-    .user a:hover {
-      text-decoration: underline;
-    }
-
-    /* 다크 모드 */
-    @media (prefers-color-scheme: dark) {
-      h1 { color: #ff88a2; }
-
+      :root {
+        --primary-color: #C80150;
+        --bg-color: #f4f6f9;
+        --card-bg: #ffffff;
+        --text-main: #333333;
+        --text-sub: #666666;
+        --border-color: #e0e0e0;
+        --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      }
+  
+      /* 다크 모드 변수 */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --primary-color: #ff88a2;
+          --bg-color: #121212;
+          --card-bg: #1e1e1e;
+          --text-main: #e0e0e0;
+          --text-sub: #aaaaaa;
+          --border-color: #333333;
+          --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+      }
+  
+      * {
+        box-sizing: border-box;
+      }
+  
       body {
-        background-color: #121212;
-        color: #e0e0e0;
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        transition: background-color 0.3s, color 0.3s;
       }
-
+  
+      h1 {
+        text-align: center;
+        margin: 40px 0 30px;
+        color: var(--primary-color);
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+  
+      .main-content-wrapper {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        padding: 0 20px;
+      }
+  
+      .wrapper {
+        display: flex;
+        gap: 30px;
+        width: 100%;
+        max-width: 1200px;
+        align-items: flex-start; /* 높이가 달라도 상단 정렬 */
+      }
+  
+      .left-column {
+        flex: 1;
+        min-width: 300px;
+      }
+  
+      .right-column {
+        flex: 2;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+      }
+  
+      /* 카드 공통 스타일 */
+      .card-box {
+        background-color: var(--card-bg);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+      }
+  
+      /* 옵션 테이블 스타일링 */
       .options-table {
-        background-color: #2c2c2c;
-        color: #e0e0e0;
-        border: 1px solid #444;
+        width: 100%;
+        border-collapse: collapse;
       }
-
+  
       .options-table th {
-        background-color: #3a3a3a;
-        color: #ff88a2;
+        background-color: rgba(200, 1, 80, 0.05); /* 브랜드 컬러의 옅은 배경 */
+        color: var(--primary-color);
+        font-size: 1.1rem;
+        padding: 15px;
+        text-align: left;
+        border-bottom: 2px solid var(--primary-color);
       }
-
-      .option-label {
-        background-color: #333;
-        color: #e0e0e0;
+  
+      @media (prefers-color-scheme: dark) {
+        .options-table th {
+          background-color: rgba(255, 136, 162, 0.1);
+        }
       }
-
+  
       .options-table td {
-        background-color: #242424;
+        padding: 12px 15px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.95rem;
       }
-
-      #loading h2 { color: #ff88a2; }
-      #loading p { color: #aaa; }
-
+  
+      .options-table tr:last-child td {
+        border-bottom: none;
+      }
+  
+      .option-label {
+        font-weight: 600;
+        color: var(--text-sub);
+        width: 45%;
+      }
+  
+      /* 통계 뱃지 (Stat Pill) */
+      .stat-pill {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        background-color: var(--bg-color);
+        color: var(--primary-color);
+        font-weight: bold;
+        font-size: 0.9rem;
+        border: 1px solid var(--border-color);
+      }
+  
+      /* 중단 버튼 스타일링 */
+      #cancelBtn {
+        margin-top: 15px;
+        width: 100%;
+        padding: 12px;
+        border: 2px solid var(--primary-color);
+        border-radius: 8px;
+        background-color: transparent;
+        color: var(--primary-color);
+        font-weight: bold;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+      }
+  
+      #cancelBtn:hover:not(:disabled) {
+        background-color: var(--primary-color);
+        color: #fff;
+        box-shadow: 0 4px 10px rgba(200, 1, 80, 0.3);
+      }
+  
+      #cancelBtn:disabled {
+        border-color: #ccc;
+        color: #ccc;
+        cursor: not-allowed;
+      }
+  
+      /* 로딩 영역 */
+      #loading {
+        text-align: center;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+      }
+  
+      #loading p {
+        font-size: 1.1rem;
+        font-weight: 500;
+        margin: 0;
+        color: var(--text-sub);
+      }
+  
       .spinner {
-        border: 5px solid #333;
-        border-top: 5px solid #ff88a2;
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        border-top: 3px solid var(--primary-color);
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 0.8s linear infinite;
       }
-
+  
+      @media (prefers-color-scheme: dark) {
+        .spinner { border: 3px solid rgba(255, 255, 255, 0.1); border-top: 3px solid var(--primary-color); }
+      }
+  
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+  
+      /* 로그 출력 창 (Terminal 느낌) */
       pre#output {
-        background: #242424;
-        color: #e0e0e0;
-        border: 1px solid #444;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.8);
+        margin: 0;
+        width: 100%;
+        height: 60vh; /* 높이 약간 증가 */
+        padding: 20px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        
+        /* Card style applied directly via class usually, but keeping ID styling here */
+        background-color: var(--card-bg);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
       }
-
-      .footer { color: #aaa; }
-      .user a { color: #4da6ff; }
-    }
-
-    /* 반응형 */
-    @media (max-width: 768px) {
-      .wrapper { flex-direction: column; }
-      #loading h2 { font-size: 1.5rem; }
-      #loading p { font-size: 1rem; }
-      pre#output { height: 40vh; }
-      h1 { margin-bottom: 16px; }
-    }
+  
+      /* 커스텀 스크롤바 */
+      pre#output::-webkit-scrollbar {
+        width: 8px;
+      }
+      pre#output::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      pre#output::-webkit-scrollbar-thumb {
+        background-color: #ccc;
+        border-radius: 4px;
+      }
+      @media (prefers-color-scheme: dark) {
+        pre#output::-webkit-scrollbar-thumb {
+          background-color: #444;
+        }
+      }
+  
+      /* Footer */
+      .footer {
+        text-align: center;
+        font-size: 0.85rem;
+        margin-top: 40px;
+        padding: 20px 0;
+        color: var(--text-sub);
+        border-top: 1px solid var(--border-color);
+        background-color: var(--bg-color); /* Footer bg to match body */
+      }
+  
+      .footer-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+  
+      .footer-container p {
+        margin: 0;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.75rem;
+        opacity: 0.7;
+      }
+  
+      .user {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+  
+      .user a {
+        text-decoration: none;
+        color: var(--text-sub);
+        transition: color 0.2s;
+      }
+      
+      .user a:hover {
+        color: var(--primary-color);
+        text-decoration: underline;
+      }
+  
+      /* 반응형 */
+      @media (max-width: 900px) {
+        .wrapper {
+          flex-direction: column;
+        }
+        .left-column {
+          width: 100%;
+        }
+        pre#output {
+          height: 40vh;
+        }
+      }
   </style>
 </head>
 <body>
   <h1>PCSS Searching</h1>
-
+  <div id="loading">
+    <p>DBLP CRAWLER is working...</p>
+    <div class="spinner"></div>
+  </div>
   <div class="main-content-wrapper">
     <div class="wrapper">
       <!-- 왼쪽: 옵션 -->
@@ -268,24 +346,32 @@
               <td class="option-label">저자별 총 논문 수(countOption)</td>
               <td>{{ "예" if options["countOption"] else "아니오" }}</td>
             </tr>
-        
-            <!-- 로딩 페이지에서만 보여주고 싶으면 추가 -->
+            
             <tr>
-              <td class="option-label">작업 ID</td>
-              <td style="word-break: break-all;">{{ job_id }}</td>
+              <td class="option-label">Papers</td>
+              <td class="value-cell">
+                <span id="paperCount" class="stat-pill">0</span>
+              </td>
+            </tr>
+            <tr>
+              <td class="option-label">Korean authors</td>
+              <td class="value-cell">
+                <span id="koreanCount" class="stat-pill">0</span>
+              </td>
             </tr>
           </tbody>
-        </table>        
+        </table>            
+        <div style="margin-top:12px; display:flex; gap:10px;">
+          <button id="cancelBtn" style="
+              padding:10px 14px; border:1px solid #ddd; border-radius:8px;
+              background:#fff; cursor:pointer; font-weight:bold;">
+            중단
+          </button>
+        </div>        
       </div>
 
       <!-- 오른쪽: 로딩 + 로그 -->
       <div class="right-column">
-        <div id="loading">
-          <h2>Collecting Data...</h2>
-          <p>DBLP CRAWLER is working...</p>
-          <div class="spinner"></div>
-        </div>
-
         <pre id="output"></pre>
       </div>
     </div>
@@ -304,6 +390,48 @@
   </footer>
 
   <script>
+    const cancelBtn = document.getElementById("cancelBtn");
+    const cancelUrl = "{{ cancel_url }}";
+
+    cancelBtn.addEventListener("click", async () => {
+      cancelBtn.disabled = true;
+      append("[cancel] 요청 중...");
+
+      try {
+        const res = await fetch(cancelUrl, { method: "POST" });
+        const data = await res.json();
+        append("[cancel] " + JSON.stringify(data));
+        // SSE에서 cancelled 이벤트가 올 것임
+      } catch (e) {
+        append("[cancel] 실패: " + e);
+        cancelBtn.disabled = false;
+      }
+    });
+
+    function updateCounters(data) {
+      if (data.paper_count !== undefined) {
+        document.getElementById("paperCount").textContent = `${data.paper_count}`;
+      }
+      if (data.korean_authors !== undefined) {
+        document.getElementById("koreanCount").textContent = `${data.korean_authors}`;
+      }
+    }    
+    
+    function renderStatus(data) {
+      updateCounters(data);
+    
+      const parts = [];
+    
+      if (data.ts) {
+        parts.push(`[${new Date(data.ts).toLocaleTimeString()}]`);
+      }
+      if (data.msg) parts.push(data.msg);
+      if (data.url) parts.push(data.url);
+    
+      append(parts.join(" | "));
+    }
+    
+    
     const output = document.getElementById("output");
     const eventsUrl = "{{ events_url }}";
     const pageUrl = "{{ page_url }}";
@@ -321,11 +449,17 @@
     es.addEventListener("message", (evt) => {
       try {
         const data = JSON.parse(evt.data);
-        append(data.msg ?? JSON.stringify(data));
+    
+        if (data.type === "status") {
+          renderStatus(data);
+        } else {
+          append(JSON.stringify(data));
+        }
       } catch {
         append(evt.data);
       }
     });
+    
 
     es.addEventListener("event", (evt) => {
       let data;
@@ -340,6 +474,12 @@
         append("[done] redirecting...");
         es.close();
         window.location.href = pageUrl;
+      }
+      if (data.event === "cancelled") {
+        append("[cancelled] stopped.");
+        es.close();
+        // 원하면 홈으로 보내기:
+        // window.location.href = "/";
       }
     });
 

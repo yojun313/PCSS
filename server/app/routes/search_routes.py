@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse
 from app.libs.exceptions import NotFoundException, InternalServerErrorException
 from app.schemas.search import SearchRequest
 from app.services.search_service import PCSSEARCH
-from app.core.job_store import create_job, get_job, finish_job, fail_job
+from app.core.job_store import create_job, get_job, finish_job, fail_job, cancel_job
 from app.libs.exceptions import NotFoundException, InternalServerErrorException
 from app.schemas.search import AuthorStatsRequest, AuthorStatsResponse
 from app.services.search_service import compute_author_stats, fetch_html
@@ -37,6 +37,7 @@ async def start_search(req: SearchRequest):
         countOption=req.countOption,
         job_id=job_id,
         event_queue=job.queue,
+        cancel_check=lambda: bool(get_job(job_id) and get_job(job_id).cancel_requested),
     )
 
     async def runner():
@@ -45,6 +46,14 @@ async def start_search(req: SearchRequest):
             result = await pcs.run(req.selectedConferences)
             finish_job(job_id, result if isinstance(result, dict) else {"result": result})
             job.queue.put_nowait({"type": "event", "event": "done", "job_id": job_id})
+        
+        except asyncio.CancelledError:
+            # 취소된 경우
+            try:
+                job.queue.put_nowait({"type": "event", "event": "cancelled", "job_id": job_id})
+            except Exception:
+                pass
+        
         except Exception as e:
             fail_job(job_id, str(e))
             try:
@@ -52,13 +61,15 @@ async def start_search(req: SearchRequest):
             except Exception:
                 pass
 
-    asyncio.create_task(runner())
+    task = asyncio.create_task(runner())
+    job.task = task
 
     return {
         "job_id": job_id,
         "events_url": f"/api/search/events/{job_id}",
         "result_url": f"/api/search/result/{job_id}",
         "page_url": f"/api/search/page/{job_id}",
+        "cancel_url": f"/api/search/cancel/{job_id}",
     }
 
 # 2) SSE 이벤트 스트림
@@ -77,7 +88,7 @@ async def search_events(job_id: str):
                 # 15초마다 heartbeat (프록시/브라우저 연결 유지에 도움)
                 item = await asyncio.wait_for(job.queue.get(), timeout=15.0)
                 payload = item if isinstance(item, dict) else {"type": "status", "msg": str(item)}
-
+                
                 # status/log는 "message" 이벤트로 통일
                 if payload.get("type") == "status":
                     yield _sse("message", payload)
@@ -86,7 +97,7 @@ async def search_events(job_id: str):
                     yield _sse("event", payload)
 
                 # done/error면 스트림 종료
-                if payload.get("event") in ("done", "error"):
+                if payload.get("event") in ("done", "error", "cancelled"):
                     break
 
             except asyncio.TimeoutError:
@@ -102,6 +113,7 @@ async def search_events(job_id: str):
         },
     )
 
+
 def _sse(event_name: str, data: dict) -> str:
     # SSE 포맷: event: <name>\ndata: <json>\n\n
     return f"event: {event_name}\n" + f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
@@ -112,6 +124,9 @@ async def search_result(job_id: str):
     job = get_job(job_id)
     if not job:
         raise NotFoundException("job not found")
+
+    if job.status == "cancelled":
+        return JSONResponse({"status": "cancelled"}, status_code=200)
 
     if job.status == "running":
         return JSONResponse({"status": "running"}, status_code=202)
@@ -151,6 +166,7 @@ async def search_page(request: Request, job_id: str):
                 "job_id": job_id,
                 "events_url": f"/api/search/events/{job_id}",
                 "page_url": f"/api/search/page/{job_id}",
+                "cancel_url": f"/api/search/cancel/{job_id}",
                 "options": options,
                 "option_text": option_text,
             },
@@ -168,6 +184,24 @@ async def search_page(request: Request, job_id: str):
             "FASTAPI_BASE": "http://pcss.r-e.kr:8000",
         },
     )
+
+
+@router.post("/search/cancel/{job_id}")
+async def search_cancel(job_id: str):
+    job = get_job(job_id)
+    if not job:
+        raise NotFoundException("job not found")
+
+    ok = cancel_job(job_id)
+    if ok:
+        # SSE 쪽에 바로 표시되도록 이벤트도 넣어줌(즉시 반영)
+        try:
+            job.queue.put_nowait({"type": "event", "event": "cancelled", "job_id": job_id})
+        except Exception:
+            pass
+        return {"status": "cancelled", "job_id": job_id}
+
+    return {"status": "failed", "job_id": job_id}
 
 
 @router.post("/author-stats", response_model=AuthorStatsResponse)

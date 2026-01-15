@@ -18,6 +18,7 @@ from app.libs.logging import write_log
 from app.config import FORCE_CRAWL
 from typing import List, Dict, Any
 import httpx
+import time
 
 load_dotenv()
 
@@ -25,7 +26,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 class PCSSEARCH:
-    def __init__(self, option, threshold, startyear, endyear, countOption=True, job_id=None, event_queue=None):
+    def __init__(self, option, threshold, startyear, endyear, countOption=True, job_id=None, event_queue=None, cancel_check=None):
         
         self.force_crawl    = FORCE_CRAWL
         self.option         = option
@@ -47,20 +48,67 @@ class PCSSEARCH:
         
         self.job_id = job_id
         self.event_queue = event_queue
+        self.cancel_check = cancel_check  # callable -> bool
+
+        # emit 튜닝(즉시성 vs 과부하)
+        self._last_emit_ts = 0.0
+        self.emit_min_interval_sec = 0.05  # 50ms: "바로바로" 체감 좋음
     
+    def _should_cancel(self) -> bool:
+        try:
+            return bool(self.cancel_check and self.cancel_check())
+        except Exception:
+            return False
+        
     def _emit(self, payload: dict) -> None:
-        if not self.event_queue:
+        q = self.event_queue
+        if not q:
             return
         try:
-            # FastAPI 핸들러/async 실행 중이면 running loop 존재
-            asyncio.get_running_loop()
-            self.event_queue.put_nowait(payload)
+            # queue가 가득 찼으면 오래된 것 하나 버리고 최신을 넣어서 "즉시성" 확보
+            if q.full():
+                try:
+                    q.get_nowait()
+                except Exception:
+                    pass
+            q.put_nowait(payload)
         except Exception:
-            # 큐 넣기 실패해도 크롤링이 멈추면 안 되므로 무시
             pass
+
+    def _emit_status_throttled(self, payload: dict) -> None:
+        # status는 너무 자주 보내면 네트워크/DOM 업데이트가 병목이므로
+        # 50ms 단위로만 보내되, queue backlog는 위에서 제거되므로 체감은 빨라짐
+        now = time.monotonic()
+        if now - self._last_emit_ts < self.emit_min_interval_sec:
+            return
+        self._last_emit_ts = now
+        self._emit(payload)
     
+    
+    def printStatus(self, msg='', url=None):
+        try:
+            print(
+                f'\r{msg} | {url} | paper: {len(self.CrawlData)} | Korean Authors: {len(self.checkedNameList)}',
+                end=''
+            )
+
+            payload = {
+                "type": "status",
+                "ts": datetime.utcnow().isoformat() + "Z",
+                "msg": msg,
+                "url": url,
+                "paper_count": len(self.CrawlData),
+                "korean_authors": len(self.checkedNameList),
+            }
+            self._emit_status_throttled(payload)
+
+        except Exception:
+            pass
+        
     # 한 Conference에 대한 연도별 url 크롤링 함수
     async def conf_crawl(self, conf, session, conf_name):
+        if self._should_cancel():
+            raise asyncio.CancelledError()
         try:
             self.printStatus(f"{conf_name} Loading...", url=f"https://dblp.org/db/conf/{conf}/index.html")
             filtered_urls = []
@@ -102,12 +150,16 @@ class PCSSEARCH:
                             filtered_urls.append((url, year))
             
             return filtered_urls
-        except:
-            write_log(traceback.format_exc())
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            write_log(self.run_id, traceback.format_exc())
             return []
 
     # 한 개의 Paper에 대한 크롤링 함수
     async def paper_crawl(self, conf, url, year, session):
+        if self._should_cancel():
+            raise asyncio.CancelledError()
         try:
             self.printStatus(f"{year} {conf} Loading...", url=url)
             param = conf_param_dict[conf]
@@ -182,11 +234,11 @@ class PCSSEARCH:
                     # ----------------------------------------------------
                     authors = authors_origin
                     authors = [re.sub(r'\d+', '', name).strip() for name in authors]
-                    def store_if_korean(idx_list):
+                    async def store_if_korean(idx_list):
                         """idx_list에 해당하는 저자가 한국인이면 저장"""
                         target_authors = []
                         for idx in idx_list:
-                            if idx < len(authors) and self.checkKorean(authors[idx]):
+                            if idx < len(authors) and await self.checkKorean(authors[idx]):
                                 # 이미 name_dict에 값이 있을 것이므로 가져오기
                                 target_authors.append(
                                     authors[idx] + f' ({get_name_score(authors[idx])})'
@@ -195,7 +247,7 @@ class PCSSEARCH:
 
                     if self.option == 1:
                         # 1저자
-                        if self.checkKorean(authors[0]):
+                        if await self.checkKorean(authors[0]):
                             self.CrawlData.append({
                                 'title': title,
                                 'author_name': authors,
@@ -207,7 +259,7 @@ class PCSSEARCH:
                             })
                     elif self.option == 2:
                         # 1저자 또는 2저자
-                        target = store_if_korean([0, 1])  # 0,1인덱스
+                        target = await store_if_korean([0, 1])  # 0,1인덱스
                         if target:
                             self.CrawlData.append({
                                 'title': title,
@@ -220,7 +272,7 @@ class PCSSEARCH:
                             })
                     elif self.option == 3:
                         # 마지막 저자
-                        if self.checkKorean(authors[-1]):
+                        if await self.checkKorean(authors[-1]):
                             self.CrawlData.append({
                                 'title': title, 
                                 'author_name': authors,
@@ -233,9 +285,9 @@ class PCSSEARCH:
                     elif self.option == 4:
                         # 1저자 또는 마지막 저자
                         target = []
-                        if self.checkKorean(authors[0]):
+                        if await self.checkKorean(authors[0]):
                             target.append(authors[0] + f'({get_name_score(authors[0])})')
-                        if len(authors) > 1 and self.checkKorean(authors[-1]):
+                        if len(authors) > 1 and await self.checkKorean(authors[-1]):
                             target.append(authors[-1] + f' ({get_name_score(authors[-1])})')
                         if target:
                             self.CrawlData.append({
@@ -251,8 +303,9 @@ class PCSSEARCH:
                         # 저자 중 한 명 이상이 한국인
                         target = []
                         for auth in authors:
-                            if self.checkKorean(auth):
+                            if await self.checkKorean(auth):
                                 target.append(auth + f' ({get_name_score(auth)})')
+                                
                         if target:
                             self.CrawlData.append({
                                 'title': title,
@@ -264,14 +317,20 @@ class PCSSEARCH:
                                 'source': url
                             })
                     # ----------------------------------------------------
-                except:
-                    write_log(traceback.format_exc())
+                except asyncio.CancelledError:
+                    raise
+                except Exception:
+                    write_log(self.run_id, traceback.format_exc())
 
-        except:
-            write_log(traceback.format_exc())
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            write_log(self.run_id, traceback.format_exc())
 
     # 한 Conference에 대한 병렬 Paper 크롤링 함수
     async def MultiPaperCollector(self, conf_urls, conf_name, session):
+        if self._should_cancel():
+            raise asyncio.CancelledError()
         try:
             tasks = []
             for conf_url in conf_urls:
@@ -279,14 +338,20 @@ class PCSSEARCH:
                     url = conf_url[0]
                     year = int(conf_url[1])
                     tasks.append(self.paper_crawl(conf_name, url, year, session))
+                except asyncio.CancelledError:
+                    raise
                 except:
-                    write_log(f"{conf_url[1]}")
+                    write_log(self.run_id, f"{conf_url[1]}")
             results = await asyncio.gather(*tasks)
-        except:
-            write_log(traceback.format_exc())
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            write_log(self.run_id, traceback.format_exc())
 
     # 여러 Conference에 대한 병렬 크롤링 함수
     async def MultiConfCollector(self, conf_list):
+        if self._should_cancel():
+            raise asyncio.CancelledError()
         try:
             # 하나의 세션을 재사용하며 관리 (async with 사용)
             async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=self.speed)) as session:
@@ -299,7 +364,7 @@ class PCSSEARCH:
 
                 # 컨퍼런스 크롤링 작업들을 병렬 실행
                 tasks = [process_conference(conf) for conf in conf_list]
-                await asyncio.gather(*tasks, return_exceptions=True)
+                await asyncio.gather(*tasks)
 
                 # 첫 번째 단계 완료 후, 결과를 저장할 리스트 초기화
                 self.resultData = []
@@ -311,7 +376,7 @@ class PCSSEARCH:
                     totals_by_author = {}
                     
                     for index, author in enumerate(data_copy["author_name"]):
-                        if not self.checkKorean(author):
+                        if not await self.checkKorean(author):
                             new_authors.append(author)
                             continue
                         result = await self.authorNumChecker(author, data['author_url'][index], session)
@@ -335,7 +400,7 @@ class PCSSEARCH:
                 if self.countOption:
                     # 각 데이터에 대해 저자 처리 작업들을 병렬 실행
                     tasks = [authorCounter(data) for data in self.CrawlData]
-                    await asyncio.gather(*tasks, return_exceptions=True)
+                    await asyncio.gather(*tasks)
                 else:
                     self.resultData = self.CrawlData
 
@@ -345,25 +410,56 @@ class PCSSEARCH:
 
             return FinalData
 
-        except Exception as e:
-            print(" PATH=ERROR", e)
-            write_log(traceback.format_exc())
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            write_log(self.run_id, traceback.format_exc())
 
     # 메인 함수
     async def run(self, conf_list):
+        if self._should_cancel():
+            raise asyncio.CancelledError()
         result = await self.MultiConfCollector(conf_list)
         return result
     
 
-    def checkKorean(self, name):
+    async def _llm_score(self, name: str, timeout_sec: float = 5.0) -> float:
+        # 취소가 이미 들어왔으면 즉시 중단
+        if self._should_cancel():
+            raise asyncio.CancelledError()
+
+        try:
+            # 동기 함수 single_name_llm을 스레드로 보내고, 타임아웃 걸기
+            score = await asyncio.wait_for(
+                asyncio.to_thread(single_name_llm, name),
+                timeout=timeout_sec
+            )
+            return float(score)
+        except asyncio.TimeoutError:
+            # 너무 오래 걸리면 낮은 점수로 처리(또는 예외)
+            return 0.0
+        except asyncio.CancelledError:
+            # 중요: 취소는 반드시 다시 raise
+            raise
+        except Exception:
+            return 0.0
+
+    async def checkKorean(self, name: str) -> bool:
+        if self._should_cancel():
+            raise asyncio.CancelledError()
+
         self.printStatus(msg="LLM Checking Korean... ", url=name)
-        if float(single_name_llm(name)) > self.threshold:
+
+        score = await self._llm_score(name, timeout_sec=5.0)
+
+        if self._should_cancel():
+            raise asyncio.CancelledError()
+
+        if score > self.threshold:
             if name not in self.checkedNameList:
                 self.checkedNameList.add(name)
             return True
-
         return False
-
 
     async def authorNumChecker(self, target_author, url, session):
         try:
@@ -378,7 +474,7 @@ class PCSSEARCH:
             res = await asyncRequester(url, session=session)
             if isinstance(res, tuple):
                 # 오류 상황 처리: 로그 기록 또는 기본값 반환
-                write_log("asyncRequester returned an error: " + str(res))
+                write_log(self.run_id, "asyncRequester returned an error: " + str(res))
                 return stats
             soup = BeautifulSoup(res, "lxml")
 
@@ -398,6 +494,9 @@ class PCSSEARCH:
             for publ_list in publ_lists:
                 publ_list = publ_list.find_all("li", class_=re.compile(r"entry"))  
                 for paper in publ_list:
+                    if self._should_cancel():
+                        raise asyncio.CancelledError()
+                    
                     if paper.has_attr('id') and paper['id'].split('/')[1] in conf_param_list:
                         conf = paper['id'].split('/')[1]
                         pass
@@ -436,25 +535,11 @@ class PCSSEARCH:
                 "stats": f"({stats['first_author']},{stats['first_or_second_author']},{stats['last_author']},{stats['co_author']})",
                 "total": paperCnt
             }
-        except Exception as e:
-            write_log(traceback.format_exc())
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            write_log(self.run_id, traceback.format_exc())
             return stats
-
-
-    def printStatus(self, msg='', url=None):
-        try:
-            # SSE 전송 payload
-            self._emit({
-                "type": "status",
-                "ts": datetime.utcnow().isoformat() + "Z",
-                "msg": msg,
-                "url": url,
-                "paper_count": len(self.CrawlData),
-                "korean_authors": len(self.checkedNameList),
-            })
-        except:
-            pass
-    
 
     def clear_console(self):
         if platform.system() == "Windows":

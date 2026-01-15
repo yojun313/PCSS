@@ -29,11 +29,12 @@ def single_name_llm(name):
         query = f"Express the likelihood of this {name} being Korean using only a number between 0~1. You need to say number only",
         model = LLM_MODEL
     )
+    
 
     # 숫자만 추출 (지수 표기법 방지)
     match = re.findall(r"\d+\.\d+|\d+", result)
     if not match:
-        return "0.0"  # 예외 처리: 결과가 없을 경우 기본값
+        return 0.0  # 예외 처리: 결과가 없을 경우 기본값
 
     value = float(match[0])  # 숫자 문자열을 float으로 변환
 
@@ -42,7 +43,8 @@ def single_name_llm(name):
 
     # 소수점 1자리까지 포맷팅
     formatted_value = "{:.1f}".format(value)
-
+    
+    formatted_value = float(formatted_value)
     name_dict[name] = formatted_value
     
     if NAME_CACHE:
@@ -51,9 +53,7 @@ def single_name_llm(name):
             {"$set": {"score": formatted_value}},
             upsert=True
         )
-
     return formatted_value  # 결과 반환 (0.0 ~ 1.0)
-
 
 def llm_api_answer(query, model):
     payload = {
@@ -66,12 +66,11 @@ def llm_api_answer(query, model):
         "max_tokens": 100,
     }
     response = requests.post(
-        LLM_URL,
+        f"{LLM_URL}/chat/completions",
         json=payload,
         headers=get_headers(),
         timeout=60,
     )
-
     result = response.json()
     return result["choices"][0]["message"]["content"]
 

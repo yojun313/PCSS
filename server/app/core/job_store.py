@@ -35,3 +35,14 @@ def fail_job(job_id: str, error: str) -> None:
         return
     job.status = "error"
     job.error = error
+
+def cancel_job(job_id: str) -> bool:
+    job = JOBS.get(job_id)
+    if not job:
+        return False
+    job.cancel_requested = True
+    job.status = "cancelled"
+    # task를 취소(가능하면)
+    if job.task and not job.task.done():
+        job.task.cancel()
+    return True

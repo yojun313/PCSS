@@ -1,0 +1,14 @@
+uvicorn
+fastapi
+aiofiles
+httpx
+bs4
+urllib3
+lxml
+aiohttp
+pandas
+dotenv
+bson
+pymongo
+requests
+user_agent

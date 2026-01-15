@@ -8,7 +8,7 @@ if os.getenv("LLM_NAME_SOURCE") == "local":
         name_dict = json.load(f)
     name_dict = {
         doc["name"]: doc["score"]
-        for doc in name_col.find({}, {"_id": 0, "name": 1, "score": 1})
+        for doc in name_dict
     }
 else:
     print("Loading LLM names from DB")

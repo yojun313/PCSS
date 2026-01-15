@@ -599,9 +599,7 @@ def compute_author_stats(
             if conf_param_list is not None:
                 if conf is None or conf not in conf_param_list:
                     continue
-
-            conf = conf_param_list[conf]
-
+            
             # -------- title --------
             title_tag = li.find("span", class_="title")
             if not title_tag:
@@ -648,14 +646,14 @@ def compute_author_stats(
             stats["co_author"] += 1
 
     result = {
-        "stats": f"({stats['first_author']},{stats['first_or_second_author']},{stats['last_author']},{stats['co_author']})",
+        "stats": (stats['first_author'], stats['first_or_second_author'], stats['last_author'], stats['co_author']),
         "total": paperCnt,
         "papers": papers,
     }
     return result
 
 
-async def fetch_html(url: str, timeout_sec: float) -> str:
+async def fetch_html(url: str, timeout_sec: float = 10) -> str:
     async with httpx.AsyncClient(timeout=timeout_sec, headers={"User-Agent": "Mozilla/5.0"}) as client:
         resp = await client.get(url)
         resp.raise_for_status()

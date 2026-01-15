@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ name }} - 통계</title>
+  <style>
+    /* CSS 부분은 아주 잘 작성하셨습니다. 그대로 둡니다. */
+    :root {
+      --bg-body: #f8f9fa;
+      --bg-card: #ffffff;
+      --bg-th: #f2f2f2;
+      --text-main: #000000;
+      --text-sub: #555555;
+      --text-muted: #888888;
+      --color-accent: #C80150;
+      --border-color: #dddddd;
+      --shadow-color: rgba(0, 0, 0, 0.1);
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-body: #121212;
+        --bg-card: #1e1e1e;
+        --bg-th: #2c2c2c;
+        --text-main: #e0e0e0;
+        --text-sub: #b0b0b0;
+        --text-muted: #888888;
+        --color-accent: #ff4d85; 
+        --border-color: #333333;
+        --shadow-color: rgba(0, 0, 0, 0.5);
+      }
+    }
+    
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg-body);
+      color: var(--text-main);
+      margin: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+    
+    h1 {
+      color: var(--color-accent);
+      text-align: center;
+    }
+    
+    .profile {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .profile a {
+      color: var(--color-accent);
+      text-decoration: none;
+    }
+    
+    .profile a:hover {
+      text-decoration: underline;
+    }
+    
+    .stats-table {
+      margin: 0 auto;
+      border-collapse: collapse;
+      font-size: 15px;
+      width: auto;
+    }
+    
+    .stats-table th, 
+    .stats-table td {
+      border: 1px solid var(--border-color);
+      padding: 6px;
+    }
+    
+    .stats-table th {
+      background: var(--bg-th);
+      color: var(--text-main);
+    }
+    
+    .stats-table td {
+      color: var(--text-main);
+    }
+    
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      margin: 8px auto;
+      padding: 12px;
+      max-width: 900px;
+      box-shadow: 0 1px 4px var(--shadow-color);
+    }
+    
+    .title {
+      font-weight: bold;
+      font-size: 15px;
+      margin-bottom: 4px;
+      color: var(--text-main);
+    }
+    
+    .authors {
+      color: var(--text-sub);
+      font-size: 13px;
+    }
+    
+    .conf {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    
+    .no-data {
+      text-align: center;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>{{ name }} - 통계 정보</h1>
+
+  <div class="profile">
+    <a href="{{ url }}" target="_blank">DBLP 프로필</a>
+  </div>
+
+  {% if stats and stats|length == 4 %}
+  <table class="stats-table">
+    <thead>
+      <tr><th>구분</th><th>논문 수</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1저자</td><td>{{ stats[0] }}</td></tr>
+      <tr><td>1 또는 2저자</td><td>{{ stats[1] }}</td></tr>
+      <tr><td>마지막 저자</td><td>{{ stats[2] }}</td></tr>
+      <tr><td>공동 저자</td><td>{{ stats[3] }}</td></tr>
+    </tbody>
+  </table>
+  {% else %}
+  <p class="no-data">통계 데이터가 올바르지 않습니다.</p>
+  {% endif %}
+
+  {% if papers %}
+    {% for p in papers %}
+      <div class="card">
+        <div class="title">{{ p.title }}</div>
+        <div class="authors">{{ p.authors | join(', ') }}</div>
+        <div class="conf">학회: {{ p.conf }}</div>
+      </div>
+    {% endfor %}
+  {% else %}
+  <p class="no-data">논문 데이터가 없습니다.</p>
+  {% endif %}
+
+</body>
+</html>

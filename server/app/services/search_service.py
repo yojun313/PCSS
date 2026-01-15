@@ -11,11 +11,11 @@ import copy
 from datetime import datetime
 import asyncio
 from dotenv import load_dotenv
-from bson import ObjectId
-from app.db import errors_col
 from app.libs.req import asyncRequester
 from app.data import conf_param_dict, conf_param_list
 from app.libs.llm import get_name_score, single_name_llm
+from app.libs.logging import write_log
+from app.config import FORCE_CRAWL
 from typing import List, Dict, Any
 import httpx
 
@@ -27,6 +27,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 class PCSSEARCH:
     def __init__(self, option, threshold, startyear, endyear, countOption=True, job_id=None, event_queue=None):
         
+        self.force_crawl    = FORCE_CRAWL
         self.option         = option
         self.threshold      = threshold
         self.startyear      = int(startyear)
@@ -34,7 +35,7 @@ class PCSSEARCH:
         self.countOption    = countOption             
 
         self.speed          = 3
-        self.current_year   = 2025        
+        self.current_year   = 2026
         self.run_id = None
 
         self.checkedNameList = set()
@@ -68,7 +69,7 @@ class PCSSEARCH:
             folder_path = os.path.join(os.path.dirname(__file__), '..', 'db', 'urls')
             file_path = os.path.join(folder_path, f"{conf_name}.txt")
             
-            if os.path.exists(file_path) and self.endyear != self.current_year:
+            if os.path.exists(file_path) and self.endyear != self.current_year and not self.force_crawl:
                 # 이미 파일이 있다면, 해당 내용 사용
                 async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
                     async for line in f:
@@ -99,10 +100,10 @@ class PCSSEARCH:
                         year = int(year_str)
                         if self.startyear <= year <= self.endyear:
                             filtered_urls.append((url, year))
-                            
+            
             return filtered_urls
         except:
-            self.write_log(traceback.format_exc())
+            write_log(traceback.format_exc())
             return []
 
     # 한 개의 Paper에 대한 크롤링 함수
@@ -117,7 +118,7 @@ class PCSSEARCH:
             record_path = os.path.join(self.db_path, 'conf_html', param, edited_url)
             
             # 비동기 파일 읽기: 파일이 존재하면 aiofiles로 읽음
-            if os.path.exists(record_path):
+            if os.path.exists(record_path) and not self.force_crawl:
                 async with aiofiles.open(record_path, "r", encoding="utf-8") as file:
                     response = await file.read()
             else:
@@ -264,10 +265,10 @@ class PCSSEARCH:
                             })
                     # ----------------------------------------------------
                 except:
-                    self.write_log(traceback.format_exc())
+                    write_log(traceback.format_exc())
 
         except:
-            self.write_log(traceback.format_exc())
+            write_log(traceback.format_exc())
 
     # 한 Conference에 대한 병렬 Paper 크롤링 함수
     async def MultiPaperCollector(self, conf_urls, conf_name, session):
@@ -279,10 +280,10 @@ class PCSSEARCH:
                     year = int(conf_url[1])
                     tasks.append(self.paper_crawl(conf_name, url, year, session))
                 except:
-                    self.write_log(f"{conf_url[1]}")
+                    write_log(f"{conf_url[1]}")
             results = await asyncio.gather(*tasks)
         except:
-            self.write_log(traceback.format_exc())
+            write_log(traceback.format_exc())
 
     # 여러 Conference에 대한 병렬 크롤링 함수
     async def MultiConfCollector(self, conf_list):
@@ -346,11 +347,10 @@ class PCSSEARCH:
 
         except Exception as e:
             print(" PATH=ERROR", e)
-            self.write_log(traceback.format_exc())
+            write_log(traceback.format_exc())
 
     # 메인 함수
     async def run(self, conf_list):
-        # 기존 MultiConfCollector가 async이므로 그대로 await
         result = await self.MultiConfCollector(conf_list)
         return result
     
@@ -378,7 +378,7 @@ class PCSSEARCH:
             res = await asyncRequester(url, session=session)
             if isinstance(res, tuple):
                 # 오류 상황 처리: 로그 기록 또는 기본값 반환
-                self.write_log("asyncRequester returned an error: " + str(res))
+                write_log("asyncRequester returned an error: " + str(res))
                 return stats
             soup = BeautifulSoup(res, "lxml")
 
@@ -437,7 +437,7 @@ class PCSSEARCH:
                 "total": paperCnt
             }
         except Exception as e:
-            self.write_log(traceback.format_exc())
+            write_log(traceback.format_exc())
             return stats
 
 
@@ -455,33 +455,6 @@ class PCSSEARCH:
         except:
             pass
     
-
-    def write_log(self, message):
-        try:
-            # 문서가 없으면 새로 생성
-            if self.run_id is None:
-                self.run_id = ObjectId()
-                errors_col.insert_one({
-                    "_id": self.run_id,
-                    "started_at": datetime.utcnow(),
-                    "errors": [{
-                        "timestamp": datetime.utcnow(),
-                        "message": message
-                    }]
-                })
-            else:
-                errors_col.update_one(
-                    {"_id": self.run_id},
-                    {"$push": {
-                        "errors": {
-                            "timestamp": datetime.utcnow(),
-                            "message": message
-                        }
-                    }}
-                )
-        except Exception as e:
-            pass
-
 
     def clear_console(self):
         if platform.system() == "Windows":

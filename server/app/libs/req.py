@@ -3,12 +3,12 @@ import traceback
 import aiohttp
 import asyncio
 from user_agent import generate_navigator
-
+from app.libs.logging import write_log
 
 TIMEOUT = 10
 TRYNUM = 10
 
-def Requester(self, url, headers={}, params={}, cookies={}):
+def Requester(url, headers={}, params={}, cookies={}):
     try:
         if headers == {}:
             headers = random_heador()
@@ -17,18 +17,19 @@ def Requester(self, url, headers={}, params={}, cookies={}):
     except Exception as e:
             return ("ERROR", traceback.format_exc())
 
-async def asyncRequester(self, url, headers={}, params={}, cookies={}, session=None):
+async def asyncRequester(url, headers={}, params={}, cookies={}, session=None):
     timeout = aiohttp.ClientTimeout(total=TIMEOUT)
     trynum = 0
+    print("hello")
     while True:
         try:
             headers = random_heador()
             async with session.get(url, headers=headers, params=params, cookies=cookies,
-                                    ssl=False, timeout=TIMEOUT) as response:
+                                    ssl=False, timeout=timeout) as response:
                 return await response.text()
         except (aiohttp.ClientError, asyncio.TimeoutError, Exception) as e:
             if trynum >= TRYNUM:
-                self.write_log(traceback.format_exc())
+                write_log(None, traceback.format_exc())
             trynum += 1
             
 def random_heador():

@@ -12,3 +12,4 @@ bson
 pymongo
 requests
 user_agent
+jinja2

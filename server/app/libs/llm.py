@@ -3,6 +3,7 @@ import re
 from app.config import LLM_URL, LLM_MODEL
 from app.data import name_dict
 from app.db import name_col
+from app.config import NAME_CACHE
 import math
 import os
 from dotenv import load_dotenv
@@ -18,10 +19,11 @@ def get_headers():
     }
     
 def single_name_llm(name):
-    try:
-        return round(name_dict[name], 1)
-    except KeyError:
-        pass
+    if NAME_CACHE:
+        try:
+            return round(name_dict[name], 1)
+        except KeyError:
+            pass
     
     result = llm_api_answer(
         query = f"Express the likelihood of this {name} being Korean using only a number between 0~1. You need to say number only",
@@ -42,11 +44,13 @@ def single_name_llm(name):
     formatted_value = "{:.1f}".format(value)
 
     name_dict[name] = formatted_value
-    name_col.update_one(
-        {"name": name},
-        {"$set": {"score": formatted_value}},
-        upsert=True
-    )
+    
+    if NAME_CACHE:
+        name_col.update_one(
+            {"name": name},
+            {"$set": {"score": formatted_value}},
+            upsert=True
+        )
 
     return formatted_value  # 결과 반환 (0.0 ~ 1.0)
 

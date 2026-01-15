@@ -1,11 +1,20 @@
 from app.db import name_col
 import os
 import pandas as pd
+import json
 
-name_dict = {
-    doc["name"]: doc["score"]
-    for doc in name_col.find({}, {"_id": 0, "name": 1, "score": 1})
-}
+if os.getenv("LLM_NAME_SOURCE") == "local":
+    with open(os.path.join(os.path.dirname(__file__), 'llm_names.json'), 'r', encoding='utf-8') as f:
+        name_dict = json.load(f)
+    name_dict = {
+        doc["name"]: doc["score"]
+        for doc in name_col.find({}, {"_id": 0, "name": 1, "score": 1})
+    }
+else:
+    name_dict = {
+        doc["name"]: doc["score"]
+        for doc in name_col.find({}, {"_id": 0, "name": 1, "score": 1})
+    }
 
 #name_dict = {}
 conf_df = pd.read_csv(os.path.join(os.path.dirname(__file__), 'conf.csv'))

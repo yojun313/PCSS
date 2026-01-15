@@ -15,6 +15,7 @@ user_history/
 
 conf_html/
 urls/
+llm_names.json
 
 __pycache__/
 all_authors.json

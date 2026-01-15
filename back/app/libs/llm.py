@@ -1,10 +1,22 @@
 import requests
 import re
-from app.config import API_URL, LLM_MODEL
+from app.config import LLM_URL, LLM_MODEL
 from app.data import name_dict
 from app.db import name_col
 import math
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
+
+CUSTOM_TOKEN = os.getenv("CUSTOM_TOKEN")
+
+def get_headers():    
+    return {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {CUSTOM_TOKEN}",
+    }
+    
 def single_name_llm(name):
     try:
         return round(name_dict[name], 1)
@@ -40,26 +52,24 @@ def single_name_llm(name):
 
 
 def llm_api_answer(query, model):
-    # 전송할 데이터
-    data = {
+    payload = {
         "model": model,
-        "prompt": query
+        "messages": [
+            {"role": "system", "content": "You are an expert in determining the likelihood that a given name is Korean."},
+            {"role": "user", "content": query},
+        ],
+        "temperature": 0.7,
+        "max_tokens": 100,
     }
+    response = requests.post(
+        LLM_URL,
+        json=payload,
+        headers=get_headers(),
+        timeout=60,
+    )
 
-    try:
-        # POST 요청 보내기
-        response = requests.post(API_URL, json=data)
-
-        # 응답 확인
-        if response.status_code == 200:
-            result = response.json()['response']
-            result = result.replace('<think>', '').replace('</think>', '').replace('\n\n', '')
-            return result
-        else:
-            return f"Failed to get a valid response: {response.status_code} {response.text}"
-
-    except requests.exceptions.RequestException as e:
-        return "Error communicating with the server: {e}"
+    result = response.json()
+    return result["choices"][0]["message"]["content"]
 
 def get_name_score(name):
     score = name_dict.get(name)

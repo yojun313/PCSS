@@ -1,60 +1,61 @@
 const fix = false;
+
 const express = require('express');
 const app = express();
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-const http = require('http');
-const { Server } = require('socket.io');
 const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
-const { spawn } = require('child_process');
-const PYTHON_BIN = path.join(__dirname, '..', 'venv', 'bin', 'python');
 
-const server = http.createServer(app);
-const io = new Server(server);
+// (선택) FastAPI로 프록시하려면 필요
+// Node 18+면 fetch 내장. Node 16 이하면 node-fetch 설치 필요.
+// const fetch = global.fetch || require('node-fetch');
+
 const port = 3000;
 
 // 로그 파일을 저장할 디렉토리
 const logDir = path.join(__dirname, 'log');
 if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir);
+  fs.mkdirSync(logDir);
 }
 
 // 로그 기록 함수
 function logError(errorMessage) {
-    const now = new Date();
-    const timestamp = now.toISOString().replace(/T/, ' ').replace(/\..+/, ''); // YYYY-MM-DD HH:MM:SS 형식
-    const filename = `${now.toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_')}.txt`; // YYYY-MM-DD_HH-MM-SS.txt 형식
-    const filePath = path.join(logDir, filename);
+  const now = new Date();
+  const timestamp = now.toISOString().replace(/T/, ' ').replace(/\..+/, '');
+  const filename = `${now.toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_')}.txt`;
+  const filePath = path.join(logDir, filename);
 
-    const logEntry = `[${timestamp}] ${errorMessage}\n`;
-    fs.appendFileSync(filePath, logEntry, 'utf8'); // 오류 내용을 파일에 추가
-
-    //console.error(logEntry); // 콘솔에도 오류 출력
+  const logEntry = `[${timestamp}] ${errorMessage}\n`;
+  fs.appendFileSync(filePath, logEntry, 'utf8');
 }
 
 // CSV 파일 경로
 const csvFilePath = path.join(__dirname, '..', 'back', 'data', 'conf.csv');
-let globalInputData = null; // 단일 사용자용 글로벌 데이터
 
+// 단일 사용자용 글로벌 데이터(기존 그대로)
+let globalInputData = null;
+
+// 정적/뷰 설정
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-
+// pages
 app.get('/loading', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'loading.html'));
+  res.sendFile(path.join(__dirname, 'public', 'loading.html'));
 });
 
 app.get('/conferences', (req, res) => {
-    const data = [];
-    fs.createReadStream(csvFilePath)
-        .pipe(csv())
-        .on('data', (row) => data.push(row))
-        .on('end', () => res.json(data))
-        .on('error', (err) => logError(`CSV 파일 읽기 오류: ${err.message}`));
+  const data = [];
+  fs.createReadStream(csvFilePath)
+    .pipe(csv())
+    .on('data', (row) => data.push(row))
+    .on('end', () => res.json(data))
+    .on('error', (err) => logError(`CSV 파일 읽기 오류: ${err.message}`));
 });
 
 app.get('/', (req, res) => {
@@ -65,64 +66,49 @@ app.get('/', (req, res) => {
   }
 });
 
-
-// 필요하면 별도 접근용 beta 라우트 유지
 app.get('/beta', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'homepage.html'));
 });
 
-// GlobalInputData를 JSON으로 반환하는 라우트
+// GlobalInputData를 JSON으로 반환
 app.get('/loading-data', (req, res) => {
-    // globalInputData가 없을 때 처리 (필요 시)
-    if (!globalInputData) {
-        return res.json({ error: 'No input data found.' });
-    }
-    res.json(globalInputData);
+  if (!globalInputData) return res.json({ error: 'No input data found.' });
+  res.json(globalInputData);
 });
 
-
+// 결과 페이지 렌더 (기존 유지)
 app.post('/results', (req, res) => {
-    const { isDictionary, data } = req.body;
+  const { isDictionary, data } = req.body;
 
-    if (!data) {
-        const errorMsg = '결과 데이터가 비어 있습니다.';
-        logError(errorMsg);
-        return res.status(400).send(errorMsg);
-    }
+  if (!data) {
+    const errorMsg = '결과 데이터가 비어 있습니다.';
+    logError(errorMsg);
+    return res.status(400).send(errorMsg);
+  }
 
-    let pythonResult;
-    if (isDictionary) {
-        pythonResult = data;
-    } else {
-        pythonResult = { error: "Data is not in dictionary format", output: data };
-    }
+  let pythonResult;
+  if (isDictionary) pythonResult = data;
+  else pythonResult = { error: "Data is not in dictionary format", output: data };
 
-    // globalInputData에 저장된 옵션을 results.ejs에 전달
-    res.render('results', { pythonResult, options: globalInputData, error: null });
+  res.render('results', { pythonResult, options: globalInputData, error: null });
 });
 
+// author-stats 렌더(기존 유지)
 app.post('/author-stats', (req, res) => {
   let { name, url, stats, total, papers } = req.body;
 
-  // stats: "(0,2,50,86)" 또는 '["0","2","50","86"]' 등 다양한 형태 대비
   let statArray = [];
   try {
     if (Array.isArray(stats)) {
       statArray = stats.map(Number);
     } else if (typeof stats === 'string') {
-      // JSON 배열 문자열이면 파싱
-      if (stats.trim().startsWith('[')) {
-        statArray = JSON.parse(stats).map(Number);
-      } else {
-        // "(0,2,50,86)" 또는 "0,2,50,86"
-        statArray = stats.replace(/[()"']/g, '').split(',').map(s => Number(s.trim()));
-      }
+      if (stats.trim().startsWith('[')) statArray = JSON.parse(stats).map(Number);
+      else statArray = stats.replace(/[()"']/g, '').split(',').map(s => Number(s.trim()));
     }
   } catch (e) {
     statArray = [];
   }
 
-  // papers: JSON 문자열일 수 있음
   try {
     if (typeof papers === 'string') papers = JSON.parse(papers);
   } catch (e) {
@@ -133,110 +119,63 @@ app.post('/author-stats', (req, res) => {
     name: name || '',
     url: url || '#',
     total: Number(total) || 0,
-    stats: statArray,       // ejs에서 배열로 사용
+    stats: statArray,
     papers: papers || []
   });
 });
 
+// 요청 로그 + submit (기존 유지)
 const logRequest = require('./logRequest');
 app.post('/submit', async (req, res) => {
-    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    const body = req.body;
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const body = req.body;
 
+  try {
     await logRequest(ip, '/submit', body);
+  } catch (e) {
+    logError(`logRequest error: ${e?.message || e}`);
+  }
 
-    globalInputData = body;
-    res.sendFile(path.join(__dirname, 'public', 'loading.html'));
+  globalInputData = body;
+  res.sendFile(path.join(__dirname, 'public', 'loading.html'));
 });
 
-io.on('connection', (socket) => {
-  socket.on('start-python', () => {
-    let pythonOutput = '';
+/**
+ * (선택) FastAPI로 프록시가 필요하면 사용:
+ * - 프론트에서 FastAPI_BASE를 몰라도 /api/...로 호출하게 만들 수 있음
+ * - SSE(EventSource)는 프록시에서 처리 까다롭고(스트리밍 유지), 보통은 브라우저가 FastAPI에 직접 붙게 하는게 편함.
+ *
+ * 아래는 "start/result/author-stats" 같은 일반 JSON 요청만 프록시하는 예시.
+ */
 
-    // 스크립트/작업 디렉토리 경로
-    const scriptPath = path.join(__dirname, '..', 'back', 'pcss_web.py');
-    const cwdPath    = path.join(__dirname, '..', 'back');
+// const FASTAPI_BASE = 'http://pcss.r-e.kr:8000';
+//
+// app.post('/api/search/start', async (req, res) => {
+//   try {
+//     const r = await fetch(`${FASTAPI_BASE}/api/search/start`, {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify(req.body)
+//     });
+//     const text = await r.text();
+//     res.status(r.status).send(text);
+//   } catch (e) {
+//     logError(`proxy /api/search/start error: ${e?.message || e}`);
+//     res.status(502).json({ error: 'Bad Gateway', detail: String(e?.message || e) });
+//   }
+// });
+//
+// app.get('/api/search/result/:job_id', async (req, res) => {
+//   try {
+//     const r = await fetch(`${FASTAPI_BASE}/api/search/result/${encodeURIComponent(req.params.job_id)}`);
+//     const text = await r.text();
+//     res.status(r.status).send(text);
+//   } catch (e) {
+//     logError(`proxy /api/search/result error: ${e?.message || e}`);
+//     res.status(502).json({ error: 'Bad Gateway', detail: String(e?.message || e) });
+//   }
+// });
 
-    // 가상환경 파이썬으로 실행
-    const pythonProcess = spawn(PYTHON_BIN, ['-u', scriptPath, JSON.stringify(globalInputData || {})], {
-      cwd: cwdPath,
-      env: { ...process.env }, // 필요 시 venv 전용 ENV 추가 가능
-    });
-
-    // (강력 추천) 시작 실패 캐치
-    pythonProcess.on('error', (err) => {
-      const msg = `[spawn error] ${err.message}`;
-      logError(msg);
-      socket.emit('redirect_to_results', { isDictionary: false, data: msg });
-    });
-
-    pythonProcess.stdout.on('data', (data) => {
-      pythonOutput += data.toString();
-      socket.emit('python_output', data.toString());
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-      const errorMsg = `Python stderr: ${data}`;
-      logError(errorMsg);
-      pythonOutput += data.toString();
-      socket.emit('python_error', data.toString());
-    });
-
-    pythonProcess.on('close', (code) => {
-      try {
-        const pathStartIndex = pythonOutput.indexOf('PATH=');
-        if (pathStartIndex !== -1) {
-          const pathEndIndex = pythonOutput.indexOf('\n', pathStartIndex);
-          const jsonPath = pythonOutput.slice(
-            pathStartIndex + 5,
-            pathEndIndex !== -1 ? pathEndIndex : undefined
-          ).trim();
-
-          if (jsonPath === 'ERROR') {
-            const errorMsg = 'Python 실행 중 오류 발생';
-            logError(errorMsg);
-            socket.emit('redirect_to_results', { isDictionary: false, data: errorMsg });
-            return;
-          }
-
-          fs.readFile(jsonPath, 'utf-8', (err, fileData) => {
-            if (err) {
-              const errorMsg = `JSON 파일 읽기 오류: ${err.message}`;
-              logError(errorMsg);
-              socket.emit('redirect_to_results', { isDictionary: false, data: errorMsg });
-              return;
-            }
-            try {
-              const finalOutput = JSON.parse(fileData);
-              socket.emit('redirect_to_results', { isDictionary: true, data: finalOutput });
-              fs.unlink(jsonPath, (unlinkErr) => {
-                if (unlinkErr) logError(`JSON 파일 삭제 오류: ${unlinkErr.message}`);
-              });
-            } catch (parseErr) {
-              const errorMsg = `JSON 파싱 오류: ${parseErr.message}`;
-              logError(errorMsg);
-              socket.emit('redirect_to_results', { isDictionary: false, data: errorMsg });
-            }
-          });
-        } else {
-          // 기존 코드 버그: errorMsg 미정의 → 고정 메시지로 대체
-          const msg = 'Python 출력에서 PATH=를 찾지 못했습니다. (pcss_web.py가 JSON 경로를 출력하지 않음)';
-          logError(msg);
-          socket.emit('redirect_to_results', { isDictionary: false, data: msg });
-        }
-      } catch (err) {
-        logError(`후처리 오류: ${err.message}`);
-        socket.emit('redirect_to_results', { isDictionary: false, data: pythonOutput.trim() });
-      }
-    });
-
-    socket.on('disconnect', () => {
-      pythonProcess.kill();
-    });
-  });
-});
-
-
-server.listen(port, () => {
-    console.log(`서버 실행 중: http://localhost:${port}`);
+app.listen(port, () => {
+  console.log(`서버 실행 중: http://localhost:${port}`);
 });

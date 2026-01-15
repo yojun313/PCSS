@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- 모바일 대응을 위한 meta 태그 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PCSS</title>
+  <style>
+    /* 기본 라이트 모드 스타일 */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: row; /* 메인 콘텐츠와 선택된 컨퍼런스 리스트를 가로로 배치 */
+      max-width: 1400px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .main-content {
+      flex: 3; /* 메인 콘텐츠가 더 많은 공간 차지 */
+      padding-right: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 40px;
+      color: rgba(200, 1, 80, 1);
+    }
+
+    .form-section {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 10px;
+      background-color: #ffffff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+      /* 모바일에서 줄바꿈을 위해 추가 */
+      flex-wrap: wrap;
+    }
+
+    .form-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .form-group label {
+      font-weight: bold;
+      color: #34495e;
+    }
+
+    .form-group input,
+    .form-group select {
+      padding: 5px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background-color: #fff;
+      color: #333;
+    }
+
+    #submit-btn {
+      padding: 10px 20px;
+      background-color: rgba(200, 1, 80, 1);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    #submit-btn:hover {
+      background-color: rgb(194, 50, 108);
+    }
+
+    .select-all-container {
+      display: flex;
+      justify-content: flex-start;
+      margin-bottom: 20px;
+    }
+
+    .select-btn {
+      padding: 8px 15px;
+      background-color: #34495e;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background-color 0.3s ease;
+    }
+
+    .select-btn:hover {
+      background-color: #2c3e50;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      color: #34495e;
+    }
+
+    .checkbox-group {
+      margin-top: 10px;
+    }
+
+    .checkbox-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    /* Footer 스타일 */
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      margin-top: 20px;
+      padding: 10px 0;
+      /* 별도의 배경색이나 테두리 없이 깔끔하게 */
+    }
+    
+    /* footer 내부 컨테이너를 세로 정렬 */
+    .footer-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .footer-container p {
+      margin: 0;
+      font-weight: bold;
+    }
+    
+    /* 각 사용자 정보를 한 줄에 깔끔하게 정렬 */
+    .user {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 13px;
+    }
+    
+    /* 링크 기본 스타일 */
+    .user a {
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    
+    /* 호버 시 언더라인 */
+    .user a:hover {
+      text-decoration: underline;
+    }
+    
+    /* (선택사항) Contact: 텍스트를 span으로 감싸면 고정폭을 줄 수도 있음 */
+    .contact-label {
+      display: inline-block;
+      width: 60px;  /* 필요에 따라 조정 */
+      text-align: right;
+    }
+    
+    /* 라이트 모드 색상 */
+    .footer {
+      color: #666;
+    }
+    
+    .user a {
+      color: #007bff;
+    }
+
+    /* 다크 모드 스타일 */
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #181818;
+        color: #e0e0e0;
+      }
+      .container {
+        background-color: #242424;
+      }
+      h1 {
+        color: #ff88a2;
+      }
+      .form-section {
+        background-color: #2c2c2c;
+        border: 1px solid #444;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.8);
+      }
+      .form-group label {
+        color: #ccc;
+      }
+      .form-group input,
+      .form-group select {
+        background-color: #3a3a3a;
+        border: 1px solid #555;
+        color: #eee;
+      }
+      #submit-btn {
+        background-color: #b3305c;
+      }
+      #submit-btn:hover {
+        background-color: #a02c52;
+      }
+      .select-btn {
+        background-color: #555;
+      }
+      .select-btn:hover {
+        background-color: #444;
+      }
+      .grid .card {
+        background-color: #333;
+        border: 1px solid #555;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+        color: #ddd;
+      }
+      .card h2 {
+        color: #ddd;
+      }
+      .footer {
+        color: #aaa;
+      }
+      .footer-link {
+        color: #4da6ff;
+      }
+      /* 테이블 다크 모드 */
+      table {
+        background-color: #2c2c2c;
+        color: #e0e0e0;
+      }
+      table th, table td {
+        border: 1px solid #444;
+      }
+      table th {
+        background-color: #3a3a3a;
+        color: #ff88a2;
+      }
+      table td {
+        background-color: #242424;
+      }
+      .footer {
+        color: #aaa;
+      }
+      .user a {
+        color: #4da6ff;
+      }
+    }
+
+    /* 반응형 디자인 */
+    @media (max-width: 768px) {
+      body {
+        font-size: 14px;
+      }
+      .container {
+        flex-direction: column;  /* 세로 배치 */
+        max-width: 100%;
+        padding: 10px;
+      }
+      .main-content {
+        padding-right: 0; /* 우측 여백 제거 */
+      }
+      .form-section {
+        flex-direction: column;
+        align-items: flex-start; /* 왼쪽 정렬 */
+        gap: 10px;
+      }
+      .form-group {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .select-all-container {
+        justify-content: center;
+      }
+      h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 메인 콘텐츠 -->
+    <div class="main-content">
+      <h1>PCSS: POSTECH Computer Scientist Search</h1>
+
+      <!-- 드롭다운 메뉴와 입력 옵션 -->
+      <div class="form-section">
+        <form id="filter-form" style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+          <!-- 드롭다운 메뉴 -->
+          <div class="form-group">
+            <label for="dropdown">옵션:</label>
+            <select id="option" name="option">
+              <option value="1">1저자가 한국인</option>
+              <option value="2">1저자 또는 2저자가 한국인</option>
+              <option value="3">마지막 저자가 한국인</option>
+              <option value="4">1저자 또는 마지막 저자가 한국인</option>
+              <option value="5">저자 중 한 명 이상이 한국인</option>
+            </select>
+          </div>
+          <!-- 시작 연도 선택 -->
+          <div class="form-group">
+            <label for="startyear">시작 연도:</label>
+            <select id="startyear" name="startyear">
+              <script>
+                const startSelect = document.getElementById("startyear");
+                for (let i = 2010; i <= 2025; i++) {
+                  let option = document.createElement("option");
+                  option.value = i;
+                  option.textContent = i;
+                  if (i === 2024) {
+                    option.selected = true; // 기본값 설정
+                  }
+                  startSelect.appendChild(option);
+                }
+              </script>
+            </select>
+          </div>
+
+          <!-- 끝 연도 선택 -->
+          <div class="form-group">
+            <label for="endyear">끝 연도:</label>
+            <select id="endyear" name="endyear">
+              <script>
+                const endSelect = document.getElementById("endyear");
+
+                function updateEndYearOptions(startValue) {
+                  // 1) 현재 선택된 끝 연도 값 저장
+                  const prev = endSelect.value ? parseInt(endSelect.value, 10) : null;
+
+                  // 2) 옵션 재생성
+                  endSelect.innerHTML = "";
+                  for (let i = startValue; i <= 2025; i++) {
+                    const opt = document.createElement("option");
+                    opt.value = i;
+                    opt.textContent = i;
+                    endSelect.appendChild(opt);
+                  }
+
+                  // 3) 이전 선택이 여전히 유효하면 유지, 아니면 시작 연도로 설정
+                  if (prev !== null && prev >= startValue && prev <= 2025) {
+                    endSelect.value = String(prev);
+                  } else {
+                    endSelect.value = String(startValue);
+                  }
+                }
+
+                // 기본값: 시작 연도(초기 기본 2024)에 맞춰 렌더링
+                updateEndYearOptions(2024);
+
+                // 시작 연도 변경 시: 끝 연도 옵션 갱신하되, 기존 선택 유지 가능하면 유지
+                startSelect.addEventListener("change", function () {
+                  const s = parseInt(this.value, 10);
+                  updateEndYearOptions(s);
+                });
+              </script>
+            </select>
+          </div>
+
+          <!-- 라디오 버튼 -->
+          <div class="form-group">
+            <label for="uncertainty">저자명 한국인 판단 기준값(0.1~1.0):</label>
+            <select id="uncertainty" name="uncertainty">
+              <!-- 옵션 자동 생성 -->
+              <script>
+                const select = document.getElementById("uncertainty");
+                for (let i = 0.1; i <= 1.0; i += 0.1) {
+                  let option = document.createElement("option");
+                  option.value = i.toFixed(1);
+                  option.textContent = i.toFixed(1);
+                  if (i === 0.5) {
+                    option.selected = true; // 기본값 0.5 선택
+                  }
+                  select.appendChild(option);
+                }
+              </script>
+            </select>
+          </div>
+          <!-- 예 / 아니오 선택 -->
+          <!-- <div class="form-group">
+            <label>저자별 총 논문 수:</label>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <input type="radio" id="count-yes" name="CountOption" value="yes">
+              <label for="count-yes">예</label>
+
+              <input type="radio" id="count-no" name="CountOption" value="no" checked>
+              <label for="count-no">아니오</label>
+            </div>
+          </div> -->
+          <!-- 제출 버튼 -->
+          <button type="button" id="submit-btn">Submit</button>
+        </form>
+      </div>
+      <details class="pcss-notice" style="margin:16px 0;" open>
+        <summary>사용 전 안내</summary>
+        <div class="notice-body">
+          <!-- <p><strong>저자별 총 논문 수</strong>를 <strong>예</strong>로 설정하면,
+            각 저자에 대해 DBLP 조회가 추가로 발생하여 <u>요청 수가 크게 늘어날 수 있습니다</u>.
+            <strong>넓은 연도 범위</strong>와 <strong>많은 학회</strong>를 동시에 선택한 상태에선
+            서버·DBLP 모두에 부담이 커질 수 있으니 가급적 <strong>범위를 좁혀</strong> 사용하세요.<br>
+          </p> -->
+
+
+          <p><strong>결과 페이지 표기 규칙</strong></p>
+          <ul>
+            <li><strong>저자명 오른쪽 괄호</strong>: 
+              <code>(한국인 확률)</code> — 
+              Llama <code>Llama3.3:70b-instruct-q8_0</code>가 한국인으로 판별한 확률입니다
+              (예: <code>홍길동 (0.87)</code> → 87%).
+            </li>
+          </ul>
+
+          <p>요약: 먼저 작은 범위로 검색하여 결과를 확인한 뒤 필요 시 범위를 넓히는 것을 권장합니다.</p>
+        </div>
+      </details>
+
+
+      <div class="select-all-container">
+        <button class="select-btn" id="toggle-select-btn">모두 선택</button>
+      </div>
+
+      <!-- 학회 체크박스를 동적으로 생성할 영역 -->
+      <div class="grid" id="conference-grid"></div>
+    </div>
+  </div>
+
+  <script src="/static/script.js"></script>
+  <footer class="footer">
+    <div class="footer-container">
+      <p>Created By</p>
+      <div class="user">
+        <a href="https://github.com/yojun313" target="_blank">Yojun Moon</a>
+        <a href="mailto:yojun313@postech.ac.kr">(yojun313@postech.ac.kr)</a> | 
+        <a href="https://www.psal.postech.ac.kr/gkim" target="_blank">Gwangsun Kim</a>
+        <a href="mailto:g.kim@postech.ac.kr">(g.kim@postech.ac.kr)</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

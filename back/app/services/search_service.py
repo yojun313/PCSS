@@ -25,8 +25,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 class PCSSEARCH:
-    def __init__(self, option, threshold, startyear, endyear, countOption=True):
-
+    def __init__(self, option, threshold, startyear, endyear, countOption=True, job_id=None, event_queue=None):
+        
         self.option         = option
         self.threshold      = threshold
         self.startyear      = int(startyear)
@@ -42,7 +42,21 @@ class PCSSEARCH:
         self.CrawlData = []
         self.FinalData = {}
 
-        self.db_path = os.path.join(os.path.dirname(__file__), 'db')    
+        self.db_path = os.path.join(os.path.dirname(__file__), '..', 'db')    
+        
+        self.job_id = job_id
+        self.event_queue = event_queue
+    
+    def _emit(self, payload: dict) -> None:
+        if not self.event_queue:
+            return
+        try:
+            # FastAPI 핸들러/async 실행 중이면 running loop 존재
+            asyncio.get_running_loop()
+            self.event_queue.put_nowait(payload)
+        except Exception:
+            # 큐 넣기 실패해도 크롤링이 멈추면 안 되므로 무시
+            pass
     
     # 한 Conference에 대한 연도별 url 크롤링 함수
     async def conf_crawl(self, conf, session, conf_name):
@@ -51,7 +65,7 @@ class PCSSEARCH:
             filtered_urls = []
             urls = []
             
-            folder_path = os.path.join(os.path.dirname(__file__), 'data', 'urls')
+            folder_path = os.path.join(os.path.dirname(__file__), '..', 'db', 'urls')
             file_path = os.path.join(folder_path, f"{conf_name}.txt")
             
             if os.path.exists(file_path) and self.endyear != self.current_year:
@@ -100,7 +114,7 @@ class PCSSEARCH:
             edited_url = re.sub(r'[^\w\-_]', '_', url) + ".html"
             edited_url = edited_url.replace('https___', '').replace('_html', '')
             
-            record_path = os.path.join(self.db_path, param, edited_url)
+            record_path = os.path.join(self.db_path, 'conf_html', param, edited_url)
             
             # 비동기 파일 읽기: 파일이 존재하면 aiofiles로 읽음
             if os.path.exists(record_path):
@@ -108,7 +122,7 @@ class PCSSEARCH:
                     response = await file.read()
             else:
                 response = await asyncRequester(url, session=session)
-                if year != 2025:
+                if year != self.current_year:
                     async with aiofiles.open(record_path, "w", encoding="utf-8") as file:
                         await file.write(response)
                 
@@ -270,7 +284,7 @@ class PCSSEARCH:
         except:
             self.write_log(traceback.format_exc())
 
-
+    # 여러 Conference에 대한 병렬 크롤링 함수
     async def MultiConfCollector(self, conf_list):
         try:
             # 하나의 세션을 재사용하며 관리 (async with 사용)
@@ -335,15 +349,11 @@ class PCSSEARCH:
             self.write_log(traceback.format_exc())
 
     # 메인 함수
-    def main(self, conf_list):
-        try:
-            self.target_conf_list = conf_list
-            result_data = asyncio.run(self.MultiConfCollector(conf_list))
-
-            return result_data
-        except:
-            self.write_log(traceback.format_exc())
-
+    async def run(self, conf_list):
+        # 기존 MultiConfCollector가 async이므로 그대로 await
+        result = await self.MultiConfCollector(conf_list)
+        return result
+    
 
     def checkKorean(self, name):
         self.printStatus(msg="LLM Checking Korean... ", url=name)
@@ -433,10 +443,18 @@ class PCSSEARCH:
 
     def printStatus(self, msg='', url=None):
         try:
-            print(f'\r{msg} | {url} | paper: {len(self.CrawlData)} | Korean Authors: {len(self.checkedNameList)}', end='')
+            # SSE 전송 payload
+            self._emit({
+                "type": "status",
+                "ts": datetime.utcnow().isoformat() + "Z",
+                "msg": msg,
+                "url": url,
+                "paper_count": len(self.CrawlData),
+                "korean_authors": len(self.checkedNameList),
+            })
         except:
             pass
-
+    
 
     def write_log(self, message):
         try:
@@ -470,6 +488,7 @@ class PCSSEARCH:
             os.system("cls")
         else:
             os.system("clear")
+
 
 def compute_author_stats(
     html: str,
@@ -577,6 +596,7 @@ def compute_author_stats(
     }
     return result
 
+
 async def fetch_html(url: str, timeout_sec: float) -> str:
     async with httpx.AsyncClient(timeout=timeout_sec, headers={"User-Agent": "Mozilla/5.0"}) as client:
         resp = await client.get(url)
@@ -587,6 +607,6 @@ async def fetch_html(url: str, timeout_sec: float) -> str:
 if __name__ == "__main__":
     pcssearch_obj = PCSSEARCH(1, 0.5, 2024, 2024, False)
     conf_list = ['CCS']
-    pcssearch_obj.main(conf_list)
+    asyncio.run(pcssearch_obj.run(conf_list))
     
     

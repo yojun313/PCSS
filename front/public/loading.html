@@ -260,127 +260,130 @@
   
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const socket = io();
+    document.addEventListener("DOMContentLoaded", async () => {
       const output = document.getElementById('output');
       const globalDataDiv = document.getElementById('globalData');
-
-      // 전역 옵션 데이터 가져오기
-      fetch('/loading-data')
-        .then(response => response.json())
-        .then(data => {
-          console.log('Global input data:', data);
-          
-          // 사용자가 지정할 테이블 열 이름 (예시)
-          const columns = {
-            option: "선택 옵션",
-            startyear: "연도 범위",
-            threshold: "한국인 판단 기준값",
-            //CountOption: "저자별 총 논문 수",
-            selectedConferences: "선택 학회",
-          };
-
-          // 옵션 변환 함수
-          function getOptionText(optionValue) {
-            switch(optionValue) {
-              case "1": return "1저자가 한국인";
-              case "2": return "1저자 또는 2저자가 한국인";
-              case "3": return "마지막 저자가 한국인";
-              case "4": return "1저자 또는 마지막 저자가 한국인";
-              case "5": return "저자 중 한 명 이상이 한국인";
-              default: return "옵션 미선택";
-            }
-          }
-
-          // 테이블 생성
-          const table = document.createElement('table');
-          table.className = 'options-table';
-
-          // 테이블 헤더 생성
-          const headerRow = document.createElement('tr');
-          const thField = document.createElement('th');
-          thField.textContent = 'Options';
-          const thValue = document.createElement('th');
-          thValue.textContent = 'Value';
-          headerRow.appendChild(thField);
-          headerRow.appendChild(thValue);
-          table.appendChild(headerRow);
-
-          // 각 필드에 대해 행 생성
-          for (const key in columns) {
-            const row = document.createElement('tr');
-            const cellKey = document.createElement('td');
-            cellKey.textContent = columns[key];
-            cellKey.className = 'option-label';
-            const cellValue = document.createElement('td');
-
-            let value;
-            if (key === 'option') {
-              value = getOptionText(data[key]);
-            } else if (key === 'selectedConferences') {
-              value = Array.isArray(data[key]) ? data[key].join(', ') : data[key];
-            } else if (key === 'threshold') {
-              value = data['uncertainty'];
-            } else if (key === 'startyear' || key === 'endyear') {
-              value = data['startyear'] + " ~ " + data['endyear'];
-            } //else if (key === 'CountOption') {
-              //value = data[key];
-            //}
-            cellValue.textContent = value;
-            row.appendChild(cellKey);
-            row.appendChild(cellValue);
-            table.appendChild(row);
-          }
-          globalDataDiv.appendChild(table);
-        })
-        .catch(err => {
-          console.error('Loading data fetch error:', err);
+    
+      // 1) 옵션 테이블 표시(기존 그대로)
+      let inputData = null;
+      try {
+        const resp = await fetch('/loading-data');
+        inputData = await resp.json();
+        if (inputData?.error) throw new Error(inputData.error);
+        // 기존 테이블 렌더링 로직 유지 (현재 파일 코드 그대로 두면 됨)
+      } catch (e) {
+        output.textContent = `옵션 로드 실패: ${e.message || e}`;
+        return;
+      }
+    
+      // 2) FastAPI 작업 시작
+      const FASTAPI_BASE = "http://pcss.r-e.kr:8000"; // 환경에 맞게
+      let startRes;
+      try {
+        startRes = await fetch(`${FASTAPI_BASE}/api/search/start`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(inputData || {})
         });
-      
-      // Python 실행 요청
-      socket.emit('start-python');
-
-      // Python stdout 수신
-      socket.on('python_output', (data) => {
-        const trimmed = data.trim();
-        if (trimmed.startsWith('PATH=') && trimmed.endsWith('.json')) {
-          output.innerHTML = `<div>${"Importing Data..."}</div>`;
+      } catch (e) {
+        output.textContent = `검색 시작 요청 실패(네트워크): ${e.message || e}`;
+        return;
+      }
+    
+      if (!startRes.ok) {
+        output.textContent = `검색 시작 요청 실패: HTTP ${startRes.status} ${await startRes.text()}`;
+        return;
+      }
+    
+      const { job_id, events_url, result_url } = await startRes.json();
+      output.textContent = `Job started: ${job_id}\n`;
+    
+      // 3) SSE 연결
+      const es = new EventSource(`${FASTAPI_BASE}${events_url}`);
+    
+      const append = (line) => {
+        output.textContent += line + "\n";
+        output.scrollTop = output.scrollHeight;
+      };
+    
+      es.addEventListener("message", (evt) => {
+        // FastAPI에서 type=status를 message 이벤트로 보냄
+        try {
+          const data = JSON.parse(evt.data);
+          // data 예: {type:"status", msg:"..."} 형태로 맞추면 좋음
+          append(data.msg ?? JSON.stringify(data));
+        } catch {
+          append(evt.data);
+        }
+      });
+    
+      es.addEventListener("event", async (evt) => {
+        // started/done/error 등
+        let data;
+        try { data = JSON.parse(evt.data); } catch { data = { raw: evt.data }; }
+    
+        if (data?.event === "started") {
+          append("[started]");
           return;
         }
-        output.innerHTML = `<div>${data}</div>`;
+    
+        if (data?.event === "error") {
+          append(`[error] ${data.error || "unknown error"}`);
+          es.close();
+          // 기존 /results로 에러 렌더링하고 싶으면:
+          await renderResultsViaNode({ isDictionary: false, data: data.error || "error" });
+          return;
+        }
+    
+        if (data?.event === "done") {
+          append("[done] fetching result...");
+          es.close();
+    
+          // 4) 최종 결과 조회
+          const r = await fetch(`${FASTAPI_BASE}${result_url}`);
+          if (!r.ok) {
+            await renderResultsViaNode({ isDictionary: false, data: `결과 조회 실패: HTTP ${r.status}` });
+            return;
+          }
+          const payload = await r.json(); // {status:"done", result:{...}}
+          if (payload.status !== "done") {
+            await renderResultsViaNode({ isDictionary: false, data: `결과가 아직 준비되지 않음: ${payload.status}` });
+            return;
+          }
+    
+          // 5) 기존 Node /results로 넘겨서 results.ejs 렌더링 유지
+          await renderResultsViaNode({ isDictionary: true, data: payload.result });
+        }
       });
-
-      // Python stderr 수신
-      socket.on('python_error', (data) => {
-        output.innerHTML = `<div style="color: red;">Error: ${data}</div>`;
+    
+      es.addEventListener("ping", () => {
+        // 필요하면 heartbeat 표시
+        // append("[ping]");
       });
-
-      // Python 실행 완료 후 결과 전송
-      socket.on('redirect_to_results', (response) => {
-        fetch('/results', {
+    
+      es.onerror = async () => {
+        append("[sse error] 연결이 끊어졌습니다.");
+        es.close();
+        await renderResultsViaNode({ isDictionary: false, data: "SSE 연결 오류" });
+      };
+    
+      async function renderResultsViaNode(body) {
+        const resp = await fetch('/results', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(response),
-        })
-          .then((response) => {
-            if (!response.ok) {
-              console.error('POST /results 실패:', response.statusText);
-              alert('Failed to load results.');
-              return;
-            }
-            return response.text();
-          })
-          .then((html) => {
-            document.open();
-            document.write(html);
-            window.history.pushState({}, '', '/results');
-            document.close();
-          })
-          .catch((err) => {
-            console.error('POST /results 요청 실패:', err);
-          });
-      });
+          body: JSON.stringify(body),
+        });
+        if (!resp.ok) {
+          append(`POST /results 실패: ${resp.statusText}`);
+          return;
+        }
+        const html = await resp.text();
+        document.open();
+        document.write(html);
+        window.history.pushState({}, '', '/results');
+        document.close();
+      }
     });
-  </script>    
+    </script>       
 </body>
 </html>

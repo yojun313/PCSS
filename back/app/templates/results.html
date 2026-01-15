@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PCSS Result</title>
+  <style>
+        /* 기본 라이트 모드 스타일 */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 10px;
+      background-color: #f8f9fa;
+      color: #333;
+      font-size: 14px;
+    }
+    .container {
+      padding: 10px; /* 여백 줄임 */
+      background: #ffffff;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      overflow-x: auto;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      font-size: 30px; /* 크기 줄임 */
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #C80150;
+    }
+
+    /* 테이블 스타일 (검색 옵션 영역) */
+    .options-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-bottom: 15px; /* 아래 여백 줄임 */
+      background-color: #ffffff;
+      color: #333;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .options-table th,
+    .options-table td {
+      padding: 8px;
+      width: 50%;
+      border: 1px solid #ddd;
+    }
+    .options-table th {
+      background-color: #f2f2f2;
+      color: #C80150;
+      font-size: 16px;
+      text-align: left;
+    }
+    .option-label {
+      background-color: #fafafa;
+      font-weight: bold;
+    }
+
+    /* 섹션 스타일 */
+    .year-section, .conference-section {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background-color: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      margin-bottom: 8px; /* 간격 줄임 */
+      padding: 6px;
+    }
+    .year-header, .conference-header {
+      font-size: 13px;
+      color: #333;
+      font-weight: bold;
+      padding: 4px 8px;
+      background-color: #f2f2f2;
+      cursor: pointer;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+    }
+    .year-content, .conference-content {
+      padding: 4px 6px;
+      display: block;
+    }
+
+    /* 카드(논문) */
+    .card {
+      margin: 3px 0; /* 위아래 간격 줄임 */
+      padding: 5px;  /* 내부 여백 줄임 */
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .card-title {
+      font-size: 13px; /* 조금 줄임 */
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 2px;
+    }
+    .meta-line {
+      font-size: 12px;
+      color: #555;
+      margin-bottom: 4px;
+    }
+    .meta-line a {
+      text-decoration: none;
+      color: #C80150;
+      margin-left: 5px;
+    }
+    .meta-line a:hover {
+      text-decoration: underline;
+    }
+
+    .authors {
+      list-style: none;
+      padding: 0;
+      margin: 2px 0;
+      font-size: 12px;
+    }
+    .authors li {
+      display: inline;
+      margin-right: 5px;
+    }
+    .authors a,
+    a.author-link {
+      text-decoration: none;
+      color: #C80150;   /* 저자 이름은 기존 색 */
+    }
+
+    a.conference-link {
+      text-decoration: none;
+      color: #333;      /* 학회명은 검정 */
+    }
+
+    a.conference-link:hover {
+      text-decoration: underline;
+    }
+    .authors a:hover,
+    a.conference-link:hover,
+    a.author-link:hover {
+      text-decoration: underline;
+    }
+    a.author-link {
+      white-space: pre;
+    }
+
+    /* source 링크 */
+    .paper-source-link {
+      font-size: 12px;
+      color: #0056b3;
+      text-decoration: none;
+    }
+    .paper-source-link:hover {
+      text-decoration: underline;
+    }
+
+    /* 메인 페이지 링크 */
+    .main-link {
+      text-align: center;
+      margin: 15px auto 20px auto;
+    }
+    .main-link a {
+      text-decoration: none;
+      color: #C80150;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .year-header .author-wrapper { color: #C80150; }
+    .year-header .author-wrapper .paper-count { color: inherit; }   /* 부모 색 물려받기 */
+    .year-header .author-wrapper a.author-link { color: inherit; }  /* 링크도 동일 색 */
+
+    /* 반응형 디자인 */
+    @media (max-width: 768px) {
+      body {
+        font-size: 12px;
+      }
+      .container {
+        padding: 8px;
+        max-width: 100%;
+      }
+      h1 {
+        font-size: 22px;
+      }
+      .year-header, .conference-header {
+        font-size: 12px;
+        padding: 6px 8px;
+      }
+      .card-title {
+        font-size: 12px;
+      }
+      .authors {
+        font-size: 11px;
+      }
+    }
+
+    /* Footer 스타일 */
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      margin-top: 15px;
+      padding: 8px 0;
+      color: #666;
+    }
+    .footer-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .footer-container p {
+      margin: 0;
+      font-weight: bold;
+    }
+    .user {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+    }
+    .user a {
+      text-decoration: none;
+      color: #007bff;
+    }
+    .user a:hover {
+      text-decoration: underline;
+    }
+
+    .paper-author-link {
+      color: #C80150;        /* 기본 글자색: 붉은색 */
+      cursor: pointer;       /* 손가락 모양 커서 */
+      font-weight: normal;   /* 필요시 bold 가능 */
+      transition: color 0.2s ease, text-decoration 0.2s ease;
+    }
+
+    .paper-author-link:hover {
+      color: #ff3366;        /* hover 시 조금 더 밝은 빨강 */
+      text-decoration: underline; /* 밑줄 효과 */
+    }
+
+    /* 다크 모드 스타일 */
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #121212;
+        color: #e0e0e0;
+      }
+      .main-link a {
+        color: #ff88a2;
+      }
+      .paper-source-link {
+        color: #66ccff;
+      }
+      .container {
+        background-color: #242424;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.8);
+      }
+      h1 {
+        color: #ff88a2;
+      }
+      .options-table {
+        background-color: #2c2c2c;
+        color: #e0e0e0;
+        border: 1px solid #444;
+      }
+      .options-table th,
+      .options-table td {
+        border-color: #444;
+      }
+      .options-table th {
+        background-color: #3a3a3a;
+        color: #ff88a2;
+      }
+      .option-label {
+        background-color: #333;
+        color: #e0e0e0;
+      }
+      .options-table td {
+        background-color: #242424;
+      }
+      .year-section, .conference-section, .card {
+        background-color: #333;
+        border-color: #444;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.8);
+      }
+      .year-header, .conference-header {
+        background-color: #3a3a3a;
+        color: #e0e0e0;
+      }
+      .card-title {
+        color: #e0e0e0;
+      }
+      .authors a,
+      a.author-link {
+        color: #ff88a2;
+        white-space: pre;
+      }
+      a.conference-link {
+        color: #e0e0e0;
+      }
+      .user a {
+        color: #4da6ff;
+      }
+      .year-header .author-wrapper { color: #ff88a2; }
+      .paper-author-link {
+        color: #ff88a2;        /* 기본 글자색: 붉은색 */
+        cursor: pointer;       /* 손가락 모양 커서 */
+        font-weight: normal;   /* 필요시 bold 가능 */
+        transition: color 0.2s ease, text-decoration 0.2s ease;
+      }
+
+      .paper-author-link:hover {
+        color: #ff88a2;        /* hover 시 조금 더 밝은 빨강 */
+        text-decoration: underline; /* 밑줄 효과 */
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>PCSS Result</h1>
+    
+    <div class="main-link">
+      <a href="http://pcss.r-e.kr:3000/">
+        메인으로 돌아가기
+      </a>
+    </div>
+    
+    <!-- 검색 옵션을 테이블로 표시 -->
+    <table class="options-table">
+      <thead>
+        <tr>
+          <th colspan="2">검색 옵션</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="option-label">선택 옵션</td>
+          <td>{{ option_text }}</td>
+        </tr>
+        <tr>
+          <td class="option-label">연도 범위</td>
+          <td>{{ options.startyear }} ~ {{ options.endyear }}</td>
+
+        </tr>
+        <tr>
+          <td class="option-label">한국인 판단 기준값(0.0-1.0)</td>
+          <td>{{ options.uncertainty }}</td>
+
+        </tr>
+        <!-- <tr>
+          <td class="option-label">저자별 총 논문 수</td>
+          <td><%= options.CountOption %></td>
+        </tr> -->
+        <tr>
+          <td class="option-label">선택 학회</td>
+          <td>{{ options.selectedConferences | join(', ') }}</td>
+        </tr>
+
+        <tr>
+          <td class="option-label">저자별 총 논문 수</td>
+          <td>{{ '예' if options.countOption else '아니오' }}</td>
+        </tr>
+        
+      </tbody>
+    </table>
+    
+    <div id="papers-container"></div>
+    
+    <script>
+      // 토글 가능한 헤더 생성
+      function createToggleHeader(text, headerClass) {
+        const header = document.createElement("div");
+        header.className = headerClass;
+        header.innerHTML = text + '<span class="toggle-icon" style="margin-left:auto;">▼</span>';
+        header.addEventListener("click", () => {
+          const content = header.nextElementSibling;
+          const icon = header.querySelector(".toggle-icon");
+          if (!content.style.display || content.style.display === "none") {
+            content.style.display = "block";
+            icon.textContent = "▼";
+          } else {
+            content.style.display = "none";
+            icon.textContent = "▶";
+          }
+        });
+        return header;
+      }
+
+      const papers = {{ pythonResult | tojson }};
+      const container = document.getElementById("papers-container");
+
+      if (!papers || Object.keys(papers).length === 0) {
+        alert("검색 조건을 만족하는 논문이 존재하지 않습니다.");
+        container.innerHTML = `
+          <div style="text-align:center; padding:20px; background:#fff4f4; border:1px solid #f5c2c2; border-radius:8px; color:#c71d1d;">
+            검색 조건을 만족하는 논문이 존재하지 않습니다.
+          </div>`;
+      } else {
+        // target_author > year > conference 로 그룹화
+        const groupedPapers = {};
+        for (const key in papers) {
+          const paper = papers[key];
+          paper.target_author.forEach(author => {
+            if (!groupedPapers[author]) groupedPapers[author] = {};
+            if (!groupedPapers[author][paper.year]) groupedPapers[author][paper.year] = {};
+            if (!groupedPapers[author][paper.year][paper.conference]) {
+              groupedPapers[author][paper.year][paper.conference] = [];
+            }
+            groupedPapers[author][paper.year][paper.conference].push(paper);
+          });
+        }
+
+        function getDisplayedCountForAuthor(author) {
+          const byYear = groupedPapers[author];
+          const uniq = new Set();
+          for (const year in byYear) {
+            for (const conf in byYear[year]) {
+              byYear[year][conf].forEach(paper => {
+                const key = paper.id || paper.doi || paper.arxiv_id || paper.url || paper.title;
+                uniq.add(key);
+              });
+            }
+          }
+          return uniq.size;
+        }
+
+        const authorList = Object.keys(groupedPapers);
+        authorList.sort((a, b) => {
+          const cb = getDisplayedCountForAuthor(b);
+          const ca = getDisplayedCountForAuthor(a);
+          if (cb !== ca) return cb - ca;
+          return a.localeCompare(b);
+        });
+
+        // 저자별 전체 섹션 생성
+        for (const author of authorList) {
+          const authorSection = document.createElement("div");
+          authorSection.className = "year-section";
+
+          const authorHeader = document.createElement("div");
+          authorHeader.className = "year-header";
+          const headerCount = getDisplayedCountForAuthor(author);
+          authorHeader.innerHTML = `
+            <span class="author-wrapper">
+              ${escapeHtml(author)}
+              <span class="paper-count" style="margin-left:6px; font-weight:normal;">
+                - Paper count: ${headerCount}
+              </span>
+            </span>
+            <span class="toggle-icon" style="margin-left:auto;">▼</span>
+          `;
+          authorHeader.addEventListener("click", () => {
+            const content = authorSection.querySelector(".year-content");
+            const icon = authorHeader.querySelector(".toggle-icon");
+            if (!content.style.display || content.style.display === "none") {
+              content.style.display = "block";
+              icon.textContent = "▼";
+            } else {
+              content.style.display = "none";
+              icon.textContent = "▶";
+            }
+          });
+
+          const authorContent = document.createElement("div");
+          authorContent.className = "year-content";
+
+          // 연도 섹션
+          for (const year in groupedPapers[author]) {
+            const yearSection = document.createElement("div");
+            yearSection.className = "conference-section";
+
+            const yearHeaderEl = createToggleHeader(`${year}`, "conference-header");
+            yearSection.appendChild(yearHeaderEl);
+
+            const yearContent = document.createElement("div");
+            yearContent.className = "conference-content";
+
+            // 학회 섹션
+            for (const conference in groupedPapers[author][year]) {
+              const conferenceSection = document.createElement("div");
+              conferenceSection.className = "conference-section";
+
+              const conferenceHeader = document.createElement("div");
+              conferenceHeader.className = "conference-header";
+              const confSource = groupedPapers[author][year][conference][0]?.source || "#";
+              conferenceHeader.innerHTML = `
+                <a class="conference-link" href="${confSource}" target="_blank" rel="noopener">
+                  ${conference}
+                </a>
+                <span class="toggle-icon" style="margin-left:auto;">▼</span>
+              `;
+              const confToggleIcon = conferenceHeader.querySelector(".toggle-icon");
+              confToggleIcon.addEventListener("click", e => {
+                e.preventDefault();
+                e.stopPropagation();
+                const content = conferenceSection.querySelector(".conference-content");
+                if (!content.style.display || content.style.display === "none") {
+                  content.style.display = "block";
+                  confToggleIcon.textContent = "▼";
+                } else {
+                  content.style.display = "none";
+                  confToggleIcon.textContent = "▶";
+                }
+              });
+
+              const conferenceContent = document.createElement("div");
+              conferenceContent.className = "conference-content";
+
+              // 논문 카드
+              groupedPapers[author][year][conference].forEach(paper => {
+                const card = document.createElement("div");
+                card.className = "card";
+
+                const titleEl = document.createElement("div");
+                titleEl.className = "card-title";
+                titleEl.textContent = paper.title;
+                card.appendChild(titleEl);
+
+                // 저자 리스트
+                const authorsList = document.createElement("div");
+                  authorsList.className = "authors";
+
+                  paper.author_name.forEach((name, idx) => {
+                    const authorEl = document.createElement("span");
+                    authorEl.textContent = name;
+                    authorEl.className = "paper-author-link";
+                    authorEl.dataset.author = name;
+                    authorEl.dataset.profileUrl = paper.author_url[idx] || "";
+
+                    authorEl.style.cursor = "pointer"; // 클릭 가능하게 표시
+
+                    authorsList.appendChild(authorEl);
+                    if (idx < paper.author_name.length - 1) {
+                      authorsList.appendChild(document.createTextNode(", "));
+                    }
+                  });
+                  card.appendChild(authorsList);
+
+
+                conferenceContent.appendChild(card);
+              });
+
+              conferenceSection.appendChild(conferenceHeader);
+              conferenceSection.appendChild(conferenceContent);
+              yearContent.appendChild(conferenceSection);
+            }
+
+            yearSection.appendChild(yearContent);
+            authorContent.appendChild(yearSection);
+          }
+
+          authorSection.appendChild(authorHeader);
+          authorSection.appendChild(authorContent);
+          container.appendChild(authorSection);
+        }
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      function openAuthorStatsInNewTab(payload) {
+        // payload: { name, url, stats, total, papers }
+
+        // 폼 생성 (새 탭)
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/author-stats';
+        form.target = '_blank';
+
+        // 각 필드 추가 (papers는 문자열 길 수 있으니 textarea로)
+        const fields = {
+          name: payload.name,
+          url: payload.url,
+          stats: Array.isArray(payload.stats) ? JSON.stringify(payload.stats) : String(payload.stats),
+          total: String(payload.total),
+          papers: JSON.stringify(payload.papers || [])
+        };
+
+        Object.entries(fields).forEach(([k, v]) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = k;
+          input.value = v;
+          form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+        form.remove();
+      }
+
+      // 카드 내 저자 클릭 시 API 호출
+      container.addEventListener("click", async e => {
+        // span.paper-author-link를 찾도록 수정
+        const authorEl = e.target.closest(".paper-author-link");
+        if (!authorEl) return;
+
+
+        const target_author = authorEl.getAttribute("data-author")?.trim() || authorEl.textContent.trim();
+        const profileUrl = authorEl.dataset.profileUrl || "";
+        
+        if (!target_author) {
+          alert("저자 이름이 없습니다.");
+          return;
+        }
+
+        if (!profileUrl) {
+          alert("프로필 URL이 없습니다.");
+          return;
+        }
+
+        console.log("저자 클릭:", target_author, profileUrl); // 디버깅용
+
+        try {
+          const resp = await fetch("/api/author-stats", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              target_author,
+              url: profileUrl,
+              include_papers: true
+            })
+          });
+          
+          if (!resp.ok) throw new Error(await resp.text() || `HTTP ${resp.status}`);
+          const data = await resp.json();
+
+          const payload = {
+            name: target_author,
+            stats: data.stats,
+            total: data.total,
+            url: profileUrl,
+            papers: data.papers
+          };
+          openAuthorStatsInNewTab(payload);
+
+          // ② 현재 페이지에 통계값 붙이기
+          let stat;
+          if (data.stats && typeof data.stats === 'string') {
+            // API가 "(5.5,0.5)" 형태의 문자열을 반환하므로 괄호를 제거합니다.
+            stat = data.stats.replace(/[()]/g, ''); 
+          } else if (Array.isArray(data.stats)) {
+            // 만약 API가 나중에 배열 형태로 응답을 주더라도 호환되도록 남겨둡니다.
+            stat = data.stats.join(',');
+          } else {
+            // stats 값이 없거나 예기치 않은 형식일 경우 기본값을 사용합니다.
+            stat = "0,0,0,0"; 
+          }
+          // 클릭된 저자(authorEl)의 바로 다음 형제 요소를 확인합니다.
+          let badge = authorEl.nextElementSibling;
+
+          // 다음 형제 요소가 뱃지가 아니거나 존재하지 않는 경우, 새로 생성합니다.
+          if (!badge || !badge.classList.contains('author-stats-badge')) {
+            badge = document.createElement("span");
+            badge.className = "author-stats-badge";
+            // 클릭된 저자 바로 뒤에 뱃지를 삽입합니다.
+            authorEl.insertAdjacentElement('afterend', badge);
+          }
+
+          // 뱃지의 텍스트를 업데이트합니다.
+          badge.textContent = ` (${stat})`;
+
+        } catch (err) {
+          console.error("API 요청 실패:", err);
+          alert("통계 조회 실패: " + (err?.message || err));
+        }
+      });
+
+    </script>
+
+  </div>
+  <footer class="footer">
+    <div class="footer-container">
+      <p>Created By</p>
+      <div class="user">
+        <a href="https://github.com/yojun313" target="_blank">Yojun Moon</a>
+        <a href="mailto:yojun313@postech.ac.kr">(yojun313@postech.ac.kr)</a> | 
+        <a href="https://www.psal.postech.ac.kr/gkim" target="_blank">Gwangsun Kim</a>
+        <a href="mailto:g.kim@postech.ac.kr">(g.kim@postech.ac.kr)</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

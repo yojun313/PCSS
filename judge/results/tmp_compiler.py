@@ -1,7 +1,8 @@
 """
-Merge results/tmp/*.csv (0.csv, 1000.csv, ...) into judge/results.json and judge/results.csv.
+Merge results/tmp/*.csv (1st pass) into judge/results.json and judge/results.csv.
+Then overlay results/tmp_refilter/*.csv (2nd pass): refilter scores overwrite 1st pass for those names.
 If judge/names.json exists: output order follows names.json and missing names get score=NaN.
-If names.json is missing: output is the merged tmp rows as-is.
+CSV gets a second_refilter column: True if that row was overwritten by refilter data, else False.
 """
 import csv
 import json
@@ -11,6 +12,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = SCRIPT_DIR  # results/
 TMP_DIR = RESULTS_DIR / "tmp"
+TMP_REFILTER_DIR = RESULTS_DIR / "tmp_refilter"
 JUDGE_DIR = RESULTS_DIR.parent
 NAMES_PATH = JUDGE_DIR / "names.json"
 OUTPUT_JSON = JUDGE_DIR / "results.json"
@@ -51,7 +53,32 @@ def main():
                     "updated_at": row.get("updated_at", ""),
                 })
 
-    # 3. Build output: with or without names.json
+    # 2b. Collect tmp_refilter/*.csv (2nd pass) and build name -> {score, updated_at}
+    refilter_by_name = {}
+    if TMP_REFILTER_DIR.exists():
+        refilter_files = []
+        for p in TMP_REFILTER_DIR.iterdir():
+            if p.suffix.lower() == ".csv" and p.stem.isdigit():
+                refilter_files.append((int(p.stem), p))
+        refilter_files.sort(key=lambda x: x[0])
+        for _, path in refilter_files:
+            with open(path, "r", encoding="utf-8-sig", newline="") as f:
+                r = csv.DictReader(f)
+                for row in r:
+                    name = row.get("name", "")
+                    score_val = row.get("score", "")
+                    if score_val == "" or (isinstance(score_val, str) and score_val.strip().lower() == "nan"):
+                        score = None
+                    else:
+                        try:
+                            score = float(score_val)
+                        except (ValueError, TypeError):
+                            score = None
+                    refilter_by_name[name] = {"score": score, "updated_at": row.get("updated_at", "")}
+    if refilter_by_name:
+        print(f"Refilter overlay: {len(refilter_by_name)} names from tmp_refilter/")
+
+    # 3. Build output: with or without names.json; overlay refilter when present
     now = datetime.now().isoformat()
     if NAMES_PATH.exists():
         names_data = load_json(NAMES_PATH)
@@ -68,30 +95,46 @@ def main():
         for name in name_list:
             row = result_by_name.get(name)
             if row is not None:
-                output_rows.append(row)
+                row = dict(row)
             else:
-                output_rows.append({"name": name, "score": None, "updated_at": now})
+                row = {"name": name, "score": None, "updated_at": now}
+            if name in refilter_by_name:
+                row["score"] = refilter_by_name[name]["score"]
+                row["updated_at"] = refilter_by_name[name]["updated_at"]
+                row["second_refilter"] = True
+            else:
+                row["second_refilter"] = False
+            output_rows.append(row)
         missing_count = len(name_list) - len(result_by_name)
         if missing_count > 0:
             print(f"Added {missing_count} missing names with score=NaN")
     else:
-        # No names.json: just use merged rows in order
-        output_rows = merged
+        # No names.json: just use merged rows in order; add second_refilter
+        output_rows = []
+        for row in merged:
+            r = dict(row)
+            r["second_refilter"] = r["name"] in refilter_by_name
+            if r["second_refilter"]:
+                r["score"] = refilter_by_name[r["name"]]["score"]
+                r["updated_at"] = refilter_by_name[r["name"]]["updated_at"]
+            output_rows.append(r)
         print(f"names.json not found; merged {len(merged)} rows as-is")
 
-    # 6. Write results.json
+    # 4. Write results.json: same score/updated_at as output_rows (refilter overlay already applied; no second_refilter field)
     OUTPUT_JSON.parent.mkdir(parents=True, exist_ok=True)
+    json_rows = [{"name": r["name"], "score": r["score"], "updated_at": r["updated_at"]} for r in output_rows]
     with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
-        json.dump(output_rows, f, ensure_ascii=False, indent=2)
+        json.dump(json_rows, f, ensure_ascii=False, indent=2)
 
-    # 7. Write results.csv (NaN string for null score)
+    # 5. Write results.csv with second_refilter column (True/False)
     with open(OUTPUT_CSV, "w", encoding="utf-8-sig", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=["name", "score", "updated_at"], extrasaction="ignore")
+        w = csv.DictWriter(f, fieldnames=["name", "score", "updated_at", "second_refilter"], extrasaction="ignore")
         w.writeheader()
         for row in output_rows:
             out = dict(row)
             if out.get("score") is None:
                 out["score"] = "NaN"
+            out["second_refilter"] = row["second_refilter"]
             w.writerow(out)
 
     print(f"Merged {len(csv_files)} tmp CSVs → {len(output_rows)} rows")

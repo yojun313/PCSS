@@ -87,7 +87,7 @@ Return ONLY the number.
 EXTRA_REFILTER_TEST_NAMES = ["Andong Lu", "Handong Ye", "Han Yang", "Yang Yang"]
 
 # For --make-ambiguous: score range to extract (0.9 <= score < 1 = ambiguous band).
-AMBIGUOUS_MIN_SCORE = 0.9
+AMBIGUOUS_MIN_SCORE = 0.7
 AMBIGUOUS_MAX_SCORE = 1.0  # exclusive
 
 

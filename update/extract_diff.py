@@ -11,8 +11,8 @@ from app.db import name_col, mongo_db
 load_dotenv()
 console = Console()
 
-llm_col = mongo_db["llm_names"]
-rejudge_col = mongo_db["rejudged_names"]
+rejudge_col = mongo_db["llm_names"]
+llm_col = mongo_db["name_score_deepseek_3"]
 
 def export_score_discrepancies():
     # 1. 원본 데이터(llm_names) 로드 (이름: 점수 매핑)
@@ -23,7 +23,7 @@ def export_score_discrepancies():
 
     discrepancies = []
     
-    # 2. 재판단 데이터(rejudged_names)와 비교
+    # 2. 재판단 데이터(name_score_deepseek_3)와 비교
     with Progress() as progress:
         task = progress.add_task("[yellow]Comparing scores...", total=rejudge_col.count_documents({}))
         
@@ -41,8 +41,8 @@ def export_score_discrepancies():
                 if round(original_score, 4) != round(rejudged_score, 4):
                     discrepancies.append({
                         "name": name,
-                        "llm_score": original_score,
-                        "rejudged_score": rejudged_score,
+                        "deepseek": original_score,
+                        "grok": rejudged_score,
                         "diff": round(rejudged_score - original_score, 4)
                     })
             

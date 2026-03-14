@@ -27,7 +27,7 @@ API_KEY = os.getenv("GROK_API_KEYS") or os.getenv("XAI_API_KEY")
 BASE_URL = "https://api.x.ai/v1"
 MODEL_NAME = "grok-4-1-fast-non-reasoning"
 
-# Number of requests per add call (limit: 100 add calls per 30s)
+# Number of requests per add call (limit: 100 add calls per 30s)x
 ADD_BATCH_SIZE = 100
 # Max names per batch: send up to this many, wait for all results, then next batch
 MAX_NAMES_PER_BATCH = 1000

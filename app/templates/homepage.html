@@ -439,11 +439,14 @@
               <select id="probability" name="probability">
                 <script>
                   const probSelect = document.getElementById("probability");
-                  for (let i = 0.0; i <= 1.0; i += 0.1) {
-                    let option = document.createElement("option");
-                    option.value = i.toFixed(1);
-                    option.textContent = i.toFixed(1);
-                    if (i === 0.8) option.selected = true;
+                  for (let i = 0; i <= 10; i++) {
+                    const val = (i / 10).toFixed(1);
+                    const option = document.createElement("option");
+                    option.value = val;
+                    option.textContent = val;
+                    if (val === "0.8") {
+                      option.selected = true;
+                    }
                     probSelect.appendChild(option);
                   }
                 </script>

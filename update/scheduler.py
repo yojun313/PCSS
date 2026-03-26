@@ -121,7 +121,7 @@ def main():
     print("=== DBLP Scheduler & Notifier Started ===")
     print("매달 1일 00:00에 데이터 갱신 및 구독 메일을 발송합니다.\n")
     
-    #run_job()
+    run_job()
 
     while True:
         now = datetime.now()

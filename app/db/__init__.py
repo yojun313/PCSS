@@ -20,10 +20,9 @@ MONGO_USER = os.getenv("MONGO_USER")
 MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
 MONGO_AUTH_DB = os.getenv("MONGO_AUTH_DB", "admin")
 
-hostname = socket.gethostname()
-is_server = platform.system() == "Linux" and os.path.exists("/etc/os-release") and "ubuntu" in open("/etc/os-release").read().lower()
+SSH_MONGO = os.getenv("SSH_MONGO", "false").lower() == "true"
 
-if is_server:
+if not SSH_MONGO:
     # 서버 내부에서 실행 → 로컬 MongoDB 바로 사용
     client = MongoClient(
         f"mongodb://{MONGO_USER}:{MONGO_PASSWORD}"

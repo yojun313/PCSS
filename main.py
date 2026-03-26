@@ -25,6 +25,11 @@ from app.core.templates import templates
 import traceback
 from asgi_csrf import asgi_csrf
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+ENABLE_ACCESS_CONTROL = os.getenv("ENABLE_ACCESS_CONTROL", "true").lower() == "true"
 
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
@@ -63,19 +68,27 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         
 class AccessControlMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # 1. 접근 제어가 비활성화되어 있으면 모든 검증 건너빰
+        if not ENABLE_ACCESS_CONTROL:
+            return await call_next(request)
+        
+        # 2. 기본 예외 경로 처리
         if request.url.path.startswith(("/static", "/auth", "/favicon.ico", "/docs", "/openapi.json")):
             return await call_next(request)
         
+        # 3. IP 화이트리스트 체크
         ip = get_client_ip(request)
         is_internal = ip.startswith("141.223.") or ip in ["127.0.0.1", "::1"]
 
         if is_internal:
             return await call_next(request)
 
+        # 4. 세션 로그인 체크
         email = get_session_email(request)
         if email:
             return await call_next(request)
 
+        # 모두 해당 안 되면 로그인 페이지로 리다이렉트
         return RedirectResponse(url=f"/auth/login?next={request.url.path}", status_code=302)
 
 # 미들웨어 등록

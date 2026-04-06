@@ -64,7 +64,6 @@ async def start_search(req: SearchRequest, request: Request):
 
     async def runner():
         try:
-            # started 이벤트
             try:
                 job.queue.put_nowait({"type": "event", "event": "started", "job_id": job_id})
             except Exception:
@@ -74,14 +73,12 @@ async def start_search(req: SearchRequest, request: Request):
 
             finish_job(job_id, result if isinstance(result, dict) else {"result": result})
 
-            # done 이벤트
             try:
                 job.queue.put_nowait({"type": "event", "event": "done", "job_id": job_id})
             except Exception:
                 pass
 
         except asyncio.CancelledError:
-            # 취소된 경우
             try:
                 job.queue.put_nowait({"type": "event", "event": "cancelled", "job_id": job_id})
             except Exception:
@@ -185,15 +182,13 @@ async def search_page(request: Request, job_id: str):
 
     options = job.options or {}
 
-    # 1. 옵션 맵 정의
     option_map = {
         1: "1저자",
         2: "2저자",
         3: "마지막 저자",
         4: "기타 공저자",
     }
-
-    # 혹시 모를 구버전 데이터(int) 호환을 위해 타입 체크
+    
     raw_option = options.get("options", [])
     if isinstance(raw_option, int):
         raw_option = [raw_option]

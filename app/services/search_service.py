@@ -200,10 +200,6 @@ class PCSSEARCHMongo:
     # ---------------- Mongo fetch ----------------
 
     def _year_filter(self) -> Dict[str, Any]:
-        """
-        MongoDB 문서의 year가 "1988"(문자열)로 들어오는 케이스를 기본으로 처리.
-        혹시 int로 들어온 문서도 섞여있을 수 있으니 둘 다 허용.
-        """
         years_str = [str(y) for y in range(self.startyear, self.endyear + 1)]
         years_int = list(range(self.startyear, self.endyear + 1))
         return {"$or": [{"year": {"$in": years_str}}, {"year": {"$in": years_int}}]}
@@ -246,7 +242,6 @@ class PCSSEARCHMongo:
 
     @staticmethod
     def _clean_authors(authors: List[str]) -> List[str]:
-        # 기존 코드처럼 숫자 제거 + strip
         cleaned = []
         for a in authors:
             a2 = re.sub(r"\d+", "", (a or "")).strip()
@@ -265,7 +260,6 @@ class PCSSEARCHMongo:
         if not authors:
             return []
         
-        # 중복 방지를 위해 Set 사용 (예: 1인 저자는 1저자이면서 마지막 저자임)
         found_targets = set()
 
         async def get_tag(name: str) -> str:
@@ -288,34 +282,19 @@ class PCSSEARCHMongo:
 
         # [Option 4] 기타 공저자 (1, 2, Last 제외한 중간 저자들)
         if 4 in self.options:
-            # 저자가 4명 이상이어야 중간 저자가 존재함 (A, B, [C...], D)
             if len(authors) >= 4:
-                # index 2(3번째) 부터 마지막 바로 앞(-1)까지
                 for a in authors[2:-1]:
                     if await self.checkKorean(a):
                         found_targets.add(await get_tag(a))
 
-        # [Option Empty] 만약 옵션이 하나도 선택 안됐다면? (전체 검색 로직 유지 시)
-        # 필요하다면 아래 주석 해제. 현재는 선택된 것만 OR로 처리.
-        # if not self.options:
-        #     for a in authors:
-        #         if await self.checkKorean(a):
-        #             found_targets.add(await get_tag(a))
-
         return list(found_targets)
     
-    # ---------------- author stats (Mongo 기반) ----------------
-
     @staticmethod
     def _strip_score_suffix(s: str) -> str:
         # "Hanbin Hong (1.0)" -> "Hanbin Hong"
         return re.sub(r"\s*\(\d+(?:\.\d+)?\)\s*$", "", (s or "")).strip()
 
     async def authorNumCheckerMongo(self, target_author: str) -> Dict[str, Any]:
-        """
-        기존 authorNumChecker는 DBLP 저자 페이지를 파싱해서 (first, first_or_second, last, co_author) 통계를 냈는데,
-        이제는 MongoDB 데이터셋 안에서 동일 통계를 냄.
-        """
         if not target_author:
             return {"stats": "(0,0,0,0)", "total": 0}
 
@@ -401,8 +380,6 @@ class PCSSEARCHMongo:
             self._author_stats_cache[target_author] = result
             return result
 
-    # ---------------- main build ----------------
-
     async def _build_crawl_data(self, docs: List[Dict[str, Any]]) -> None:
         """
         Mongo docs -> 기존 CrawlData 형태로 필터링/저장
@@ -418,7 +395,6 @@ class PCSSEARCHMongo:
                 if not title:
                     continue
 
-                # 중복 title skip (기존과 동일)
                 if title in self._titleSet:
                     continue
                 self._titleSet.add(title)
@@ -447,7 +423,6 @@ class PCSSEARCHMongo:
                 try:
                     year = int(year_raw)
                 except Exception:
-                    # 혹시 None/이상치면 skip
                     continue
 
                 src = d.get("source") or ""
@@ -481,11 +456,6 @@ class PCSSEARCHMongo:
                 )
 
     async def _attach_author_stats(self) -> List[Dict[str, Any]]:
-        """
-        기존 MultiConfCollector의 authorCounter 로직과 유사:
-        - author_name 배열에서 한국인으로 판정되는 저자에 대해 (fa,fs,la,co) 붙이기
-        - target_author 순서대로 total_papers 리스트 생성
-        """
         resultData: List[Dict[str, Any]] = []
 
         async def authorCounter(data: Dict[str, Any]) -> None:
@@ -506,14 +476,12 @@ class PCSSEARCHMongo:
 
             data_copy["author_names"] = new_authors
 
-            # target_author 기준 total_papers 정렬 유지
             target_names = [self._strip_score_suffix(t) for t in data_copy.get("target_author", [])]
             data_copy["total_papers"] = [totals_by_author.get(name, 0) for name in target_names]
 
             resultData.append(data_copy)
 
         tasks = [authorCounter(d) for d in self.CrawlData]
-        # 너무 많으면 한 번에 gather가 부담일 수 있어서 배치 처리
         batch_size = int(os.getenv("AUTHOR_STATS_BATCH", "500"))
         for i in range(0, len(tasks), batch_size):
             if self._should_cancel():
@@ -523,10 +491,6 @@ class PCSSEARCHMongo:
         return resultData
 
     async def run(self, conf_list: List[str]) -> Dict[int, Dict[str, Any]]:
-        """
-        최종 반환 형태: {0: element, 1: element, ...}
-        element는 기존과 동일한 필드 구성 + dblp_url(있으면)
-        """
         if self._should_cancel():
             raise asyncio.CancelledError()
 
@@ -548,7 +512,6 @@ class PCSSEARCHMongo:
         else:
             resultData = self.CrawlData
 
-        # 기존 정렬: (conference, -year)
         final_sorted = sorted(
             resultData,
             key=lambda x: (

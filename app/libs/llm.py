@@ -19,10 +19,10 @@ def get_headers():
         "Authorization": f"Bearer {CUSTOM_TOKEN}",
     }
     
-# 모델 조회
-model_resp = requests.get(f"{LLM_URL}/models", headers=get_headers())
-model_resp.raise_for_status()
-LLM_MODEL = model_resp.json()["data"][0]["id"]
+# # 모델 조회
+# model_resp = requests.get(f"{LLM_URL}/models", headers=get_headers())
+# model_resp.raise_for_status()
+# LLM_MODEL = model_resp.json()["data"][0]["id"]
 
 def single_name_llm(name):
     if NAME_CACHE:

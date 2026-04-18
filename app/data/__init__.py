@@ -19,7 +19,7 @@ else:
     print(f"Loaded {len(name_dict)} LLM names from DB")
 author_list = list(authors_col.find({}, {"_id": 0, "name": 1, "pid": 1}))
 
-print("Loading conferences from DB")
+print("Loaded conferences from DB")
 
 _conf_docs = list(
     conf_col.find(

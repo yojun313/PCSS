@@ -16,10 +16,13 @@ router = APIRouter()
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, next: str = "/"):
-    return templates.TemplateResponse("auth/login.html", {
-        "request": request,
-        "next": next,
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="auth/login.html",
+        context={
+            "next": next
+        }
+    )
 
 
 @router.post("/login/send", response_class=HTMLResponse)
@@ -30,10 +33,10 @@ async def login_send(request: Request, email: str = Form(...), next: str = Form(
 
     if not email_norm.endswith("@postech.ac.kr"):
         return templates.TemplateResponse(
-            "auth/login.html",
-            {
-                "request": request, 
-                "next": next, 
+            request=request,
+            name="auth/login.html",
+            context={
+                "next": next,
                 "error": "POSTECH 이메일(@postech.ac.kr)만 사용 가능합니다."
             }
         )
@@ -64,8 +67,13 @@ async def login_send(request: Request, email: str = Form(...), next: str = Form(
     )
 
     return templates.TemplateResponse(
-        "auth/login_verify.html",
-        {"request": request, "email": email_norm, "next": next, "message": "인증 코드를 메일로 보냈습니다."},
+        request=request,
+        name="auth/login_verify.html",
+        context={
+            "email": email_norm,
+            "next": next,
+            "message": "인증 코드를 메일로 보냈습니다."
+        }
     )
 
 
@@ -87,15 +95,25 @@ async def login_verify(
     )
     if not otp:
         return templates.TemplateResponse(
-            "auth/login_verify.html",
-            {"request": request, "email": email_norm, "next": next, "error": "코드가 만료되었거나 없습니다."},
+            request=request,
+            name="auth/login_verify.html",
+            context={
+                "email": email_norm,
+                "next": next,
+                "error": "코드가 만료되었거나 없습니다."
+            }
         )
 
     tries = int(otp.get("tries", 0))
     if tries >= 5:
         return templates.TemplateResponse(
-            "auth/login_verify.html",
-            {"request": request, "email": email_norm, "next": next, "error": "시도 횟수를 초과했습니다. 다시 요청하세요."},
+            request=request,
+            name="auth/login_verify.html",
+            context={
+                "email": email_norm,
+                "next": next,
+                "error": "시도 횟수를 초과했습니다. 다시 요청하세요."
+            }
         )
 
     expected = otp.get("code_hash")
@@ -106,8 +124,13 @@ async def login_verify(
             {"$inc": {"tries": 1}},
         )
         return templates.TemplateResponse(
-            "auth/login_verify.html",
-            {"request": request, "email": email_norm, "next": next, "error": "인증 코드가 올바르지 않습니다."},
+            request=request,
+            name="auth/login_verify.html",
+            context={
+                "email": email_norm,
+                "next": next,
+                "error": "인증 코드가 올바르지 않습니다."
+            }
         )
 
     auth_col.delete_one({"kind": "otp", "email": email_norm})

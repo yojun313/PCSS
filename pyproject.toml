@@ -1,0 +1,29 @@
+[project]
+name = "pcss"
+version = "0.1.0"
+description = "POSTECH Computer Scientist Search"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "aiofiles>=25.1.0",
+    "aiohttp>=3.13.5",
+    "asgi-csrf>=0.11",
+    "bs4>=0.0.2",
+    "fastapi>=0.136.1",
+    "gunicorn>=25.3.0",
+    "httpx>=0.28.1",
+    "jinja2>=3.1.6",
+    "lxml>=6.1.0",
+    "motor>=3.7.1",
+    "pandas>=3.0.2",
+    "pydantic[email]>=2.13.3",
+    "pymongo>=4.17.0",
+    "python-dotenv>=1.2.2",
+    "python-multipart>=0.0.27",
+    "requests>=2.33.1",
+    "rich>=15.0.0",
+    "sshtunnel>=0.4.0",
+    "urllib3>=2.6.3",
+    "user-agent>=0.1.14",
+    "uvicorn>=0.46.0",
+]

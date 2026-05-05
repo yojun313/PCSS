@@ -65,19 +65,22 @@ async def admin_log_dashboard(request: Request):
     recent_logs = list(log_col.find().sort("ts", -1).limit(100))
 
     # 렌더링
-    return templates.TemplateResponse("admin/log_dashboard.html", {
-        "request": request,
-        "email": email,
-        
-        # 차트 데이터 (Jinja2에서 tojson으로 쓰기 위해 전달)
-        "chart_dates": chart_dates,
-        "chart_visitors": chart_visitors,
-        "chart_hits": chart_hits,
-        
-        "chart_types": chart_types,
-        "chart_type_counts": chart_type_counts,
-        
-        # 상세 데이터
-        "recent_logs": recent_logs,
-        "daily_stats": daily_stats # 표로도 보여주기 위해 전달
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/log_dashboard.html",
+        context={
+            "email": email,
+            
+            # 차트 데이터 (Jinja2에서 tojson으로 쓰기 위해 전달)
+            "chart_dates": chart_dates,
+            "chart_visitors": chart_visitors,
+            "chart_hits": chart_hits,
+            
+            "chart_types": chart_types,
+            "chart_type_counts": chart_type_counts,
+            
+            # 상세 데이터
+            "recent_logs": recent_logs,
+            "daily_stats": daily_stats # 표로도 보여주기 위해 전달
+        }
+    )

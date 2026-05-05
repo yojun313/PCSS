@@ -32,16 +32,16 @@ async def author_stats_page(
     is_korean = score >= probability
 
     return templates.TemplateResponse(
-        "search/author_stats.html",
-        {
-            "request": request,
-            "name": target_author, # 템플릿 타이틀에는 이름을 표시
+        request=request,
+        name="search/author_stats.html",
+        context={
+            "name": target_author,
             "url": url, 
             "stats": result.get("stats", (0, 0, 0, 0)),
             "total": result.get("total", 0),
             "papers": result.get("papers", []),
             "is_korean": is_korean,
-        },
+        }
     )
 
 
@@ -51,8 +51,9 @@ async def author_search_input_page(request: Request):
     저자 이름을 검색하여 통계 페이지로 이동하기 위한 입력 폼 페이지
     """
     return templates.TemplateResponse(
-        "search/author_search_input.html",
-        {"request": request}
+        request=request,
+        name="search/author_search_input.html",
+        context={"request": request}
     )
 
 
@@ -124,8 +125,11 @@ async def manage_all_names(
     
     if status_or_resp is None:
         return templates.TemplateResponse(
-            "admin/access_denied.html",
-            {"request": request, "error": "관리자 권한이 필요합니다."},
+            request=request,
+            name="admin/access_denied.html",
+            context={
+                "error": "관리자 권한이 필요합니다."
+            },
             status_code=403,
         )
 
@@ -148,9 +152,9 @@ async def manage_all_names(
     authors_data = list(cursor)
 
     return templates.TemplateResponse(
-        "admin/manage_names.html",
-        {
-            "request": request,
+        request=request,
+        name="admin/manage_names.html",
+        context={
             "authors": authors_data,
             "page": page,
             "total_pages": total_pages,
@@ -273,8 +277,11 @@ async def admin_requests_page(request: Request):
     if status_or_resp is None:
         # 로그인은 했는데 admin 아님
         return templates.TemplateResponse(
-            "admin/access_denied.html",
-            {"request": request, "requests": [], "error": "권한이 없습니다. 관리자 계정으로 로그인하세요."},
+            request=request,
+            name="admin/access_denied.html",
+            context={
+                "error": "권한이 없습니다. 관리자 계정으로 로그인하세요."
+            },
             status_code=403,
         )
 
@@ -290,8 +297,13 @@ async def admin_requests_page(request: Request):
         })
 
     return templates.TemplateResponse(
-        "admin/admin_name_requests.html",
-        {"request": request, "requests": items, "error": None, "email": email},
+        request=request,
+        name="admin/admin_name_requests.html",
+        context={
+            "requests": items,
+            "error": None,
+            "email": email
+        },
     )
 
 

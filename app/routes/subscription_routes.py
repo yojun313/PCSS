@@ -102,18 +102,17 @@ async def manage_page(request: Request):
             projection={"_id": 0},
         )
 
-
     return templates.TemplateResponse(
-        "subscribe/manage_subscription.html",
-        {
-            "request": request,
+        request=request,
+        name="subscribe/manage_subscription.html",
+        context={
             "error": None,
             "success": None,
             "email": email_norm,
             "subscription": doc,
             "conferences": get_conferences_for_ui(),
             "options": _option_labels(),
-        },
+        }
     )
 
 
@@ -151,9 +150,9 @@ async def manage_update(
         # 현재 구독 정보 다시 로드해서 그대로 보여주고 에러만 띄움
         doc = subscription_col.find_one({"email": email_norm}, {"_id": 0})
         return templates.TemplateResponse(
-            "subscribe/manage_subscription.html",
-            {
-                "request": request,
+            request=request,
+            name="subscribe/manage_subscription.html",
+            context={
                 "error": "옵션은 최소 1개 이상 선택해야 합니다.",
                 "success": None,
                 "email": email_norm,
@@ -180,8 +179,12 @@ async def manage_unsubscribe(request: Request):
         {"$set": {"is_enabled": False, "updated_at": now}},
     )
     return templates.TemplateResponse(
-        "subscribe/unsubscribe_done.html",
-        {"request": request, "error": None, "email": email_norm},
+        request=request,
+        name="subscribe/unsubscribe_done.html",
+        context={
+            "error": None,
+            "email": email_norm,
+        },
     )
 
 

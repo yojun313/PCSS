@@ -53,9 +53,9 @@ async def conf_manage_page(request: Request):
 
     if status_or_resp is None:
         return templates.TemplateResponse(
-            "admin/access_denied.html",
-            {
-                "request": request,
+            request=request,
+            name="admin/access_denied.html",
+            context={
                 "email": email,
                 "error": "권한이 없습니다. admin에 등록된 이메일로 로그인하세요.",
                 "success": None,
@@ -74,9 +74,9 @@ async def conf_manage_page(request: Request):
     docs.sort(key=lambda x: (x.get("kind", ""), x.get("name", ""), ",".join(x.get("params") or [])))
 
     return templates.TemplateResponse(
-        "admin/admin_conferences.html",
-        {
-            "request": request,
+        request=request,
+        name="admin/admin_conferences.html",
+        context={
             "email": email,
             "error": None,
             "success": None,
@@ -116,9 +116,9 @@ async def conf_manage_create(
             d["params"] = _normalize_params(d)
             d.pop("param", None)
         return templates.TemplateResponse(
-            "admin/admin_conferences.html",
-            {
-                "request": request,
+            request=request,
+            name="admin/admin_conferences.html",
+            context={
                 "email": email,
                 "error": "이미 사용 중인 param이 포함되어 있습니다.",
                 "success": None,
@@ -162,9 +162,9 @@ async def conf_manage_add_params(request: Request, base_param: str, params_text:
             d["params"] = _normalize_params(d)
             d.pop("param", None)
         return templates.TemplateResponse(
-            "admin/admin_conferences.html",
-            {
-                "request": request,
+            request=request,
+            name="admin/admin_conferences.html",
+            context={
                 "email": email,
                 "error": "추가하려는 param 중 이미 사용 중인 값이 있습니다.",
                 "success": None,
@@ -209,9 +209,9 @@ async def conf_manage_delete_param(request: Request, base_param: str, param: str
             d["params"] = _normalize_params(d)
             d.pop("param", None)
         return templates.TemplateResponse(
-            "admin/admin_conferences.html",
-            {
-                "request": request,
+            request=request,
+            name="admin/admin_conferences.html",
+            context={
                 "email": email,
                 "error": "마지막 param은 삭제할 수 없습니다.",
                 "success": None,

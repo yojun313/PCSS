@@ -19,9 +19,9 @@ async def admin_dashboard(request: Request):
     # 2. 로그인은 됐으나 관리자가 아닌 경우 -> 에러 페이지 표시 (또는 403)
     if status_or_resp is None:
         return templates.TemplateResponse(
-            "admin/access_denied.html", 
-            {
-                "request": request,
+            request=request,
+            name="admin/access_denied.html", 
+            context={
                 "error": "관리자 권한이 없습니다."
             },
             status_code=403,
@@ -29,9 +29,9 @@ async def admin_dashboard(request: Request):
 
     # 3. 관리자 인증 성공 -> 대시보드 렌더링
     return templates.TemplateResponse(
-        "admin/dashboard.html",
-        {
-            "request": request,
+        request=request,
+        name="admin/dashboard.html",
+        context={
             "email": email
         },
     )
@@ -49,12 +49,15 @@ async def manage_admins_page(request: Request):
 
     admins = list(admin_col.find({}, {"_id": 0}).sort("name", 1))
 
-    return templates.TemplateResponse("admin/admin_list.html", {
-        "request": request,
-        "email": email,      
-        "admins": admins,
-        "is_root": is_root,
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/admin_list.html",
+        context={
+            "email": email,
+            "admins": admins,
+            "is_root": is_root,
+        }
+    )
 
 # 관리자 추가 (루트만 가능)
 @router.post("/manage/admins/add")

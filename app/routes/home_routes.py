@@ -36,11 +36,11 @@ async def homepage(request: Request):
         print("Failed to log homepage visit event")
 
     return templates.TemplateResponse(
-        "homepage.html",
-        {
-            "request": request,
+        request=request,
+        name="homepage.html",
+        context={
             "email": email,   
-            "is_admin": is_admin,
+            "is_admin": is_admin
         }
     )
 

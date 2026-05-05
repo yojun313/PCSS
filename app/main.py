@@ -107,10 +107,10 @@ app.include_router(log_router, prefix="/logs")
 @app.exception_handler(404)
 async def custom_404_handler(request: Request, exc: StarletteHTTPException):
     return templates.TemplateResponse(
-        "errors/404.html",  # 미리 만들어둔 404 템플릿 경로
-        {
-            "request": request,
-            "error_message": "" 
+        request=request,
+        name="errors/404.html",
+        context={
+            "error_message": "요청하신 페이지를 찾을 수 없습니다." 
         },
         status_code=404
     )
@@ -138,9 +138,9 @@ async def custom_500_handler(request: Request, exc: Exception):
         print(f"Failed to log 500 error to DB: {log_error}")
 
     return templates.TemplateResponse(
-        "errors/500.html",
-        {
-            "request": request,
+        request=request,
+        name="errors/500.html",
+        context={
             "error_message": "서버 내부에서 오류가 발생했습니다. 관리자에게 문의하거나 잠시 후 다시 시도해주세요."
         },
         status_code=500

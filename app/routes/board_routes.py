@@ -21,20 +21,21 @@ async def board_list(request: Request):
     
     email = get_session_email(request)
     
-    # [핵심] 현재 접속자가 관리자인지 확인
     is_admin = False
     if email:
         if admin_col.find_one({"email": email}):
             is_admin = True
 
-    return templates.TemplateResponse("board/list.html", {
-        "request": request,
-        "notices": notices,
-        "bugs": bugs,
-        "email": email,
-        "is_admin": is_admin  # 템플릿에서 작성/수정/삭제 버튼 및 상태 변경 기능 활성화용
-    })
-
+    return templates.TemplateResponse(
+        request=request,
+        name="board/list.html",
+        context={
+            "notices": notices,
+            "bugs": bugs,
+            "email": email,
+            "is_admin": is_admin
+        }
+    )
 
 # 버그 상태 변경 API (관리자 전용)
 @router.post("/bug/status/{oid}")
@@ -62,11 +63,14 @@ async def notice_write_page(request: Request):
     if isinstance(resp, RedirectResponse) or resp is None:
         return resp
 
-    return templates.TemplateResponse("board/admin_page.html", {
-        "request": request, 
-        "email": email,
-        "mode": "create"
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="board/admin_page.html",
+        context={
+            "email": email,
+            "mode": "create"
+        }
+    )
 
 
 # [관리자] 공지사항 저장
@@ -96,12 +100,15 @@ async def notice_edit_page(request: Request, oid: str):
     if not notice:
         raise HTTPException(status_code=404, detail="Notice not found")
 
-    return templates.TemplateResponse("board/admin_page.html", {
-        "request": request,
-        "email": email,
-        "notice": notice,
-        "mode": "edit"
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="board/admin_page.html",
+        context={
+            "email": email,
+            "notice": notice,
+            "mode": "edit"
+        }
+    )
 
 # [관리자] 공지사항 수정 처리
 @router.post("/notice/edit/{oid}")
@@ -148,11 +155,14 @@ async def notice_detail(request: Request, oid: str):
         if admin_col.find_one({"email": email}):
             is_admin = True
     
-    return templates.TemplateResponse("board/notice_detail.html", {
-        "request": request, 
-        "notice": notice,
-        "is_admin": is_admin
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="board/notice_detail.html",
+        context={
+            "notice": notice,
+            "is_admin": is_admin
+        }
+    )
 
 
 # 버그 제보 작성 페이지
@@ -162,9 +172,14 @@ async def bug_write_page(request: Request):
     if not email:
         return RedirectResponse(url="/auth/login?next=/board/bug/write", status_code=302)
     
-    return templates.TemplateResponse("board/bug_write.html", {
-        "request": request, "email": email, "mode": "create"
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="board/bug_write.html",
+        context={
+            "email": email,
+            "mode": "create"
+        }
+    )
 
 # 버그 제보 저장
 @router.post("/bug/write")
@@ -194,12 +209,15 @@ async def bug_detail(request: Request, oid: str):
     # 본인이 작성한 글인지 확인
     is_owner = (current_email == bug.get("author"))
 
-    return templates.TemplateResponse("board/bug_detail.html", {
-        "request": request, 
-        "bug": bug, 
-        "is_owner": is_owner,
-        "current_email": current_email
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="board/bug_detail.html",
+        context={
+            "bug": bug,
+            "is_owner": is_owner,
+            "current_email": current_email
+        }
+    )
 
 # 버그 제보 수정 페이지
 @router.get("/bug/edit/{oid}", response_class=HTMLResponse)
@@ -211,12 +229,15 @@ async def bug_edit_page(request: Request, oid: str):
     if not bug or not email or bug.get("author") != email:
         return RedirectResponse(url=f"/board/bug/{oid}", status_code=302)
 
-    return templates.TemplateResponse("board/bug_write.html", {
-        "request": request, 
-        "email": email, 
-        "mode": "edit", 
-        "bug": bug
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="board/bug_write.html",
+        context={
+            "email": email,
+            "mode": "edit",
+            "bug": bug
+        }
+    )
 
 # 버그 제보 수정 처리
 @router.post("/bug/edit/{oid}")

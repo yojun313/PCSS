@@ -209,9 +209,9 @@ async def search_page(request: Request, job_id: str):
 
     if job.status == "running":
         return templates.TemplateResponse(
-            "search/loading_result.html",
-            {
-                "request": request,
+            request=request,
+            name="search/loading_result.html",
+            context={
                 "job_id": job_id,
                 "events_url": f"/api/search/events/{job_id}",
                 "page_url": f"/api/search/page/{job_id}",
@@ -223,9 +223,9 @@ async def search_page(request: Request, job_id: str):
 
     pythonResult = job.result or {}
     return templates.TemplateResponse(
-        "search/results.html",
-        {
-            "request": request,
+        request=request,
+        name="search/results.html",
+        context={
             "options": options,
             "option_text": option_text,
             "pythonResult": pythonResult,

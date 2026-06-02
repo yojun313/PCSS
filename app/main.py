@@ -40,8 +40,8 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://pcss.r-e.kr",
-        "https://pcss.r-e.kr",
+        "http://pcss.postech.ac.kr",
+        "https://pcss.postech.ac.kr",
         "http://localhost:3000",
         "http://localhost:8000",
     ],

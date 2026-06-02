@@ -247,7 +247,7 @@ async def search_page(request: Request, job_id: str):
             "options": options,
             "option_text": option_text,
             "pythonResult": pythonResult,
-            "FASTAPI_BASE": "http://pcss.r-e.kr:8000",
+            "FASTAPI_BASE": "http://pcss.postech.ac.kr:8000",
         },
     )
 

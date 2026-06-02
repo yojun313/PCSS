@@ -16,8 +16,8 @@ class MockRequest:
         self.headers = {}
         self.state = type("State", (), {"user": None})()
         self.query_params = {}
-        self.url = "https://pcss.r-e.kr"
-        self.base_url = "https://pcss.r-e.kr"
+        self.url = "https://pcss.postech.ac.kr"
+        self.base_url = "https://pcss.postech.ac.kr"
         self.cookies = {}
         self.client = None
 
@@ -128,7 +128,7 @@ class SubscriptionNotifier:
             },
             "option_text": option_text,
             "grouped_papers": grouped_data,  # 원본 pythonResult 대신 그룹화된 데이터 전달
-            "FASTAPI_BASE": "https://pcss.r-e.kr",
+            "FASTAPI_BASE": "https://pcss.postech.ac.kr",
         }
 
         try:

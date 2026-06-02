@@ -3,7 +3,7 @@ import sys
 import json
 
 # 서버 주소 설정 (환경에 맞게 변경하세요)
-API_BASE_URL = "https://pcss.r-e.kr/api/conf"
+API_BASE_URL = "https://pcss.postech.ac.kr/api/conf"
 
 
 def print_header(title):

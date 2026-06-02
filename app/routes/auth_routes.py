@@ -17,11 +17,7 @@ router = APIRouter()
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, next: str = "/"):
     return templates.TemplateResponse(
-        request=request,
-        name="auth/login.html",
-        context={
-            "next": next
-        }
+        request=request, name="auth/login.html", context={"next": next}
     )
 
 
@@ -37,8 +33,8 @@ async def login_send(request: Request, email: str = Form(...), next: str = Form(
             name="auth/login.html",
             context={
                 "next": next,
-                "error": "POSTECH 이메일(@postech.ac.kr)만 사용 가능합니다."
-            }
+                "error": "POSTECH 이메일(@postech.ac.kr)만 사용 가능합니다.",
+            },
         )
 
     # (이하 기존 로직 그대로)
@@ -48,22 +44,24 @@ async def login_send(request: Request, email: str = Form(...), next: str = Form(
 
     auth_col.update_one(
         {"kind": "otp", "email": email_norm},
-        {"$set": {
-            "kind": "otp",
-            "email": email_norm,
-            "code_hash": code_hash,
-            "expires_at": expires_at,
-            "tries": 0,
-            "created_at": now,
-            "ip": ip,
-        }},
+        {
+            "$set": {
+                "kind": "otp",
+                "email": email_norm,
+                "code_hash": code_hash,
+                "expires_at": expires_at,
+                "tries": 0,
+                "created_at": now,
+                "ip": ip,
+            }
+        },
         upsert=True,
     )
 
     send_email(
         receiver=email_norm,
         title="[PCSS] 로그인 인증 코드",
-        text=f"PCSS 로그인 인증 코드입니다: {code}\n"
+        text=f"PCSS 로그인 인증 코드입니다: {code}\n",
     )
 
     return templates.TemplateResponse(
@@ -72,8 +70,8 @@ async def login_send(request: Request, email: str = Form(...), next: str = Form(
         context={
             "email": email_norm,
             "next": next,
-            "message": "인증 코드를 메일로 보냈습니다."
-        }
+            "message": "인증 코드를 메일로 보냈습니다.",
+        },
     )
 
 
@@ -100,8 +98,8 @@ async def login_verify(
             context={
                 "email": email_norm,
                 "next": next,
-                "error": "코드가 만료되었거나 없습니다."
-            }
+                "error": "코드가 만료되었거나 없습니다.",
+            },
         )
 
     tries = int(otp.get("tries", 0))
@@ -112,8 +110,8 @@ async def login_verify(
             context={
                 "email": email_norm,
                 "next": next,
-                "error": "시도 횟수를 초과했습니다. 다시 요청하세요."
-            }
+                "error": "시도 횟수를 초과했습니다. 다시 요청하세요.",
+            },
         )
 
     expected = otp.get("code_hash")
@@ -129,8 +127,8 @@ async def login_verify(
             context={
                 "email": email_norm,
                 "next": next,
-                "error": "인증 코드가 올바르지 않습니다."
-            }
+                "error": "인증 코드가 올바르지 않습니다.",
+            },
         )
 
     auth_col.delete_one({"kind": "otp", "email": email_norm})
@@ -138,14 +136,16 @@ async def login_verify(
     session_id = secrets.token_urlsafe(32)
     sess_expires = now + timedelta(days=14)
 
-    auth_col.insert_one({
-        "kind": "session",
-        "session_id": session_id,
-        "email": email_norm,
-        "expires_at": sess_expires,
-        "created_at": now,
-        "ip": ip,
-    })
+    auth_col.insert_one(
+        {
+            "kind": "session",
+            "session_id": session_id,
+            "email": email_norm,
+            "expires_at": sess_expires,
+            "created_at": now,
+            "ip": ip,
+        }
+    )
 
     resp = RedirectResponse(url=next or "/", status_code=302)
     resp.set_cookie(

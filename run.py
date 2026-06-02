@@ -1,7 +1,7 @@
-'''
+"""
 gunicorn app.main:app -c run.py
 uvicorn app.main:app --host 0.0.0.0 --port 8000
-'''
+"""
 
 import uvicorn
 import socket
@@ -23,5 +23,5 @@ if __name__ == "__main__":
         workers=1,
         log_level="warning",
         access_log=False,
-        timeout_keep_alive=86400
+        timeout_keep_alive=86400,
     )

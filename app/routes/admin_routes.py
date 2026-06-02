@@ -6,6 +6,7 @@ from app.db import admin_col
 
 router = APIRouter()
 
+
 @router.get("/dashboard", response_class=HTMLResponse)
 async def admin_dashboard(request: Request):
     # 관리자 권한 확인 로직 (기존 코드 패턴 유지)
@@ -20,10 +21,8 @@ async def admin_dashboard(request: Request):
     if status_or_resp is None:
         return templates.TemplateResponse(
             request=request,
-            name="admin/access_denied.html", 
-            context={
-                "error": "관리자 권한이 없습니다."
-            },
+            name="admin/access_denied.html",
+            context={"error": "관리자 권한이 없습니다."},
             status_code=403,
         )
 
@@ -31,11 +30,10 @@ async def admin_dashboard(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="admin/dashboard.html",
-        context={
-            "email": email
-        },
+        context={"email": email},
     )
-    
+
+
 # 관리자 목록 페이지
 @router.get("/manage/admins", response_class=HTMLResponse)
 async def manage_admins_page(request: Request):
@@ -56,12 +54,15 @@ async def manage_admins_page(request: Request):
             "email": email,
             "admins": admins,
             "is_root": is_root,
-        }
+        },
     )
+
 
 # 관리자 추가 (루트만 가능)
 @router.post("/manage/admins/add")
-async def add_admin(request: Request, new_email: str = Form(...), new_name: str = Form(...)):
+async def add_admin(
+    request: Request, new_email: str = Form(...), new_name: str = Form(...)
+):
     email, resp = _require_admin_or_redirect(request, "/admin/manage/admins")
     if isinstance(resp, RedirectResponse) or resp is None:
         return resp
@@ -75,18 +76,23 @@ async def add_admin(request: Request, new_email: str = Form(...), new_name: str 
     target_name = new_name.strip()
 
     if not admin_col.find_one({"email": target_email}):
-        admin_col.insert_one({
-            "email": target_email,
-            "name": target_name,
-            "is_root": False # 새로 추가되는 관리자는 기본적으로 일반 관리자
-        })
-    
+        admin_col.insert_one(
+            {
+                "email": target_email,
+                "name": target_name,
+                "is_root": False,  # 새로 추가되는 관리자는 기본적으로 일반 관리자
+            }
+        )
+
     return RedirectResponse(url="/admin/manage/admins", status_code=302)
+
 
 # 관리자 삭제 (루트만 가능)
 @router.post("/manage/admins/delete")
 async def delete_admin(request: Request, target_email: str = Form(...)):
-    current_user_email, resp = _require_admin_or_redirect(request, "/admin/manage/admins")
+    current_user_email, resp = _require_admin_or_redirect(
+        request, "/admin/manage/admins"
+    )
     if isinstance(resp, RedirectResponse) or resp is None:
         return resp
 
@@ -107,5 +113,5 @@ async def delete_admin(request: Request, target_email: str = Form(...)):
         return RedirectResponse(url="/admin/manage/admins", status_code=302)
 
     admin_col.delete_one({"email": target_email})
-    
+
     return RedirectResponse(url="/admin/manage/admins", status_code=302)

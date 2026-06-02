@@ -2,6 +2,7 @@
 Grok 4 Batch API: score person names by probability of being Korean (0.0–1.0).
 Uses Batch API (50% discount). Test mode: 30 names; normal: requests added in batches of 100.
 """
+
 import csv
 import os
 import re
@@ -40,7 +41,15 @@ API_RETRIES = 5
 API_RETRY_BACKOFF = 5.0  # seconds, doubled each retry (5, 10, 20, 40, 80)
 
 
-def _append_failed_rows(chunk_items, all_failed, global_offset, chunk_dir, final_so_far, output_path, csv_path_full):
+def _append_failed_rows(
+    chunk_items,
+    all_failed,
+    global_offset,
+    chunk_dir,
+    final_so_far,
+    output_path,
+    csv_path_full,
+):
     """Append one row per failed request (score=NaN) to final_so_far and to the right chunk CSV; then save full files."""
     if not all_failed:
         return
@@ -52,7 +61,7 @@ def _append_failed_rows(chunk_items, all_failed, global_offset, chunk_dir, final
         try:
             idx = int(rid)
             name = chunk_items[idx]["name"]
-        except (ValueError, IndexError):
+        except ValueError, IndexError:
             name = rid
         row = {"name": name, "score": None, "updated_at": now}
         final_so_far.append(row)
@@ -63,6 +72,7 @@ def _append_failed_rows(chunk_items, all_failed, global_offset, chunk_dir, final
         save_csv_append(str(chunk_path), rows, flush_after_write=True)
     save_json(output_path, final_so_far, flush_after_write=True)
     save_csv(str(csv_path_full), final_so_far, flush_after_write=True)
+
 
 SYSTEM_PROMPT = (
     "You are an expert in Korean onomastics and romanized name patterns. "
@@ -181,7 +191,9 @@ def save_csv(path, data, flush_after_write=False):
     if p.parent != p:
         p.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8-sig", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=["name", "score", "updated_at"], extrasaction="ignore")
+        w = csv.DictWriter(
+            f, fieldnames=["name", "score", "updated_at"], extrasaction="ignore"
+        )
         w.writeheader()
         for row in data:
             out = dict(row)
@@ -202,7 +214,9 @@ def save_csv_append(path, data, flush_after_write=True):
         p.parent.mkdir(parents=True, exist_ok=True)
     exists = p.exists()
     with open(path, "a", encoding="utf-8-sig", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=["name", "score", "updated_at"], extrasaction="ignore")
+        w = csv.DictWriter(
+            f, fieldnames=["name", "score", "updated_at"], extrasaction="ignore"
+        )
         if not exists:
             w.writeheader()
         for row in data:
@@ -234,19 +248,21 @@ def add_batch_requests(batch_id: str, items: list[dict], api_key: str) -> None:
     """items: [{"batch_request_id": str, "name": str}, ...]. Uses retry on 5xx/429 so transient errors don't kill the run."""
     batch_requests = []
     for it in items:
-        batch_requests.append({
-            "batch_request_id": it["batch_request_id"],
-            "batch_request": {
-                "chat_get_completion": {
-                    "model": MODEL_NAME,
-                    "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": f"Name: '{it['name']}'"},
-                    ],
-                    "temperature": 0.0,
-                }
-            },
-        })
+        batch_requests.append(
+            {
+                "batch_request_id": it["batch_request_id"],
+                "batch_request": {
+                    "chat_get_completion": {
+                        "model": MODEL_NAME,
+                        "messages": [
+                            {"role": "system", "content": SYSTEM_PROMPT},
+                            {"role": "user", "content": f"Name: '{it['name']}'"},
+                        ],
+                        "temperature": 0.0,
+                    }
+                },
+            }
+        )
 
     r = _request_with_retry(
         "POST",
@@ -277,7 +293,9 @@ def _request_with_retry(method: str, url: str, **kwargs) -> requests.Response:
             console.print(f"  [dim]Retry in {backoff:.0f}s ({e})[/]")
         if attempt < API_RETRIES - 1:
             if last_r is not None:
-                console.print(f"  [dim]{last_r.status_code} error, retry in {backoff:.0f}s[/]")
+                console.print(
+                    f"  [dim]{last_r.status_code} error, retry in {backoff:.0f}s[/]"
+                )
             time.sleep(backoff)
             backoff *= 2
     if last_r is not None:
@@ -296,7 +314,12 @@ def get_batch_status(batch_id: str, api_key: str) -> dict:
     return r.json()
 
 
-def list_batch_results(batch_id: str, api_key: str, page_size: int = 100, pagination_token: str | None = None) -> dict:
+def list_batch_results(
+    batch_id: str,
+    api_key: str,
+    page_size: int = 100,
+    pagination_token: str | None = None,
+) -> dict:
     params = {"page_size": page_size}
     if pagination_token:
         params["pagination_token"] = pagination_token
@@ -323,7 +346,9 @@ def run(
     debug: bool = False,
 ):
     if not API_KEY:
-        console.print("[bold red]Missing API key. Set GROK_API_KEYS (or XAI_API_KEY) in .env[/]")
+        console.print(
+            "[bold red]Missing API key. Set GROK_API_KEYS (or XAI_API_KEY) in .env[/]"
+        )
         return
 
     with console.status("[bold yellow]Loading and filtering..."):
@@ -331,7 +356,9 @@ def run(
         already_done = load_json(output_path)
         # Exclude names that already appear in results (including score=NaN so we don't duplicate; NaN can be post-processed)
         processed_names = {item["name"] for item in already_done}
-        target_items = [item for item in all_data if item["name"] not in processed_names]
+        target_items = [
+            item for item in all_data if item["name"] not in processed_names
+        ]
 
     num_skipped = len(processed_names)
     if num_skipped:
@@ -344,21 +371,27 @@ def run(
             if name not in existing_names:
                 target_items.append({"name": name})
                 existing_names.add(name)
-        console.print(f"[bold magenta]Test mode: 30 names + {len(EXTRA_TEST_NAMES)} extra Korean names → {len(target_items)} total.[/]")
+        console.print(
+            f"[bold magenta]Test mode: 30 names + {len(EXTRA_TEST_NAMES)} extra Korean names → {len(target_items)} total.[/]"
+        )
 
     total = len(target_items)
     if total == 0:
         console.print("[bold green]✔ All names already processed.[/]")
         return
 
-    console.print(f"[cyan]Input:[/] {len(all_data):,} | [green]To process (API):[/] {total:,}")
+    console.print(
+        f"[cyan]Input:[/] {len(all_data):,} | [green]To process (API):[/] {total:,}"
+    )
 
     # Split into batches of max N: send N → wait for all → then next N
     batches_of_names = [
         target_items[i : i + max_names_per_batch]
         for i in range(0, len(target_items), max_names_per_batch)
     ]
-    console.print(f"[bold]Batches:[/] {len(batches_of_names)} (max {max_names_per_batch} names each)")
+    console.print(
+        f"[bold]Batches:[/] {len(batches_of_names)} (max {max_names_per_batch} names each)"
+    )
 
     final_so_far = list(already_done)
     results_dir = Path(output_path).parent
@@ -372,10 +405,14 @@ def run(
 
     for batch_no, chunk_items in enumerate(batches_of_names):
         n_chunk = len(chunk_items)
-        console.print(f"\n[bold cyan]——— Batch {batch_no + 1}/{len(batches_of_names)} ({n_chunk} names) ———[/]")
+        console.print(
+            f"\n[bold cyan]——— Batch {batch_no + 1}/{len(batches_of_names)} ({n_chunk} names) ———[/]"
+        )
 
         # Create batch
-        batch_name = f"korean_name_probability_{batch_no + 1}" + ("_test" if test_mode else "")
+        batch_name = f"korean_name_probability_{batch_no + 1}" + (
+            "_test" if test_mode else ""
+        )
         batch_id = create_batch(batch_name, API_KEY)
         console.print(f"  batch_id: [cyan]{batch_id}[/]")
 
@@ -392,7 +429,9 @@ def run(
                 time.sleep(0.5)
 
         # Poll up to max_polls_before_next; if still pending, defer to drain phase and move to next batch
-        console.print(f"[bold]Waiting for batch (max {max_polls_before_next} polls, then next batch)...[/]")
+        console.print(
+            f"[bold]Waiting for batch (max {max_polls_before_next} polls, then next batch)...[/]"
+        )
         all_succeeded = []
         all_failed = []
         global_offset = len(final_so_far)
@@ -413,24 +452,48 @@ def run(
                 fetched_ids.update(f["batch_request_id"] for f in all_failed)
                 pagination_token = None
                 while True:
-                    page = list_batch_results(batch_id, API_KEY, page_size=add_batch_size, pagination_token=pagination_token)
-                    if debug and batch_no == 0 and len(fetched_ids) == 0 and pagination_token is None:
-                        debug_path = Path(output_path).with_suffix(".debug_first_page.json")
+                    page = list_batch_results(
+                        batch_id,
+                        API_KEY,
+                        page_size=add_batch_size,
+                        pagination_token=pagination_token,
+                    )
+                    if (
+                        debug
+                        and batch_no == 0
+                        and len(fetched_ids) == 0
+                        and pagination_token is None
+                    ):
+                        debug_path = Path(output_path).with_suffix(
+                            ".debug_first_page.json"
+                        )
                         debug_path.parent.mkdir(parents=True, exist_ok=True)
                         with open(debug_path, "w", encoding="utf-8") as f:
                             json.dump(page, f, ensure_ascii=False, indent=2)
                         console.print(f"[dim]Debug: raw first page → {debug_path}[/]")
-                    results = page.get("batch_results") or page.get("results") or page.get("data") or []
+                    results = (
+                        page.get("batch_results")
+                        or page.get("results")
+                        or page.get("data")
+                        or []
+                    )
                     for res in results:
                         rid = res.get("batch_request_id", "")
                         if rid in fetched_ids:
                             continue
                         fetched_ids.add(rid)
                         if res.get("error") or res.get("error_message"):
-                            all_failed.append({"batch_request_id": rid, "error": res.get("error_message", res.get("error"))})
+                            all_failed.append(
+                                {
+                                    "batch_request_id": rid,
+                                    "error": res.get("error_message", res.get("error")),
+                                }
+                            )
                             continue
                         content = _extract_content_from_batch_result(res)
-                        all_succeeded.append({"batch_request_id": rid, "content": content})
+                        all_succeeded.append(
+                            {"batch_request_id": rid, "content": content}
+                        )
                     pagination_token = page.get("pagination_token")
                     if not pagination_token:
                         break
@@ -443,23 +506,29 @@ def run(
                         try:
                             idx = int(rid)
                             name = chunk_items[idx]["name"]
-                        except (ValueError, IndexError):
+                        except ValueError, IndexError:
                             name = rid
                         score = extract_score(s["content"])
-                        chunk_rows.append({
-                            "name": name,
-                            "score": score,
-                            "updated_at": datetime.now().isoformat(),
-                        })
+                        chunk_rows.append(
+                            {
+                                "name": name,
+                                "score": score,
+                                "updated_at": datetime.now().isoformat(),
+                            }
+                        )
                     chunk_base = ((global_offset + count_before) // 1000) * 1000
                     chunk_path = chunk_dir / f"{chunk_base}.csv"
                     save_csv_append(str(chunk_path), chunk_rows, flush_after_write=True)
                     final_so_far.extend(chunk_rows)
                     save_json(output_path, final_so_far, flush_after_write=True)
                     save_csv(str(csv_path_full), final_so_far, flush_after_write=True)
-                    console.print(f"  [dim]→ {chunk_path} (+{len(chunk_rows)} rows) + full [{len(final_so_far)}] flushed[/]")
+                    console.print(
+                        f"  [dim]→ {chunk_path} (+{len(chunk_rows)} rows) + full [{len(final_so_far)}] flushed[/]"
+                    )
 
-            console.print(f"  [{poll_count + 1}/{max_polls_before_next}] {num_success + num_error}/{num_requests} complete, {num_pending} pending")
+            console.print(
+                f"  [{poll_count + 1}/{max_polls_before_next}] {num_success + num_error}/{num_requests} complete, {num_pending} pending"
+            )
             if num_pending == 0:
                 batch_done = True
                 break
@@ -467,11 +536,21 @@ def run(
             time.sleep(10)
 
         if batch_done:
-            _append_failed_rows(chunk_items, all_failed, global_offset, chunk_dir, final_so_far, output_path, str(csv_path_full))
+            _append_failed_rows(
+                chunk_items,
+                all_failed,
+                global_offset,
+                chunk_dir,
+                final_so_far,
+                output_path,
+                str(csv_path_full),
+            )
             total_succeeded += len(all_succeeded)
             total_failed.extend(all_failed)
             if all_failed:
-                console.print(f"  [red]Failed this batch: {len(all_failed)} (score=NaN in results)[/]")
+                console.print(
+                    f"  [red]Failed this batch: {len(all_failed)} (score=NaN in results)[/]"
+                )
             batch_info = get_batch_status(batch_id, API_KEY)
             cost_breakdown = batch_info.get("cost_breakdown", {})
             ticks = cost_breakdown.get("total_cost_usd_ticks")
@@ -479,16 +558,36 @@ def run(
                 total_cost_ticks += ticks
         else:
             # Defer to drain phase; we've already flushed partial results
-            incomplete_batches.append((batch_id, chunk_items, global_offset, all_succeeded, all_failed, len(all_succeeded)))
-            console.print(f"  [yellow]Still {num_pending} pending after {max_polls_before_next} polls → defer to drain phase, moving to next batch[/]")
+            incomplete_batches.append(
+                (
+                    batch_id,
+                    chunk_items,
+                    global_offset,
+                    all_succeeded,
+                    all_failed,
+                    len(all_succeeded),
+                )
+            )
+            console.print(
+                f"  [yellow]Still {num_pending} pending after {max_polls_before_next} polls → defer to drain phase, moving to next batch[/]"
+            )
 
     # Drain incomplete batches: poll until complete (or max_drain_polls), merge results
     if incomplete_batches:
-        console.print(f"\n[bold]Draining {len(incomplete_batches)} incomplete batch(es) (max {max_drain_polls} poll rounds)...[/]")
+        console.print(
+            f"\n[bold]Draining {len(incomplete_batches)} incomplete batch(es) (max {max_drain_polls} poll rounds)...[/]"
+        )
         drain_poll = 0
         while incomplete_batches and drain_poll < max_drain_polls:
             still_incomplete = []
-            for (batch_id, chunk_items, global_offset, all_succeeded, all_failed, count_flushed) in incomplete_batches:
+            for (
+                batch_id,
+                chunk_items,
+                global_offset,
+                all_succeeded,
+                all_failed,
+                count_flushed,
+            ) in incomplete_batches:
                 batch = get_batch_status(batch_id, API_KEY)
                 state = batch.get("state", {})
                 num_pending = state.get("num_pending", 0)
@@ -501,18 +600,37 @@ def run(
                     fetched_ids.update(f["batch_request_id"] for f in all_failed)
                     pagination_token = None
                     while True:
-                        page = list_batch_results(batch_id, API_KEY, page_size=add_batch_size, pagination_token=pagination_token)
-                        results = page.get("batch_results") or page.get("results") or page.get("data") or []
+                        page = list_batch_results(
+                            batch_id,
+                            API_KEY,
+                            page_size=add_batch_size,
+                            pagination_token=pagination_token,
+                        )
+                        results = (
+                            page.get("batch_results")
+                            or page.get("results")
+                            or page.get("data")
+                            or []
+                        )
                         for res in results:
                             rid = res.get("batch_request_id", "")
                             if rid in fetched_ids:
                                 continue
                             fetched_ids.add(rid)
                             if res.get("error") or res.get("error_message"):
-                                all_failed.append({"batch_request_id": rid, "error": res.get("error_message", res.get("error"))})
+                                all_failed.append(
+                                    {
+                                        "batch_request_id": rid,
+                                        "error": res.get(
+                                            "error_message", res.get("error")
+                                        ),
+                                    }
+                                )
                                 continue
                             content = _extract_content_from_batch_result(res)
-                            all_succeeded.append({"batch_request_id": rid, "content": content})
+                            all_succeeded.append(
+                                {"batch_request_id": rid, "content": content}
+                            )
                         pagination_token = page.get("pagination_token")
                         if not pagination_token:
                             break
@@ -524,41 +642,72 @@ def run(
                             try:
                                 idx = int(rid)
                                 name = chunk_items[idx]["name"]
-                            except (ValueError, IndexError):
+                            except ValueError, IndexError:
                                 name = rid
                             score = extract_score(s["content"])
-                            chunk_rows.append({
-                                "name": name,
-                                "score": score,
-                                "updated_at": datetime.now().isoformat(),
-                            })
+                            chunk_rows.append(
+                                {
+                                    "name": name,
+                                    "score": score,
+                                    "updated_at": datetime.now().isoformat(),
+                                }
+                            )
                         chunk_base = ((global_offset + count_flushed) // 1000) * 1000
                         chunk_path = chunk_dir / f"{chunk_base}.csv"
-                        save_csv_append(str(chunk_path), chunk_rows, flush_after_write=True)
+                        save_csv_append(
+                            str(chunk_path), chunk_rows, flush_after_write=True
+                        )
                         final_so_far.extend(chunk_rows)
                         save_json(output_path, final_so_far, flush_after_write=True)
-                        save_csv(str(csv_path_full), final_so_far, flush_after_write=True)
+                        save_csv(
+                            str(csv_path_full), final_so_far, flush_after_write=True
+                        )
                         count_flushed = len(all_succeeded)
                 if num_pending == 0:
-                    _append_failed_rows(chunk_items, all_failed, global_offset, chunk_dir, final_so_far, output_path, str(csv_path_full))
+                    _append_failed_rows(
+                        chunk_items,
+                        all_failed,
+                        global_offset,
+                        chunk_dir,
+                        final_so_far,
+                        output_path,
+                        str(csv_path_full),
+                    )
                     total_succeeded += len(all_succeeded)
                     total_failed.extend(all_failed)
                     batch_info = get_batch_status(batch_id, API_KEY)
-                    ticks = batch_info.get("cost_breakdown", {}).get("total_cost_usd_ticks")
+                    ticks = batch_info.get("cost_breakdown", {}).get(
+                        "total_cost_usd_ticks"
+                    )
                     if ticks is not None:
                         total_cost_ticks += ticks
-                    console.print(f"  [dim]Drained batch [cyan]{batch_id[:20]}...[/] ({len(all_succeeded)} ok, {len(all_failed)} NaN)[/]")
+                    console.print(
+                        f"  [dim]Drained batch [cyan]{batch_id[:20]}...[/] ({len(all_succeeded)} ok, {len(all_failed)} NaN)[/]"
+                    )
                 else:
-                    still_incomplete.append((batch_id, chunk_items, global_offset, all_succeeded, all_failed, count_flushed))
+                    still_incomplete.append(
+                        (
+                            batch_id,
+                            chunk_items,
+                            global_offset,
+                            all_succeeded,
+                            all_failed,
+                            count_flushed,
+                        )
+                    )
             incomplete_batches = still_incomplete
             if not incomplete_batches:
                 break
             drain_poll += 1
             time.sleep(10)
         if incomplete_batches:
-            console.print(f"[yellow]Still {len(incomplete_batches)} batch(es) incomplete after drain; partial results saved.[/]")
+            console.print(
+                f"[yellow]Still {len(incomplete_batches)} batch(es) incomplete after drain; partial results saved.[/]"
+            )
 
-    console.print(f"\n[bold green]Done. [cyan]{total_succeeded}[/] results → [cyan]{output_path}[/], [cyan]{csv_path_full}[/][/]")
+    console.print(
+        f"\n[bold green]Done. [cyan]{total_succeeded}[/] results → [cyan]{output_path}[/], [cyan]{csv_path_full}[/][/]"
+    )
     if total_failed:
         console.print(f"[bold red]Total failed: {len(total_failed)}[/]")
         for f in total_failed[:5]:
@@ -574,15 +723,47 @@ def run(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Grok 4 Batch API: Korean name probability")
-    parser.add_argument("--test", action="store_true", help="Test mode: process only 30 names")
+    parser = argparse.ArgumentParser(
+        description="Grok 4 Batch API: Korean name probability"
+    )
+    parser.add_argument(
+        "--test", action="store_true", help="Test mode: process only 30 names"
+    )
     parser.add_argument("--input", default="names.json", help="Input JSON path")
-    parser.add_argument("--output", default="results/results_grok.json", help="Output JSON path (default: results/results_grok.json)")
-    parser.add_argument("--batch-size", type=int, default=ADD_BATCH_SIZE, help="Requests per add call (default 100)")
-    parser.add_argument("--max-per-batch", type=int, default=MAX_NAMES_PER_BATCH, help=f"Max names per batch (default {MAX_NAMES_PER_BATCH})")
-    parser.add_argument("--max-polls-before-next", type=int, default=MAX_POLLS_BEFORE_NEXT_BATCH, help=f"Polls per batch before moving on (default {MAX_POLLS_BEFORE_NEXT_BATCH})")
-    parser.add_argument("--max-drain-polls", type=int, default=MAX_DRAIN_POLLS, help=f"Max poll rounds when draining incomplete batches (default {MAX_DRAIN_POLLS})")
-    parser.add_argument("--debug", action="store_true", help="Save raw first page of results to .debug_first_page.json")
+    parser.add_argument(
+        "--output",
+        default="results/results_grok.json",
+        help="Output JSON path (default: results/results_grok.json)",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=ADD_BATCH_SIZE,
+        help="Requests per add call (default 100)",
+    )
+    parser.add_argument(
+        "--max-per-batch",
+        type=int,
+        default=MAX_NAMES_PER_BATCH,
+        help=f"Max names per batch (default {MAX_NAMES_PER_BATCH})",
+    )
+    parser.add_argument(
+        "--max-polls-before-next",
+        type=int,
+        default=MAX_POLLS_BEFORE_NEXT_BATCH,
+        help=f"Polls per batch before moving on (default {MAX_POLLS_BEFORE_NEXT_BATCH})",
+    )
+    parser.add_argument(
+        "--max-drain-polls",
+        type=int,
+        default=MAX_DRAIN_POLLS,
+        help=f"Max poll rounds when draining incomplete batches (default {MAX_DRAIN_POLLS})",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Save raw first page of results to .debug_first_page.json",
+    )
     args = parser.parse_args()
 
     run(

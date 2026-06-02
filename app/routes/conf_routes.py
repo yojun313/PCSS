@@ -4,7 +4,11 @@ from datetime import datetime, timezone
 from app.core.templates import templates
 from app.db import conf_col
 from app.libs.auth import _require_admin_or_redirect
-from app.schemas.conf import AddParamsRequest, DeleteParamRequest, CreateConferenceRequest
+from app.schemas.conf import (
+    AddParamsRequest,
+    DeleteParamRequest,
+    CreateConferenceRequest,
+)
 
 router = APIRouter()
 
@@ -71,7 +75,13 @@ async def conf_manage_page(request: Request):
         d["kind"] = (d.get("kind") or "").strip()
         d["name"] = (d.get("name") or "").strip()
 
-    docs.sort(key=lambda x: (x.get("kind", ""), x.get("name", ""), ",".join(x.get("params") or [])))
+    docs.sort(
+        key=lambda x: (
+            x.get("kind", ""),
+            x.get("name", ""),
+            ",".join(x.get("params") or []),
+        )
+    )
 
     return templates.TemplateResponse(
         request=request,
@@ -109,7 +119,9 @@ async def conf_manage_create(
     if not params:
         return RedirectResponse(url=next_path, status_code=303)
 
-    exists = conf_col.find_one({"$or": [{"params": {"$in": params}}, {"param": {"$in": params}}]}, {"_id": 1})
+    exists = conf_col.find_one(
+        {"$or": [{"params": {"$in": params}}, {"param": {"$in": params}}]}, {"_id": 1}
+    )
     if exists:
         docs = list(conf_col.find({}, {"_id": 0}))
         for d in docs:
@@ -128,19 +140,23 @@ async def conf_manage_create(
         )
 
     now = _now()
-    conf_col.insert_one({
-        "kind": kind,
-        "name": name,
-        "params": params,
-        "created_at": now,
-        "updated_at": now,
-        "meta": {"created_by": email},
-    })
+    conf_col.insert_one(
+        {
+            "kind": kind,
+            "name": name,
+            "params": params,
+            "created_at": now,
+            "updated_at": now,
+            "meta": {"created_by": email},
+        }
+    )
     return RedirectResponse(url=next_path, status_code=303)
 
 
 @router.post("/manage/{base_param:path}/params/add", response_class=HTMLResponse)
-async def conf_manage_add_params(request: Request, base_param: str, params_text: str = Form(...)):
+async def conf_manage_add_params(
+    request: Request, base_param: str, params_text: str = Form(...)
+):
     next_path = "/conferences/manage"
     email, status_or_resp = _require_admin_or_redirect(request, next_path)
     if isinstance(status_or_resp, RedirectResponse):
@@ -175,14 +191,22 @@ async def conf_manage_add_params(request: Request, base_param: str, params_text:
 
     conf_col.update_one(
         {"$or": [{"params": base_param}, {"param": base_param}]},
-        {"$addToSet": {"params": {"$each": new_params}}, "$set": {"updated_at": _now()}},
+        {
+            "$addToSet": {"params": {"$each": new_params}},
+            "$set": {"updated_at": _now()},
+        },
     )
-    conf_col.update_one({"$or": [{"params": base_param}, {"param": base_param}]}, {"$unset": {"param": ""}})
+    conf_col.update_one(
+        {"$or": [{"params": base_param}, {"param": base_param}]},
+        {"$unset": {"param": ""}},
+    )
     return RedirectResponse(url=next_path, status_code=303)
 
 
 @router.post("/manage/{base_param:path}/params/delete", response_class=HTMLResponse)
-async def conf_manage_delete_param(request: Request, base_param: str, param: str = Form(...)):
+async def conf_manage_delete_param(
+    request: Request, base_param: str, param: str = Form(...)
+):
     next_path = "/conferences/manage"
     email, status_or_resp = _require_admin_or_redirect(request, next_path)
     if isinstance(status_or_resp, RedirectResponse):
@@ -194,8 +218,10 @@ async def conf_manage_delete_param(request: Request, base_param: str, param: str
     if not param:
         return RedirectResponse(url=next_path, status_code=303)
 
-    doc = conf_col.find_one({"$or": [{"params": base_param}, {"param": base_param}]},
-                            {"_id": 0, "params": 1, "param": 1})
+    doc = conf_col.find_one(
+        {"$or": [{"params": base_param}, {"param": base_param}]},
+        {"_id": 0, "params": 1, "param": 1},
+    )
     if not doc:
         return RedirectResponse(url=next_path, status_code=303)
 
@@ -311,7 +337,7 @@ async def add_params_batch(param: str, body: AddParamsRequest):
 
     exists = conf_col.find_one(
         {"$or": [{"params": {"$in": new_params}}, {"param": {"$in": new_params}}]},
-        {"_id": 1}
+        {"_id": 1},
     )
     if exists:
         raise HTTPException(409, "one of params already exists in another conference")
@@ -323,7 +349,9 @@ async def add_params_batch(param: str, body: AddParamsRequest):
     if result.matched_count == 0:
         raise HTTPException(404, "Conference not found")
 
-    conf_col.update_one({"$or": [{"params": param}, {"param": param}]}, {"$unset": {"param": ""}})
+    conf_col.update_one(
+        {"$or": [{"params": param}, {"param": param}]}, {"$unset": {"param": ""}}
+    )
     return {"status": "added", "base": param, "params": new_params}
 
 
@@ -333,7 +361,9 @@ async def delete_param(param: str, body: DeleteParamRequest):
     if not del_param:
         raise HTTPException(422, "param is empty")
 
-    doc = conf_col.find_one({"$or": [{"params": param}, {"param": param}]}, {"_id": 0, "params": 1})
+    doc = conf_col.find_one(
+        {"$or": [{"params": param}, {"param": param}]}, {"_id": 0, "params": 1}
+    )
     if not doc:
         raise HTTPException(404, "Conference not found")
 

@@ -12,21 +12,22 @@ import math
 
 router = APIRouter()
 
+
 @router.post("/stats/page", response_class=HTMLResponse)
 async def author_stats_page(
     request: Request,
-    target_author: str = Form(...), # 화면 표시용 이름
-    target_pid: str = Form(...),    # [추가] DB 검색용 PID
-    url: str = Form(""),               
+    target_author: str = Form(...),  # 화면 표시용 이름
+    target_pid: str = Form(...),  # [추가] DB 검색용 PID
+    url: str = Form(""),
     probability: float = Form(0.8),
 ):
     result = await compute_author_stats_mongo(
-        target_pid=target_pid, 
+        target_pid=target_pid,
     )
-    
+
     if not url and target_pid:
         url = f"https://dblp.org/pid/{target_pid}"
-    
+
     # 한국인 판단 로직 (이름 기준 유지)
     score = name_dict.get(target_author, 0)
     is_korean = score >= probability
@@ -36,12 +37,12 @@ async def author_stats_page(
         name="search/author_stats.html",
         context={
             "name": target_author,
-            "url": url, 
+            "url": url,
             "stats": result.get("stats", (0, 0, 0, 0)),
             "total": result.get("total", 0),
             "papers": result.get("papers", []),
             "is_korean": is_korean,
-        }
+        },
     )
 
 
@@ -53,7 +54,7 @@ async def author_search_input_page(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="search/author_search_input.html",
-        context={"request": request}
+        context={"request": request},
     )
 
 
@@ -62,7 +63,7 @@ async def author_autocomplete(query: str = Query(..., min_length=1)):
     try:
         # 1. 검색어 전처리: 공백 기준 분리
         keywords = query.strip().split()
-        
+
         if not keywords:
             return JSONResponse(content=[])
 
@@ -76,7 +77,7 @@ async def author_autocomplete(query: str = Query(..., min_length=1)):
         results = []
         count = 0
 
-        global_authors = author_list if 'author_list' in globals() else []
+        global_authors = author_list if "author_list" in globals() else []
 
         for author in global_authors:
             name = author.get("name", "")
@@ -91,20 +92,22 @@ async def author_autocomplete(query: str = Query(..., min_length=1)):
                 if not (pattern.search(name) or pattern.search(pid)):
                     is_match = False
                     break  # 하나라도 매칭 안 되면 즉시 중단 (Pruning)
-            
+
             if is_match:
-                results.append({
-                    "name": name,
-                    "pid": pid,
-                })
+                results.append(
+                    {
+                        "name": name,
+                        "pid": pid,
+                    }
+                )
                 count += 1
 
             # 최대 10개만 찾고 종료
             if count >= 10:
                 break
-            
+
         return JSONResponse(content=results)
-        
+
     except Exception as e:
         print(f"[Autocomplete Error] {e}")
         return JSONResponse(content=[], status_code=500)
@@ -112,9 +115,9 @@ async def author_autocomplete(query: str = Query(..., min_length=1)):
 
 @router.get("/manage/names", response_class=HTMLResponse)
 async def manage_all_names(
-    request: Request, 
-    page: int = Query(1, gt=0), 
-    q: str = Query("", description="검색할 이름")
+    request: Request,
+    page: int = Query(1, gt=0),
+    q: str = Query("", description="검색할 이름"),
 ):
     # 1. 관리자 권한 체크
     next_path = str(request.url)
@@ -122,21 +125,19 @@ async def manage_all_names(
 
     if isinstance(status_or_resp, RedirectResponse):
         return status_or_resp
-    
+
     if status_or_resp is None:
         return templates.TemplateResponse(
             request=request,
             name="admin/access_denied.html",
-            context={
-                "error": "관리자 권한이 필요합니다."
-            },
+            context={"error": "관리자 권한이 필요합니다."},
             status_code=403,
         )
 
     # 2. 검색 및 페이징 설정
     limit = 100
     skip = (page - 1) * limit
-    
+
     mongo_query = {}
     if q.strip():
         # 대소문자 구분 없는 부분 일치 검색 (Regex)
@@ -160,7 +161,7 @@ async def manage_all_names(
             "total_pages": total_pages,
             "total_count": total_count,
             "q": q,
-            "email": email
+            "email": email,
         },
     )
 
@@ -170,12 +171,14 @@ async def get_korean_requests():
     requests = list(req_korean_col.find({}))
     response = []
     for req in requests:
-        response.append({
-            "name": req["name"],
-            "score": req["score"],
-            "type": req["type"],
-            "updated_at": req["updated_at"],
-        })
+        response.append(
+            {
+                "name": req["name"],
+                "score": req["score"],
+                "type": req["type"],
+                "updated_at": req["updated_at"],
+            }
+        )
     return {"requests": response}
 
 
@@ -223,12 +226,14 @@ async def request_add_korean_stat(param: str):
 
     req_korean_col.update_one(
         {"name": param},
-        {"$set": {
-            "name": param,
-            "score": name_dict[param],
-            "type": 1,
-            "updated_at": datetime.now(timezone.utc),
-        }},
+        {
+            "$set": {
+                "name": param,
+                "score": name_dict[param],
+                "type": 1,
+                "updated_at": datetime.now(timezone.utc),
+            }
+        },
         upsert=True,
     )
     return {"status": "Requested", "param": param}
@@ -255,12 +260,14 @@ async def request_delete_korean_stat(param: str):
 
     req_korean_col.update_one(
         {"name": param},
-        {"$set": {
-            "name": param,
-            "score": name_dict[param],
-            "type": 0,
-            "updated_at": datetime.now(timezone.utc),
-        }},
+        {
+            "$set": {
+                "name": param,
+                "score": name_dict[param],
+                "type": 0,
+                "updated_at": datetime.now(timezone.utc),
+            }
+        },
         upsert=True,
     )
     return {"status": "Requested", "param": param}
@@ -279,9 +286,7 @@ async def admin_requests_page(request: Request):
         return templates.TemplateResponse(
             request=request,
             name="admin/access_denied.html",
-            context={
-                "error": "권한이 없습니다. 관리자 계정으로 로그인하세요."
-            },
+            context={"error": "권한이 없습니다. 관리자 계정으로 로그인하세요."},
             status_code=403,
         )
 
@@ -289,21 +294,21 @@ async def admin_requests_page(request: Request):
 
     items = []
     for r in reqs:
-        items.append({
-            "name": r.get("name", ""),
-            "score": r.get("score", 0),
-            "type": r.get("type", None),
-            "updated_at": r.get("updated_at", None).isoformat() if r.get("updated_at", None) else "",
-        })
+        items.append(
+            {
+                "name": r.get("name", ""),
+                "score": r.get("score", 0),
+                "type": r.get("type", None),
+                "updated_at": r.get("updated_at", None).isoformat()
+                if r.get("updated_at", None)
+                else "",
+            }
+        )
 
     return templates.TemplateResponse(
         request=request,
         name="admin/admin_name_requests.html",
-        context={
-            "requests": items,
-            "error": None,
-            "email": email
-        },
+        context={"requests": items, "error": None, "email": email},
     )
 
 
@@ -323,7 +328,7 @@ def apply_korean_score(param: str, score: int):
         raise HTTPException(404, "Name not found in DB")
 
     name_dict[param] = score
-    
+
 
 @router.post("/requests/approve")
 async def approve_korean_request(request: Request, name: str = Form(...)):

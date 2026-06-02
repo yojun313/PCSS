@@ -8,6 +8,7 @@ from app.db import auth_col, admin_col
 
 SESSION_COOKIE = "pcss_sub_session"
 
+
 def now_utc():
     return datetime.now(timezone.utc)
 
@@ -59,8 +60,9 @@ def _is_admin(email: str) -> bool:
 def _require_admin_or_redirect(request: Request, next_path: str):
     email = require_login(request)
     if not email:
-        return None, RedirectResponse(f"/auth/login?next={_safe_next(next_path)}", status_code=302)
+        return None, RedirectResponse(
+            f"/auth/login?next={_safe_next(next_path)}", status_code=302
+        )
     if not _is_admin(email):
         return email, None  # 이메일은 있으나 권한 없음
     return email, "ok"
-

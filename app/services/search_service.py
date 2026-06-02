@@ -10,6 +10,7 @@ from app.libs.logger import write_log
 from app.data import name_dict
 from app.db.mongo import get_papers_col
 
+
 class PCSSEARCHMongo:
     """
     MongoDB 데이터셋에서 논문을 조회하여 동일한 형태로 결과를 만들어 반환.
@@ -26,7 +27,7 @@ class PCSSEARCHMongo:
 
     def __init__(
         self,
-        options: List[int], 
+        options: List[int],
         threshold: float,
         startyear: int,
         endyear: int,
@@ -70,12 +71,11 @@ class PCSSEARCHMongo:
 
         # Mongo collection
         self._collection = None
-        
+
         # progress tracking
         self._total_docs: int = 0
         self._processed_docs: int = 0
         self._matched_docs: int = 0  # 필터 통과(결과 포함)된 논문 수
-
 
     # ---------------- cancel / emit ----------------
 
@@ -123,7 +123,6 @@ class PCSSEARCHMongo:
                 "url": url,
                 "paper_count": len(self.CrawlData),
                 "korean_authors": len(self.checkedNameList),
-
                 "progress": {
                     "total": total,
                     "done": done,
@@ -134,7 +133,6 @@ class PCSSEARCHMongo:
             self._emit_status_throttled(payload)
         except Exception:
             pass
-
 
     # ---------------- LLM: korean check ----------------
 
@@ -159,7 +157,7 @@ class PCSSEARCHMongo:
                 )
             score_f = float(score)
             self._score_cache[name] = score_f
-            name_dict[name] = score_f   # 전역에는 점수만 저장
+            name_dict[name] = score_f  # 전역에는 점수만 저장
             return score_f
         except asyncio.TimeoutError:
             self._score_cache[name] = 0.0
@@ -171,7 +169,7 @@ class PCSSEARCHMongo:
             self._score_cache[name] = 0.0
             name_dict[name] = 0.0
             return 0.0
-    
+
     async def checkKorean(self, name: str) -> bool:
         if self._should_cancel():
             raise asyncio.CancelledError()
@@ -259,7 +257,7 @@ class PCSSEARCHMongo:
         """
         if not authors:
             return []
-        
+
         found_targets = set()
 
         async def get_tag(name: str) -> str:
@@ -288,7 +286,7 @@ class PCSSEARCHMongo:
                         found_targets.add(await get_tag(a))
 
         return list(found_targets)
-    
+
     @staticmethod
     def _strip_score_suffix(s: str) -> str:
         # "Hanbin Hong (1.0)" -> "Hanbin Hong"
@@ -315,7 +313,12 @@ class PCSSEARCHMongo:
                     "first_author": {
                         "$sum": {
                             "$cond": [
-                                {"$eq": [{"$arrayElemAt": ["$author_name", 0]}, target_author]},
+                                {
+                                    "$eq": [
+                                        {"$arrayElemAt": ["$author_name", 0]},
+                                        target_author,
+                                    ]
+                                },
                                 1,
                                 0,
                             ]
@@ -326,8 +329,18 @@ class PCSSEARCHMongo:
                             "$cond": [
                                 {
                                     "$or": [
-                                        {"$eq": [{"$arrayElemAt": ["$author_name", 0]}, target_author]},
-                                        {"$eq": [{"$arrayElemAt": ["$author_name", 1]}, target_author]},
+                                        {
+                                            "$eq": [
+                                                {"$arrayElemAt": ["$author_name", 0]},
+                                                target_author,
+                                            ]
+                                        },
+                                        {
+                                            "$eq": [
+                                                {"$arrayElemAt": ["$author_name", 1]},
+                                                target_author,
+                                            ]
+                                        },
                                     ]
                                 },
                                 1,
@@ -338,7 +351,12 @@ class PCSSEARCHMongo:
                     "last_author": {
                         "$sum": {
                             "$cond": [
-                                {"$eq": [{"$arrayElemAt": ["$author_name", -1]}, target_author]},
+                                {
+                                    "$eq": [
+                                        {"$arrayElemAt": ["$author_name", -1]},
+                                        target_author,
+                                    ]
+                                },
                                 1,
                                 0,
                             ]
@@ -375,7 +393,9 @@ class PCSSEARCHMongo:
         except asyncio.CancelledError:
             raise
         except Exception as e:
-            write_log(self.run_id, f"[authorNumCheckerMongo] {target_author} error: {e}")
+            write_log(
+                self.run_id, f"[authorNumCheckerMongo] {target_author} error: {e}"
+            )
             result = {"stats": "(0,0,0,0)", "total": 0}
             self._author_stats_cache[target_author] = result
             return result
@@ -389,7 +409,7 @@ class PCSSEARCHMongo:
                 raise asyncio.CancelledError()
 
             self._processed_docs = idx
-            
+
             try:
                 title = (d.get("title") or "").strip()
                 if not title:
@@ -402,7 +422,9 @@ class PCSSEARCHMongo:
 
                 authors_origin = d.get("author_names") or []
                 author_pids = d.get("author_pids") or []
-                author_urls = [f"https://dblp.org/pid/{pid}.html" for pid in author_pids]
+                author_urls = [
+                    f"https://dblp.org/pid/{pid}.html" for pid in author_pids
+                ]
 
                 if not isinstance(authors_origin, list) or not authors_origin:
                     continue
@@ -431,24 +453,24 @@ class PCSSEARCHMongo:
                 self.CrawlData.append(
                     {
                         "title": title,
-                        "author_names": author_names,       
+                        "author_names": author_names,
                         "author_urls": author_urls,
                         "author_pids": author_pids,
-                        "target_author": target,     
+                        "target_author": target,
                         "conference": conf,
                         "year": year,
                         "source": src,
                         "dblp_url": dblp_url,
                     }
                 )
-                
+
                 self._matched_docs += 1
 
             except asyncio.CancelledError:
                 raise
             except Exception as e:
                 write_log(self.run_id, f"[_build_crawl_data] error: {e}")
-            
+
             if idx == 1 or idx % 25 == 0 or idx == self._total_docs:
                 self.printStatus(
                     msg=f"Filtering... ({idx}/{self._total_docs})",
@@ -476,8 +498,12 @@ class PCSSEARCHMongo:
 
             data_copy["author_names"] = new_authors
 
-            target_names = [self._strip_score_suffix(t) for t in data_copy.get("target_author", [])]
-            data_copy["total_papers"] = [totals_by_author.get(name, 0) for name in target_names]
+            target_names = [
+                self._strip_score_suffix(t) for t in data_copy.get("target_author", [])
+            ]
+            data_copy["total_papers"] = [
+                totals_by_author.get(name, 0) for name in target_names
+            ]
 
             resultData.append(data_copy)
 
@@ -498,7 +524,7 @@ class PCSSEARCHMongo:
             self._collection = await get_papers_col()
 
         docs = await self._fetch_papers(conf_list)
-        
+
         self._total_docs = len(docs)
         self._processed_docs = 0
         self._matched_docs = 0
@@ -515,9 +541,9 @@ class PCSSEARCHMongo:
         final_sorted = sorted(
             resultData,
             key=lambda x: (
-                -int(x.get("year", 0)),        # year desc
+                -int(x.get("year", 0)),  # year desc
                 str(x.get("conference", "")),  # conference asc
-                str(x.get("title", "")),       # title asc (optional)
+                str(x.get("title", "")),  # title asc (optional)
             ),
         )
 

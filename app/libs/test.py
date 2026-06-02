@@ -27,9 +27,9 @@ def parse_sse_event(block: str) -> Optional[Tuple[str, str]]:
 
     for line in block.splitlines():
         if line.startswith("event:"):
-            event_name = line[len("event:"):].strip()
+            event_name = line[len("event:") :].strip()
         elif line.startswith("data:"):
-            data_lines.append(line[len("data:"):].strip())
+            data_lines.append(line[len("data:") :].strip())
 
     if not data_lines:
         return None
@@ -53,7 +53,9 @@ async def stream_events(client: httpx.AsyncClient, events_url: str) -> Dict:
     terminal: Dict = {"event": None}
 
     # NOTE: httpx will keep the connection open; we read line by line.
-    async with client.stream("GET", events_url, headers={"Accept": "text/event-stream"}) as r:
+    async with client.stream(
+        "GET", events_url, headers={"Accept": "text/event-stream"}
+    ) as r:
         r.raise_for_status()
 
         buffer_lines = []
@@ -83,7 +85,9 @@ async def stream_events(client: httpx.AsyncClient, events_url: str) -> Dict:
                     url = data.get("url")
                     paper = data.get("paper_count")
                     kor = data.get("korean_authors")
-                    print(f"[STATUS] {msg} | {url} | paper={paper} | korean_authors={kor}")
+                    print(
+                        f"[STATUS] {msg} | {url} | paper={paper} | korean_authors={kor}"
+                    )
                 else:
                     print(f"[EVENT:{event_name}] {data}")
 
@@ -106,9 +110,15 @@ async def fetch_result(client: httpx.AsyncClient, result_url: str) -> Dict:
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="Test FastAPI SSE crawl progress + final JSON result")
-    parser.add_argument("--base-url", default="http://127.0.0.1:8000", help="FastAPI server base url")
-    parser.add_argument("--payload", default=None, help="Path to JSON payload file for /api/crawl/start")
+    parser = argparse.ArgumentParser(
+        description="Test FastAPI SSE crawl progress + final JSON result"
+    )
+    parser.add_argument(
+        "--base-url", default="http://127.0.0.1:8000", help="FastAPI server base url"
+    )
+    parser.add_argument(
+        "--payload", default=None, help="Path to JSON payload file for /api/crawl/start"
+    )
     args = parser.parse_args()
 
     # 기본 payload (너 스키마에 맞춰 조절)
@@ -125,7 +135,9 @@ async def main():
         with open(args.payload, "r", encoding="utf-8") as f:
             payload = json.load(f)
 
-    timeout = httpx.Timeout(connect=10.0, read=None, write=30.0, pool=10.0)  # read=None => long streaming allowed
+    timeout = httpx.Timeout(
+        connect=10.0, read=None, write=30.0, pool=10.0
+    )  # read=None => long streaming allowed
     async with httpx.AsyncClient(timeout=timeout) as client:
         print("1) Starting job...")
         start_info = await start_job(client, args.base_url, payload)

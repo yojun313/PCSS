@@ -42,8 +42,9 @@ xml_path = os.path.join(BASE_DIR, "dblp.xml")
 BATCH_SIZE = 1000  # MongoDB bulk insert 크기
 console = Console()
 
-DB_WRITE_BATCH_SIZE = 10000 
+DB_WRITE_BATCH_SIZE = 10000
 console = Console()
+
 
 def _extract_pid_from_homepages_key(key: str) -> str | None:
     if not key:
@@ -53,6 +54,7 @@ def _extract_pid_from_homepages_key(key: str) -> str | None:
         return None
     pid = key[len("homepages/") :].strip()
     return pid or None
+
 
 def ensure_indexes():
     """
@@ -67,6 +69,7 @@ def ensure_indexes():
         console.print("[green]DB 인덱스 확인 완료 (pid, last_seen_at)[/green]")
     except Exception as e:
         console.print(f"[yellow]인덱스 생성 중 경고 (무시 가능): {e}[/yellow]")
+
 
 def build_name_to_pid_index(xml_path: str) -> dict[str, str | list[str]]:
     """
@@ -89,11 +92,11 @@ def build_name_to_pid_index(xml_path: str) -> dict[str, str | list[str]]:
     os.chdir(xml_dir)
 
     name_to_pid: dict[str, str | list[str]] = {}
-    
+
     # ----------------------------------------------------
     # Phase 1: 메모리에 데이터 추출 (Parsing Only)
     # ----------------------------------------------------
-    db_docs = [] # DB에 넣을 딕셔너리들을 모아두는 리스트
+    db_docs = []  # DB에 넣을 딕셔너리들을 모아두는 리스트
     run_ts = datetime.now(timezone.utc)
 
     progress = Progress(
@@ -119,9 +122,11 @@ def build_name_to_pid_index(xml_path: str) -> dict[str, str | list[str]]:
 
         with progress:
             # Task 1: XML Parsing
-            parse_task = progress.add_task("XML Parsing & Memory Build", total=None, info="0 docs")
+            parse_task = progress.add_task(
+                "XML Parsing & Memory Build", total=None, info="0 docs"
+            )
             scan_count = 0
-            
+
             for _, elem in context:
                 if elem.tag != "www":
                     continue
@@ -151,7 +156,7 @@ def build_name_to_pid_index(xml_path: str) -> dict[str, str | list[str]]:
                     val = (a.text or "").strip()
                     if val:
                         authors.append(val)
-                
+
                 if not authors:
                     elem.clear()
                     while elem.getprevious() is not None:
@@ -166,7 +171,7 @@ def build_name_to_pid_index(xml_path: str) -> dict[str, str | list[str]]:
                     # "aliases": authors, # 필요하면 주석 해제
                     # "url": elem.findtext("url") or "", # 필요하면 주석 해제
                     "updated_at": run_ts,
-                    "last_seen_at": run_ts
+                    "last_seen_at": run_ts,
                 }
                 db_docs.append(doc)
 
@@ -193,45 +198,51 @@ def build_name_to_pid_index(xml_path: str) -> dict[str, str | list[str]]:
                 elem.clear()
                 while elem.getprevious() is not None:
                     del elem.getparent()[0]
-            
-            progress.update(parse_task, completed=True, info=f"Done. {len(db_docs):,} collected")
+
+            progress.update(
+                parse_task, completed=True, info=f"Done. {len(db_docs):,} collected"
+            )
 
             # ----------------------------------------------------
             # Phase 2: DB Bulk Write (Writing Only)
             # ----------------------------------------------------
             total_docs = len(db_docs)
-            write_task = progress.add_task("DB Bulk Update", total=total_docs, info="0%")
-            
+            write_task = progress.add_task(
+                "DB Bulk Update", total=total_docs, info="0%"
+            )
+
             total_upserted = 0
             total_modified = 0
-            
+
             # 리스트를 BATCH_SIZE 단위로 슬라이싱하여 처리
             for i in range(0, total_docs, DB_WRITE_BATCH_SIZE):
                 batch = db_docs[i : i + DB_WRITE_BATCH_SIZE]
-                
+
                 # UpdateOne Operation 생성
                 ops = [
                     UpdateOne(
                         {"pid": d["pid"]},
-                        {
-                            "$set": d,
-                            "$setOnInsert": {"created_at": run_ts}
-                        },
-                        upsert=True
+                        {"$set": d, "$setOnInsert": {"created_at": run_ts}},
+                        upsert=True,
                     )
                     for d in batch
                 ]
-                
+
                 if ops:
                     res = authors_col.bulk_write(ops, ordered=False)
                     total_upserted += res.upserted_count
                     total_modified += res.modified_count
-                
-                progress.update(write_task, advance=len(batch), info=f"{int((i+len(batch))/total_docs*100)}%")
+
+                progress.update(
+                    write_task,
+                    advance=len(batch),
+                    info=f"{int((i + len(batch)) / total_docs * 100)}%",
+                )
 
     except Exception:
         console.print("[bold red]오류 발생[/bold red]")
         import traceback
+
         console.print(traceback.format_exc())
         return {}
     finally:
@@ -255,6 +266,7 @@ def build_name_to_pid_index(xml_path: str) -> dict[str, str | list[str]]:
         console.print(f"[yellow]삭제 완료[/yellow]: {del_res.deleted_count}명")
 
     return name_to_pid
+
 
 # Params 기반 룰 파싱/로딩
 def _parse_param_to_rule(param: str, conf_name: str) -> dict | None:
@@ -304,9 +316,9 @@ def _parse_param_to_rule(param: str, conf_name: str) -> dict | None:
         return {
             "kind": "base",
             "base": base,
-            "prefix": prefix,  
+            "prefix": prefix,
             "conf": conf_name,
-            "specificity": 20 if prefix else 10,  
+            "specificity": 20 if prefix else 10,
             "raw": raw,
         }
 
@@ -315,7 +327,7 @@ def _parse_param_to_rule(param: str, conf_name: str) -> dict | None:
         return {
             "kind": "track",
             "base": base,
-            "prefix": prefix,  
+            "prefix": prefix,
             "number": parts[1].lower(),
             "conf": conf_name,
             "specificity": 55 if prefix else 50,
@@ -327,7 +339,7 @@ def _parse_param_to_rule(param: str, conf_name: str) -> dict | None:
         return {
             "kind": "issue",
             "base": base,
-            "prefix": prefix,  
+            "prefix": prefix,
             "volume": parts[1],
             "number": parts[2].lower(),
             "conf": conf_name,
@@ -340,7 +352,7 @@ def _parse_param_to_rule(param: str, conf_name: str) -> dict | None:
         return {
             "kind": "issue_year",
             "base": base,
-            "prefix": prefix,  
+            "prefix": prefix,
             "volume": parts[1],
             "number": parts[2].lower(),
             "year": parts[3],
@@ -362,7 +374,7 @@ def load_conference_rules_index() -> dict[str, list[dict]]:
 
     for conf in conferences:
         conf_name = conf.get("name")
-        for p in (conf.get("params") or []):
+        for p in conf.get("params") or []:
             rule = _parse_param_to_rule(p, conf_name)
             if not rule:
                 continue
@@ -387,8 +399,8 @@ def resolve_conf_name(elem, rules_index: dict[str, list[dict]]) -> str | None:
     if key:
         parts = key.split("/")
         if len(parts) >= 2:
-            key_prefix = parts[0].lower()  
-            venue_id = parts[1].lower()    
+            key_prefix = parts[0].lower()
+            venue_id = parts[1].lower()
 
     # crossref 규칙이 있으면 먼저 검사
     crossref = (elem.findtext("crossref") or "").strip().lower()
@@ -426,12 +438,19 @@ def resolve_conf_name(elem, rules_index: dict[str, list[dict]]) -> str | None:
                 return rule["conf"]
 
         elif kind == "issue":
-            if volume and number and volume == rule["volume"] and number == rule["number"]:
+            if (
+                volume
+                and number
+                and volume == rule["volume"]
+                and number == rule["number"]
+            ):
                 return rule["conf"]
 
         elif kind == "issue_year":
             if (
-                volume and number and year
+                volume
+                and number
+                and year
                 and volume == rule["volume"]
                 and number == rule["number"]
                 and year == rule["year"]
@@ -439,6 +458,7 @@ def resolve_conf_name(elem, rules_index: dict[str, list[dict]]) -> str | None:
                 return rule["conf"]
 
     return None
+
 
 # 메인 트랙 판별
 def is_main_track(elem, title, booktitle):
@@ -507,6 +527,7 @@ def is_main_track(elem, title, booktitle):
 
     return True
 
+
 # DBLP 파싱 & DB 적재
 def parse_dblp(xml_path, rules_index, name_to_pid, target_confs: list[str]):
     paper_tags = {"inproceedings", "article"}
@@ -538,11 +559,11 @@ def parse_dblp(xml_path, rules_index, name_to_pid, target_confs: list[str]):
 
     batch_ops = []
     count = 0
-    matched_count = 0     # XML에서 룰에 매칭된 논문 수
+    matched_count = 0  # XML에서 룰에 매칭된 논문 수
     context = None
 
-    total_upserted = 0    # DB에 새로 추가된 수
-    total_modified = 0    # DB에서 내용이 변경된 수
+    total_upserted = 0  # DB에 새로 추가된 수
+    total_modified = 0  # DB에서 내용이 변경된 수
     total_db_matched = 0  # DB 쿼리 매칭 수 (변경 없음 포함)
 
     completed = False  # 파싱 정상 완료 여부
@@ -699,6 +720,7 @@ def parse_dblp(xml_path, rules_index, name_to_pid, target_confs: list[str]):
     except Exception:
         console.print("[bold red]파싱 중 오류 발생[/bold red]")
         import traceback
+
         console.print(traceback.format_exc())
 
     finally:
@@ -720,7 +742,7 @@ def parse_dblp(xml_path, rules_index, name_to_pid, target_confs: list[str]):
     else:
         if not completed:
             console.print("[dim]파싱 비정상 종료로 동기화 삭제 스킵[/dim]")
-    
+
     # =========================
     #  [수정됨] 최종 결과 출력 (추가/수정/삭제 상세)
     # =========================
@@ -734,7 +756,7 @@ def parse_dblp(xml_path, rules_index, name_to_pid, target_confs: list[str]):
             f"• [bold red]삭제됨(Deleted)[/bold red]   : {deleted_count:,} 건\n"
             f"• [dim]변경 없음(Skipped)[/dim]  : {matched_count - total_upserted - total_modified:,} 건",
             title="Sync Summary",
-            expand=False
+            expand=False,
         )
     )
 
@@ -768,7 +790,9 @@ def download_dblp_xml_gz(
             r.raise_for_status()
             total_size = int(r.headers.get("Content-Length", 0))
 
-            download_task = progress.add_task("Downloading dblp.xml.gz", total=total_size)
+            download_task = progress.add_task(
+                "Downloading dblp.xml.gz", total=total_size
+            )
 
             with open(gz_path, "wb") as f:
                 for chunk in r.iter_content(chunk_size=chunk_size):
@@ -833,10 +857,13 @@ def main():
     print("PID 인덱스 생성 중(저자 Home Page 레코드)...")
     name_to_pid = build_name_to_pid_index(xml_path)
     if not name_to_pid:
-        print("PID 인덱스 생성 실패(혹은 0건). author_url은 검색 링크로만 생성될 수 있음.")
+        print(
+            "PID 인덱스 생성 실패(혹은 0건). author_url은 검색 링크로만 생성될 수 있음."
+        )
 
     # (변경) target_confs 전달
     parse_dblp(xml_path, rules_index, name_to_pid, target_confs)
+
 
 if __name__ == "__main__":
     main()

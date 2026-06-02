@@ -8,8 +8,13 @@ from dotenv import load_dotenv
 from pymongo import UpdateOne, ASCENDING
 from rich.console import Console
 from rich.progress import (
-    Progress, SpinnerColumn, TextColumn, BarColumn, 
-    TaskProgressColumn, TimeElapsedColumn, TimeRemainingColumn
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    BarColumn,
+    TaskProgressColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
 )
 from rich.table import Table
 from app.db import name_col, papers_col
@@ -61,6 +66,7 @@ PROMPT_REFILTER = (
     "Return ONLY the number."
 )
 
+
 class GrokNameProcessor:
     def __init__(self, max_concurrency=50, batch_update_size=50):
         self.semaphore = asyncio.Semaphore(max_concurrency)
@@ -68,46 +74,56 @@ class GrokNameProcessor:
         self.total_usage = {"prompt_tokens": 0, "completion_tokens": 0}
 
     def extract_score(self, content):
-        if not content: return None
+        if not content:
+            return None
         match = re.search(r"(\d*\.\d+|\d+)", content)
         if match:
             try:
                 val = float(match.group(1))
-                if 1.0 < val <= 100.0: val /= 100.0
+                if 1.0 < val <= 100.0:
+                    val /= 100.0
                 return max(0.0, min(1.0, val))
-            except: return None
+            except:
+                return None
         return None
 
     async def process_name(self, session, name, is_refilter, progress, task_id):
         async with self.semaphore:
-            headers = {"Authorization": f"Bearer {XAI_API_KEY}", "Content-Type": "application/json"}
+            headers = {
+                "Authorization": f"Bearer {XAI_API_KEY}",
+                "Content-Type": "application/json",
+            }
             model = MODEL_REFILTER if is_refilter else MODEL_MAIN
             sys_prompt = PROMPT_REFILTER if is_refilter else PROMPT_MAIN
-            
+
             payload = {
                 "model": model,
                 "messages": [
                     {"role": "system", "content": sys_prompt},
-                    {"role": "user", "content": f"Name: '{name}'"}
+                    {"role": "user", "content": f"Name: '{name}'"},
                 ],
-                "temperature": 0.0
+                "temperature": 0.0,
             }
 
             for attempt in range(5):
                 try:
-                    async with session.post(BASE_URL, json=payload, headers=headers, timeout=60) as resp:
+                    async with session.post(
+                        BASE_URL, json=payload, headers=headers, timeout=60
+                    ) as resp:
                         if resp.status == 429 or resp.status >= 500:
-                            await asyncio.sleep(5 * (2 ** attempt))
+                            await asyncio.sleep(5 * (2**attempt))
                             continue
-                        if resp.status != 200: 
+                        if resp.status != 200:
                             return None
-                            
+
                         result = await resp.json()
-                        content = result['choices'][0]['message']['content'].strip()
-                        usage = result.get('usage', {})
+                        content = result["choices"][0]["message"]["content"].strip()
+                        usage = result.get("usage", {})
                         score = self.extract_score(content)
 
-                        mode_label = "[magenta]REFILTER[/]" if is_refilter else "[blue]MAIN[/]"
+                        mode_label = (
+                            "[magenta]REFILTER[/]" if is_refilter else "[blue]MAIN[/]"
+                        )
                         progress.console.print(
                             f"[{datetime.now().strftime('%H:%M:%S')}] {mode_label} "
                             f"[cyan]{name:<15}[/] | Score: [bold yellow]{score if score is not None else 'FAIL':<5}[/]"
@@ -115,14 +131,14 @@ class GrokNameProcessor:
 
                         progress.advance(task_id)
                         return {
-                            "name": name, 
+                            "name": name,
                             "score": score,
                             "is_refilter": is_refilter,
-                            "prompt_tokens": usage.get('prompt_tokens', 0),
-                            "completion_tokens": usage.get('completion_tokens', 0)
+                            "prompt_tokens": usage.get("prompt_tokens", 0),
+                            "completion_tokens": usage.get("completion_tokens", 0),
                         }
                 except:
-                    await asyncio.sleep(5 * (2 ** attempt))
+                    await asyncio.sleep(5 * (2**attempt))
             return None
 
     async def run_processing(self, target_names: List[str], is_refilter=False):
@@ -134,16 +150,15 @@ class GrokNameProcessor:
         db_ops = []
         async with aiohttp.ClientSession() as session:
             with Progress(
-                SpinnerColumn(), 
-                TextColumn("[bold blue]{task.description}"), 
+                SpinnerColumn(),
+                TextColumn("[bold blue]{task.description}"),
                 BarColumn(),
                 TaskProgressColumn(),
                 TextColumn("({task.completed}/{task.total})"),
-                TimeElapsedColumn(), 
-                TimeRemainingColumn(), 
-                console=console
+                TimeElapsedColumn(),
+                TimeRemainingColumn(),
+                console=console,
             ) as progress:
-                
                 desc = "Refiltering" if is_refilter else "Processing"
                 task_id = progress.add_task(desc, total=total_names)
                 name_iterator = iter(target_names)
@@ -153,28 +168,50 @@ class GrokNameProcessor:
                     while len(pending) < self.semaphore._value:
                         try:
                             name = next(name_iterator)
-                            pending.add(asyncio.create_task(self.process_name(session, name, is_refilter, progress, task_id)))
-                        except StopIteration: break
+                            pending.add(
+                                asyncio.create_task(
+                                    self.process_name(
+                                        session, name, is_refilter, progress, task_id
+                                    )
+                                )
+                            )
+                        except StopIteration:
+                            break
 
                     while pending:
-                        done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
-                        
+                        done, pending = await asyncio.wait(
+                            pending, return_when=asyncio.FIRST_COMPLETED
+                        )
+
                         for task in done:
                             res = await task
-                            if res and res['score'] is not None:
-                                self.total_usage['prompt_tokens'] += res['prompt_tokens']
-                                self.total_usage['completion_tokens'] += res['completion_tokens']
-                                
-                                update_data = {"score": res['score'], "updated_at": datetime.now()}
+                            if res and res["score"] is not None:
+                                self.total_usage["prompt_tokens"] += res[
+                                    "prompt_tokens"
+                                ]
+                                self.total_usage["completion_tokens"] += res[
+                                    "completion_tokens"
+                                ]
+
+                                update_data = {
+                                    "score": res["score"],
+                                    "updated_at": datetime.now(),
+                                }
                                 if is_refilter:
                                     update_data["second_refilter"] = True
-                                    
-                                db_ops.append(UpdateOne(
-                                    {"name": res['name']},
-                                    {"$set": update_data,
-                                     "$setOnInsert": {"created_at": datetime.now()}},
-                                    upsert=True
-                                ))
+
+                                db_ops.append(
+                                    UpdateOne(
+                                        {"name": res["name"]},
+                                        {
+                                            "$set": update_data,
+                                            "$setOnInsert": {
+                                                "created_at": datetime.now()
+                                            },
+                                        },
+                                        upsert=True,
+                                    )
+                                )
 
                                 if len(db_ops) >= self.batch_update_size:
                                     name_col.bulk_write(db_ops)
@@ -183,15 +220,30 @@ class GrokNameProcessor:
                         while len(pending) < self.semaphore._value:
                             try:
                                 name = next(name_iterator)
-                                pending.add(asyncio.create_task(self.process_name(session, name, is_refilter, progress, task_id)))
-                            except StopIteration: break
+                                pending.add(
+                                    asyncio.create_task(
+                                        self.process_name(
+                                            session,
+                                            name,
+                                            is_refilter,
+                                            progress,
+                                            task_id,
+                                        )
+                                    )
+                                )
+                            except StopIteration:
+                                break
 
                 except KeyboardInterrupt:
-                    console.print("\n[bold red]Interrupted. Saving current progress...[/]")
+                    console.print(
+                        "\n[bold red]Interrupted. Saving current progress...[/]"
+                    )
                 finally:
                     if db_ops:
                         name_col.bulk_write(db_ops)
-                        console.print(f"[bold green]Batch updated {len(db_ops)} records safely.[/]")
+                        console.print(
+                            f"[bold green]Batch updated {len(db_ops)} records safely.[/]"
+                        )
 
         self.display_summary()
 
@@ -203,16 +255,14 @@ class GrokNameProcessor:
         table.add_row("Completion Tokens", f"{self.total_usage['completion_tokens']:,}")
         console.print("\n", table)
 
+
 def extract_new_names() -> List[str]:
     with console.status("[bold yellow]Optimizing DB query..."):
         name_col.create_index([("name", ASCENDING)])
         papers_col.create_index([("author_names", ASCENDING)])
 
     with console.status("[bold yellow]Fetching unique names from papers..."):
-        pipeline = [
-            {"$unwind": "$author_names"},
-            {"$group": {"_id": "$author_names"}}
-        ]
+        pipeline = [{"$unwind": "$author_names"}, {"$group": {"_id": "$author_names"}}]
         raw_author_names = [doc["_id"] for doc in papers_col.aggregate(pipeline)]
 
     with console.status("[bold yellow]Cleaning and deduplicating..."):
@@ -231,22 +281,28 @@ def extract_new_names() -> List[str]:
     console.print(f"[green]Found {len(update_targets)} new names to process.[/]")
     return update_targets
 
-def get_rejudge_targets(threshold: float = 0.7, target_names: List[str] = None) -> List[str]:
+
+def get_rejudge_targets(
+    threshold: float = 0.7, target_names: List[str] = None
+) -> List[str]:
     query = {"score": {"$gte": threshold}, "second_refilter": {"$ne": True}}
-    
+
     if target_names is not None:
         query["name"] = {"$in": target_names}
 
-    with console.status(f"[bold yellow]Filtering names with score >= {threshold} for refilter..."):
-        targets = [
-            doc['name'] for doc in name_col.find(query, {"_id": 0, "name": 1})
-        ]
+    with console.status(
+        f"[bold yellow]Filtering names with score >= {threshold} for refilter..."
+    ):
+        targets = [doc["name"] for doc in name_col.find(query, {"_id": 0, "name": 1})]
     console.print(f"[green]Found {len(targets)} names for rejudging.[/]")
     return targets
 
+
 async def main(automatic=False):
     if not XAI_API_KEY:
-        console.print("[bold red]Missing API key. Set GROK_API_KEYS or XAI_API_KEY in .env[/]")
+        console.print(
+            "[bold red]Missing API key. Set GROK_API_KEYS or XAI_API_KEY in .env[/]"
+        )
         return
 
     processor = GrokNameProcessor(max_concurrency=50, batch_update_size=50)
@@ -254,26 +310,29 @@ async def main(automatic=False):
     if automatic:
         targets = extract_new_names()
         await processor.run_processing(targets, is_refilter=False)
-        
+
         refilter_targets = get_rejudge_targets(0.7, target_names=targets)
         await processor.run_processing(refilter_targets, is_refilter=True)
         return
 
-    choice = input("1: Main Extraction & Refilter Process\n2: Refilter (High Score Only)\nSelect (1/2): ")
+    choice = input(
+        "1: Main Extraction & Refilter Process\n2: Refilter (High Score Only)\nSelect (1/2): "
+    )
     if choice == "1":
         targets = extract_new_names()
         await processor.run_processing(targets, is_refilter=False)
-        
+
         console.print("\n[bold cyan]Starting Refilter Phase...[/]")
         refilter_targets = get_rejudge_targets(0.7, target_names=targets)
         await processor.run_processing(refilter_targets, is_refilter=True)
-        
+
     elif choice == "2":
         t_input = input("Threshold (default 0.7): ")
         threshold = float(t_input) if t_input else 0.7
         targets = get_rejudge_targets(threshold)
         await processor.run_processing(targets, is_refilter=True)
-        
+
+
 if __name__ == "__main__":
     try:
         asyncio.run(main())

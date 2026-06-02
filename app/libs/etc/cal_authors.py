@@ -19,6 +19,7 @@ API_SINGLE = f"http://{LLM_SERVER}:{PORT}/api/process"
 API_BATCH = f"http://{LLM_SERVER}:{PORT}/api/batch"
 MODEL = "llama3.3:70b-instruct-q8_0"
 
+
 def update_score(name_col, name, score):
     name_col.update_one(
         {"name": name},
@@ -26,12 +27,14 @@ def update_score(name_col, name, score):
         upsert=True,
     )
 
+
 def parse_number(text):
     match = re.search(r"\d+\.\d+|\d+", text)
     if not match:
         return 0.0
     val = float(match.group())
     return max(0.0, min(1.0, val))
+
 
 def send_batch(names):
     prompts = [
@@ -46,6 +49,7 @@ def send_batch(names):
         return []
     except requests.exceptions.RequestException:
         return []
+
 
 def calculate_author(batch_size):
     mongo_client = MongoClient(MONGO_URI)
@@ -77,7 +81,8 @@ def calculate_author(batch_size):
             update_score(name_col, name, score)
             print(f"[{counter}/{total}] {name} : {score}")
             counter += 1
-            
+
+
 def add_author(batch_size: int = 50000):
     """JSON의 name/results를 MongoDB에 빠르게 upsert"""
     mongo_client = MongoClient(MONGO_URI)
@@ -112,6 +117,7 @@ def add_author(batch_size: int = 50000):
         name_col.bulk_write(ops, ordered=False)
         print(f"[{total}/{total}] final bulk committed")
 
+
 def edit_json():
     file_path = os.path.join(os.path.dirname(__file__), "data", "llm_name.json")
     with open(file_path, "r", encoding="utf-8") as f:
@@ -121,9 +127,13 @@ def edit_json():
     for item in authors:
         new_names.append({"name": item["name"], "score": item["results"]})
 
-    with open(os.path.join(os.path.dirname(__file__), "data", "llm_name2.json"), "w", encoding="utf-8") as f:
+    with open(
+        os.path.join(os.path.dirname(__file__), "data", "llm_name2.json"),
+        "w",
+        encoding="utf-8",
+    ) as f:
         json.dump(new_names, f, ensure_ascii=False, indent=2)
 
-    
+
 if __name__ == "__main__":
     edit_json()

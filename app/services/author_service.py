@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional
 from app.db.mongo import get_papers_col
 import re
 
+
 def _clean_authors(authors: List[str]) -> List[str]:
     # 기존 코드처럼 숫자 제거 + strip
     cleaned = []
@@ -10,21 +11,22 @@ def _clean_authors(authors: List[str]) -> List[str]:
         if a2:
             cleaned.append(a2)
     return cleaned
-    
+
+
 async def compute_author_stats_mongo(
-    target_pid: str,          # [변경] 검색 기준이 PID가 됨
+    target_pid: str,  # [변경] 검색 기준이 PID가 됨
     conf_list: Optional[List[str]] = None,
     startyear: Optional[int] = None,
     endyear: Optional[int] = None,
 ) -> Dict[str, Any]:
-    
+
     if not target_pid:
         return {"stats": (0, 0, 0, 0), "total": 0, "papers": []}
 
     col = await get_papers_col()
 
     # [수정] author_names(문자열배열) 대신 author_pids(ID배열)로 매칭
-    match: Dict[str, Any] = {"author_pids": target_pid} 
+    match: Dict[str, Any] = {"author_pids": target_pid}
 
     if conf_list:
         match["conference"] = {"$in": conf_list}
@@ -40,25 +42,14 @@ async def compute_author_stats_mongo(
         {
             "$group": {
                 "_id": None,
-
                 "first_author": {
                     "$sum": {
                         "$cond": [
                             # author_pids의 0번째 요소가 target_pid와 같은지 확인
-                            {"$eq": [{"$arrayElemAt": ["$author_pids", 0]}, target_pid]},
-                            1,
-                            0,
-                        ]
-                    }
-                },
-
-                "first_or_second_author": {
-                    "$sum": {
-                        "$cond": [
                             {
-                                "$or": [
-                                    {"$eq": [{"$arrayElemAt": ["$author_pids", 0]}, target_pid]},
-                                    {"$eq": [{"$arrayElemAt": ["$author_pids", 1]}, target_pid]},
+                                "$eq": [
+                                    {"$arrayElemAt": ["$author_pids", 0]},
+                                    target_pid,
                                 ]
                             },
                             1,
@@ -66,17 +57,44 @@ async def compute_author_stats_mongo(
                         ]
                     }
                 },
-
-                "last_author": {
+                "first_or_second_author": {
                     "$sum": {
                         "$cond": [
-                            {"$eq": [{"$arrayElemAt": ["$author_pids", -1]}, target_pid]},
+                            {
+                                "$or": [
+                                    {
+                                        "$eq": [
+                                            {"$arrayElemAt": ["$author_pids", 0]},
+                                            target_pid,
+                                        ]
+                                    },
+                                    {
+                                        "$eq": [
+                                            {"$arrayElemAt": ["$author_pids", 1]},
+                                            target_pid,
+                                        ]
+                                    },
+                                ]
+                            },
                             1,
                             0,
                         ]
                     }
                 },
-
+                "last_author": {
+                    "$sum": {
+                        "$cond": [
+                            {
+                                "$eq": [
+                                    {"$arrayElemAt": ["$author_pids", -1]},
+                                    target_pid,
+                                ]
+                            },
+                            1,
+                            0,
+                        ]
+                    }
+                },
                 # co_author: author_pids 배열 내 인덱스 확인
                 "co_author": {
                     "$sum": {
@@ -85,17 +103,27 @@ async def compute_author_stats_mongo(
                                 "$and": [
                                     {
                                         "$gt": [
-                                            {"$indexOfArray": ["$author_pids", target_pid]},
-                                            1, # 0(1저자), 1(2저자) 보다 커야 함
+                                            {
+                                                "$indexOfArray": [
+                                                    "$author_pids",
+                                                    target_pid,
+                                                ]
+                                            },
+                                            1,  # 0(1저자), 1(2저자) 보다 커야 함
                                         ]
                                     },
                                     {
                                         "$lt": [
-                                            {"$indexOfArray": ["$author_pids", target_pid]},
+                                            {
+                                                "$indexOfArray": [
+                                                    "$author_pids",
+                                                    target_pid,
+                                                ]
+                                            },
                                             {
                                                 "$subtract": [
                                                     {"$size": "$author_pids"},
-                                                    1, # 마지막 저자 인덱스보다 작아야 함
+                                                    1,  # 마지막 저자 인덱스보다 작아야 함
                                                 ]
                                             },
                                         ]
@@ -127,14 +155,14 @@ async def compute_author_stats_mongo(
 
     result: Dict[str, Any] = {
         "stats": (fa, fs, la, co),
-        "total": co, 
+        "total": co,
     }
 
     # [주의] 저자 목록을 화면에 보여줄 때는 여전히 이름이 필요하므로 author_names(또는 author_name) 가져옴
     proj = {
         "_id": 0,
         "title": 1,
-        "author_names": 1, # DB 필드명 확인 필요 (보통 표시용 이름 배열)
+        "author_names": 1,  # DB 필드명 확인 필요 (보통 표시용 이름 배열)
         "author_pids": 1,  # 검증용으로 가져올 수 있음
         "conference": 1,
         "year": 1,

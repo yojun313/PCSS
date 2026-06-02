@@ -33,22 +33,24 @@ async def start_search(req: SearchRequest, request: Request):
     ip = get_client_ip(request)
     job_id = str(uuid4())
     options = req.model_dump() if hasattr(req, "model_dump") else req.dict()
-    
+
     try:
         if ip not in ["127.0.0.1", "::1"]:
-            log_col.insert_one({
-                "ts": datetime.now(timezone.utc),
-                "type": "search_start",
-                "ip": ip,
-                "email": get_session_email(request),    
-                "job_id": job_id,
-                "options": options,
-                "user_agent": request.headers.get("user-agent", ""),
-                "referer": request.headers.get("referer", ""),
-            })
+            log_col.insert_one(
+                {
+                    "ts": datetime.now(timezone.utc),
+                    "type": "search_start",
+                    "ip": ip,
+                    "email": get_session_email(request),
+                    "job_id": job_id,
+                    "options": options,
+                    "user_agent": request.headers.get("user-agent", ""),
+                    "referer": request.headers.get("referer", ""),
+                }
+            )
     except Exception:
         print("Failed to log search start event")
-    
+
     job = create_job(job_id, options=options)
 
     pcs = PCSSEARCHMongo(
@@ -65,22 +67,30 @@ async def start_search(req: SearchRequest, request: Request):
     async def runner():
         try:
             try:
-                job.queue.put_nowait({"type": "event", "event": "started", "job_id": job_id})
+                job.queue.put_nowait(
+                    {"type": "event", "event": "started", "job_id": job_id}
+                )
             except Exception:
                 pass
 
             result = await pcs.run(req.selectedConferences)
 
-            finish_job(job_id, result if isinstance(result, dict) else {"result": result})
+            finish_job(
+                job_id, result if isinstance(result, dict) else {"result": result}
+            )
 
             try:
-                job.queue.put_nowait({"type": "event", "event": "done", "job_id": job_id})
+                job.queue.put_nowait(
+                    {"type": "event", "event": "done", "job_id": job_id}
+                )
             except Exception:
                 pass
 
         except asyncio.CancelledError:
             try:
-                job.queue.put_nowait({"type": "event", "event": "cancelled", "job_id": job_id})
+                job.queue.put_nowait(
+                    {"type": "event", "event": "cancelled", "job_id": job_id}
+                )
             except Exception:
                 pass
 
@@ -88,7 +98,12 @@ async def start_search(req: SearchRequest, request: Request):
             fail_job(job_id, str(e))
             try:
                 job.queue.put_nowait(
-                    {"type": "event", "event": "error", "job_id": job_id, "error": str(e)}
+                    {
+                        "type": "event",
+                        "event": "error",
+                        "job_id": job_id,
+                        "error": str(e),
+                    }
                 )
             except Exception:
                 pass
@@ -119,7 +134,11 @@ async def search_events(request: Request, job_id: str):
             try:
                 # 15초마다 heartbeat
                 item = await asyncio.wait_for(job.queue.get(), timeout=15.0)
-                payload = item if isinstance(item, dict) else {"type": "status", "msg": str(item)}
+                payload = (
+                    item
+                    if isinstance(item, dict)
+                    else {"type": "status", "msg": str(item)}
+                )
 
                 # status는 message 이벤트로
                 if payload.get("type") == "status":
@@ -148,8 +167,7 @@ async def search_events(request: Request, job_id: str):
 def _sse(event_name: str, data: dict) -> str:
     # SSE 포맷: event: <name>\ndata: <json>\n\n
     return (
-        f"event: {event_name}\n"
-        + f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+        f"event: {event_name}\n" + f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
     )
 
 
@@ -188,7 +206,7 @@ async def search_page(request: Request, job_id: str):
         3: "마지막 저자",
         4: "기타 공저자",
     }
-    
+
     raw_option = options.get("options", [])
     if isinstance(raw_option, int):
         raw_option = [raw_option]
@@ -200,7 +218,7 @@ async def search_page(request: Request, job_id: str):
             txt = option_map.get(int(opt))
             if txt:
                 selected_texts.append(txt)
-    
+
     # 4. 콤마로 연결하여 하나의 문자열로 생성 (예: "1저자, 마지막 저자")
     if selected_texts:
         option_text = ", ".join(selected_texts)
@@ -244,7 +262,9 @@ async def search_cancel(request: Request, job_id: str):
     if ok:
         # SSE 즉시 반영 이벤트
         try:
-            job.queue.put_nowait({"type": "event", "event": "cancelled", "job_id": job_id})
+            job.queue.put_nowait(
+                {"type": "event", "event": "cancelled", "job_id": job_id}
+            )
         except Exception:
             pass
         return {"status": "cancelled", "job_id": job_id}

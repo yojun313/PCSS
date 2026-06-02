@@ -39,7 +39,7 @@ def _dedup_list(xs):
 def _validate_options(opts):
     allowed = {1, 2, 3, 4}
     clean = []
-    for x in (opts or []):
+    for x in opts or []:
         try:
             xi = int(x)
         except Exception:
@@ -73,8 +73,9 @@ def _option_labels():
 async def manage_page(request: Request):
     email_norm = require_login(request)
     if not email_norm:
-        return RedirectResponse("/auth/login?next=/subscriptions/manage", status_code=302)
-
+        return RedirectResponse(
+            "/auth/login?next=/subscriptions/manage", status_code=302
+        )
 
     now = _now()
     doc = subscription_col.find_one({"email": email_norm}, {"_id": 0})
@@ -88,7 +89,7 @@ async def manage_page(request: Request):
             "options": [1],
             "threshold": 0.8,
             "is_enabled": True,
-            "created_at": now,   # insert 시에만
+            "created_at": now,  # insert 시에만
         }
 
         doc = subscription_col.find_one_and_update(
@@ -112,7 +113,7 @@ async def manage_page(request: Request):
             "subscription": doc,
             "conferences": get_conferences_for_ui(),
             "options": _option_labels(),
-        }
+        },
     )
 
 
@@ -126,8 +127,9 @@ async def manage_update(
 ):
     email_norm = require_login(request)
     if not email_norm:
-        return RedirectResponse("/auth/login?next=/subscriptions/manage", status_code=302)
-
+        return RedirectResponse(
+            "/auth/login?next=/subscriptions/manage", status_code=302
+        )
 
     now = _now()
     patch = {
@@ -170,8 +172,9 @@ async def manage_update(
 async def manage_unsubscribe(request: Request):
     email_norm = require_login(request)
     if not email_norm:
-        return RedirectResponse("/auth/login?next=/subscriptions/manage", status_code=302)
-
+        return RedirectResponse(
+            "/auth/login?next=/subscriptions/manage", status_code=302
+        )
 
     now = _now()
     subscription_col.update_one(
@@ -196,7 +199,9 @@ async def create_subscription(req: SubscriptionCreateRequest, request: Request):
     email = str(req.email).lower()
 
     # subscription_id 유지/생성
-    existing = subscription_col.find_one({"email": email}, {"_id": 0, "subscription_id": 1})
+    existing = subscription_col.find_one(
+        {"email": email}, {"_id": 0, "subscription_id": 1}
+    )
     subscription_id = (existing or {}).get("subscription_id") or str(uuid4())
 
     manage_token = secrets.token_urlsafe(32)
@@ -225,27 +230,31 @@ async def create_subscription(req: SubscriptionCreateRequest, request: Request):
 
     try:
         if ip not in ["127.0.0.1", "::1"]:
-            log_col.insert_one({
-                "ts": now,
-                "type": "subscription_create",
-                "ip": ip,
-                "email": email,
-                "conferences": doc["conferences"],
-                "options": doc["options"],
-                "threshold": doc["threshold"],
-                "is_enabled": doc["is_enabled"],
-                "user_agent": request.headers.get("user-agent", ""),
-                "referer": request.headers.get("referer", ""),
-            })
+            log_col.insert_one(
+                {
+                    "ts": now,
+                    "type": "subscription_create",
+                    "ip": ip,
+                    "email": email,
+                    "conferences": doc["conferences"],
+                    "options": doc["options"],
+                    "threshold": doc["threshold"],
+                    "is_enabled": doc["is_enabled"],
+                    "user_agent": request.headers.get("user-agent", ""),
+                    "referer": request.headers.get("referer", ""),
+                }
+            )
     except Exception:
         pass
 
-    return JSONResponse({
-        "status": "ok",
-        "email": email,
-        "manage_token": manage_token,
-        "subscription_id": subscription_id,
-    })
+    return JSONResponse(
+        {
+            "status": "ok",
+            "email": email,
+            "manage_token": manage_token,
+            "subscription_id": subscription_id,
+        }
+    )
 
 
 @router.get("/get/{email}")
@@ -280,7 +289,10 @@ async def update_subscription(req: SubscriptionUpdateRequest, request: Request):
         clean_options = _validate_options(req.options)
         if len(clean_options) == 0:
             return JSONResponse(
-                {"status": "bad_request", "message": "옵션은 최소 1개 이상 선택해야 합니다."},
+                {
+                    "status": "bad_request",
+                    "message": "옵션은 최소 1개 이상 선택해야 합니다.",
+                },
                 status_code=400,
             )
         patch["options"] = clean_options
@@ -293,15 +305,17 @@ async def update_subscription(req: SubscriptionUpdateRequest, request: Request):
 
     try:
         if ip not in ["127.0.0.1", "::1"]:
-            log_col.insert_one({
-                "ts": now,
-                "type": "subscription_update",
-                "ip": ip,
-                "email": email,
-                "patch": {k: v for k, v in patch.items() if k != "updated_at"},
-                "user_agent": request.headers.get("user-agent", ""),
-                "referer": request.headers.get("referer", ""),
-            })
+            log_col.insert_one(
+                {
+                    "ts": now,
+                    "type": "subscription_update",
+                    "ip": ip,
+                    "email": email,
+                    "patch": {k: v for k, v in patch.items() if k != "updated_at"},
+                    "user_agent": request.headers.get("user-agent", ""),
+                    "referer": request.headers.get("referer", ""),
+                }
+            )
     except Exception:
         pass
 
@@ -329,14 +343,16 @@ async def unsubscribe(req: SubscriptionUnsubscribeRequest, request: Request):
 
     try:
         if ip not in ["127.0.0.1", "::1"]:
-            log_col.insert_one({
-                "ts": now,
-                "type": "subscription_unsubscribe",
-                "ip": ip,
-                "email": email,
-                "user_agent": request.headers.get("user-agent", ""),
-                "referer": request.headers.get("referer", ""),
-            })
+            log_col.insert_one(
+                {
+                    "ts": now,
+                    "type": "subscription_unsubscribe",
+                    "ip": ip,
+                    "email": email,
+                    "user_agent": request.headers.get("user-agent", ""),
+                    "referer": request.headers.get("referer", ""),
+                }
+            )
     except Exception:
         pass
 

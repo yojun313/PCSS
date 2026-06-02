@@ -19,9 +19,9 @@ from app.libs.logger import get_client_ip
 from app.libs.auth import get_session_email
 from datetime import datetime, timezone
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.middleware.base import BaseHTTPMiddleware  
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import RedirectResponse
-from app.core.templates import templates 
+from app.core.templates import templates
 import traceback
 from asgi_csrf import asgi_csrf
 import os
@@ -50,9 +50,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 async def _startup():
     await get_mongo_client()
+
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -60,22 +62,25 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     for error in errors:
         if "input" in error:
             del error["input"]
-            
+
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={"detail": errors},
     )
-        
+
+
 class AccessControlMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # 1. 접근 제어가 비활성화되어 있으면 모든 검증 건너빰
         if not ENABLE_ACCESS_CONTROL:
             return await call_next(request)
-        
+
         # 2. 기본 예외 경로 처리
-        if request.url.path.startswith(("/static", "/auth", "/favicon.ico", "/docs", "/openapi.json")):
+        if request.url.path.startswith(
+            ("/static", "/auth", "/favicon.ico", "/docs", "/openapi.json")
+        ):
             return await call_next(request)
-        
+
         # 3. IP 화이트리스트 체크
         ip = get_client_ip(request)
         is_internal = ip.startswith("141.223.") or ip in ["127.0.0.1", "::1"]
@@ -89,7 +94,10 @@ class AccessControlMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # 모두 해당 안 되면 로그인 페이지로 리다이렉트
-        return RedirectResponse(url=f"/auth/login?next={request.url.path}", status_code=302)
+        return RedirectResponse(
+            url=f"/auth/login?next={request.url.path}", status_code=302
+        )
+
 
 # 미들웨어 등록
 app.add_middleware(AccessControlMiddleware)
@@ -104,36 +112,40 @@ app.include_router(admin_router, prefix="/admin")
 app.include_router(board_router, prefix="/board")
 app.include_router(log_router, prefix="/logs")
 
+
 @app.exception_handler(404)
 async def custom_404_handler(request: Request, exc: StarletteHTTPException):
     return templates.TemplateResponse(
         request=request,
         name="errors/404.html",
-        context={
-            "error_message": "요청하신 페이지를 찾을 수 없습니다." 
-        },
-        status_code=404
+        context={"error_message": "요청하신 페이지를 찾을 수 없습니다."},
+        status_code=404,
     )
-    
+
+
 @app.exception_handler(500)
 async def custom_500_handler(request: Request, exc: Exception):
     try:
         ip = get_client_ip(request)
-    
-        error_trace = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+
+        error_trace = "".join(
+            traceback.format_exception(type(exc), exc, exc.__traceback__)
+        )
 
         # DB에 에러 로그 저장
-        errors_col.insert_one({
-            "ts": datetime.now(timezone.utc),
-            "type": "server_error",
-            "ip": ip,
-            "method": request.method,
-            "path": request.url.path,
-            "query_params": dict(request.query_params),
-            "error_message": str(exc),
-            "traceback": error_trace, # 디버깅용 상세 정보
-            "user_agent": request.headers.get("user-agent", ""),
-        })
+        errors_col.insert_one(
+            {
+                "ts": datetime.now(timezone.utc),
+                "type": "server_error",
+                "ip": ip,
+                "method": request.method,
+                "path": request.url.path,
+                "query_params": dict(request.query_params),
+                "error_message": str(exc),
+                "traceback": error_trace,  # 디버깅용 상세 정보
+                "user_agent": request.headers.get("user-agent", ""),
+            }
+        )
     except Exception as log_error:
         print(f"Failed to log 500 error to DB: {log_error}")
 
@@ -143,14 +155,15 @@ async def custom_500_handler(request: Request, exc: Exception):
         context={
             "error_message": "서버 내부에서 오류가 발생했습니다. 관리자에게 문의하거나 잠시 후 다시 시도해주세요."
         },
-        status_code=500
+        status_code=500,
     )
 
+
 app = asgi_csrf(
-    app, 
+    app,
     signing_secret=os.getenv("SUB_AUTH_SECRET", "fallback-secret-key-for-dev"),
     cookie_name="csrftoken",
     cookie_samesite="Lax",
     always_set_cookie=True,
-    cookie_secure=True
+    cookie_secure=True,
 )

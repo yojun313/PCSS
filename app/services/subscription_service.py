@@ -123,7 +123,6 @@ class SubscriptionNotifier:
                 "probability": threshold,
                 "startyear": datetime.now().year,
                 "endyear": datetime.now().year,
-                "countOption": False,
                 "selectedConferences": confs,
             },
             "option_text": option_text,
@@ -187,7 +186,6 @@ class SubscriptionNotifier:
                 threshold=threshold,
                 startyear=0,
                 endyear=0,
-                countOption=False,
             )
             result_dict = await processor.run(confs)
 

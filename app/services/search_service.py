@@ -22,7 +22,6 @@ class PCSSEARCHMongo:
         4: 기타 공저자(중간 저자)
         else: 저자 중 한 명 이상
     - threshold: 한국인 판정 임계값
-    - countOption: True면 저자 통계(본 MongoDB 데이터셋 기준)도 붙임_bu
     """
 
     def __init__(
@@ -31,7 +30,6 @@ class PCSSEARCHMongo:
         threshold: float,
         startyear: int,
         endyear: int,
-        countOption: bool = False,
         job_id: Optional[str] = None,
         event_queue: Optional[Any] = None,
         cancel_check: Optional[Any] = None,
@@ -40,7 +38,6 @@ class PCSSEARCHMongo:
         self.threshold = float(threshold)
         self.startyear = int(startyear)
         self.endyear = int(endyear)
-        self.countOption = bool(countOption)
 
         self.job_id = job_id
         self.event_queue = event_queue
@@ -532,11 +529,7 @@ class PCSSEARCHMongo:
         self.printStatus("Filtering...", url="")
         await self._build_crawl_data(docs)
 
-        if self.countOption:
-            self.printStatus("Author Stats Attaching...", url="")
-            resultData = await self._attach_author_stats()
-        else:
-            resultData = self.CrawlData
+        resultData = self.CrawlData
 
         final_sorted = sorted(
             resultData,

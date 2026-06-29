@@ -58,7 +58,6 @@ async def start_search(req: SearchRequest, request: Request):
         threshold=req.probability,
         startyear=req.startyear,
         endyear=req.endyear,
-        countOption=req.countOption,
         job_id=job_id,
         event_queue=job.queue,
         cancel_check=lambda: bool(get_job(job_id) and get_job(job_id).cancel_requested),

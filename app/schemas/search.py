@@ -9,4 +9,3 @@ class SearchRequest(BaseModel):
     startyear: int
     endyear: int
     selectedConferences: List[str]
-    countOption: bool = False

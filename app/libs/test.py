@@ -127,7 +127,6 @@ async def main():
         "probability": 0.5,
         "startyear": 2024,
         "endyear": 2024,
-        "countOption": False,
         "selectedConferences": ["CCS"],
     }
 

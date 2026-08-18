@@ -2,6 +2,7 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PCSS {{ name }} - 실적 요약</title>
     <style>
       /* =========================
@@ -82,14 +83,22 @@
         line-height: 1.4;
       }
 
+      /* 테이블을 감싸는 래퍼: 모바일에서 가로 스크롤만 발생하도록 함 */
+      .table-scroll-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        margin-bottom: 15px;
+      }
+
       /* =========================
          통계 테이블 (검색 옵션 테이블과 동일한 색배치)
       ========================= */
       .stats-table {
         width: 100%;
+        min-width: 320px;
         border-collapse: separate;
         border-spacing: 0;
-        margin-bottom: 15px;
+        margin-bottom: 0;
         background-color: #ffffff;
         color: #333;
         border: 1px solid #ddd;
@@ -140,6 +149,7 @@
         display: flex;
         justify-content: flex-start;
         align-items: center;
+        flex-wrap: wrap;
       }
 
       .year-content,
@@ -338,32 +348,34 @@
       </div>
 
       {% if stats and stats|length == 4 %}
-      <table class="stats-table">
-        <thead>
-          <tr>
-            <th>구분</th>
-            <th>검색 대상 학회/저널 논문 수</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>1저자</td>
-            <td>{{ stats[0] }}</td>
-          </tr>
-          <tr>
-            <td>1 또는 2저자</td>
-            <td>{{ stats[1] }}</td>
-          </tr>
-          <tr>
-            <td>마지막 저자</td>
-            <td>{{ stats[2] }}</td>
-          </tr>
-          <tr>
-            <td>기타 공저자</td>
-            <td>{{ stats[3] }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-scroll-wrapper">
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>구분</th>
+              <th>검색 대상 학회/저널 논문 수</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1저자</td>
+              <td>{{ stats[0] }}</td>
+            </tr>
+            <tr>
+              <td>1 또는 2저자</td>
+              <td>{{ stats[1] }}</td>
+            </tr>
+            <tr>
+              <td>마지막 저자</td>
+              <td>{{ stats[2] }}</td>
+            </tr>
+            <tr>
+              <td>기타 공저자</td>
+              <td>{{ stats[3] }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       {% else %}
       <p class="no-data">통계 데이터가 올바르지 않습니다.</p>
       {% endif %} {% if papers %}

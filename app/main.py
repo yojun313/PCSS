@@ -32,6 +32,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ENABLE_ACCESS_CONTROL = os.getenv("ENABLE_ACCESS_CONTROL", "true").lower() == "true"
+ENABLE_IP_BLOCKER = os.getenv("ENABLE_IP_BLOCKER", "true").lower() == "true"
 
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
@@ -56,9 +57,10 @@ app.add_middleware(
 @app.on_event("startup")
 async def _startup():
     await get_mongo_client()
-    from app.db import blocked_ip_col
-    blocked_ip_col.create_index("ip", unique=True)
-    reload_blocked_cache()  # DB에서 기존 차단 IP 캐시에 로드
+    if ENABLE_IP_BLOCKER:
+        from app.db import blocked_ip_col
+        blocked_ip_col.create_index("ip", unique=True)
+        reload_blocked_cache()  # DB에서 기존 차단 IP 캐시에 로드
 
 
 @app.exception_handler(RequestValidationError)
@@ -101,7 +103,8 @@ class AccessControlMiddleware(BaseHTTPMiddleware):
 
 # IPBlockerMiddleware가 먼저 실행되도록 AccessControl을 나중에 등록
 app.add_middleware(AccessControlMiddleware)
-app.add_middleware(IPBlockerMiddleware)
+if ENABLE_IP_BLOCKER:
+    app.add_middleware(IPBlockerMiddleware)
 
 app.include_router(home_router)
 app.include_router(conf_router, prefix="/conferences")

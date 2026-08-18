@@ -326,6 +326,22 @@
         background: rgba(179, 38, 38, 0.06);
         color: rgba(179, 38, 38, 1);
       }
+
+      /* 반응형 디자인 */
+      @media (max-width: 768px) {
+        .container {
+          padding: 10px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .topbar {
+          flex-wrap: wrap;
+        }
+        .form-group label {
+          min-width: 0;
+        }
+      }
     </style>
   </head>
 

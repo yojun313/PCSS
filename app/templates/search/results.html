@@ -31,12 +31,20 @@
         color: #c80150;
       }
 
+      /* 테이블을 감싸는 래퍼: 모바일에서 가로 스크롤만 발생하도록 함 */
+      .table-scroll-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        margin-bottom: 15px;
+      }
+
       /* 테이블 스타일 (검색 옵션 영역) */
       .options-table {
         width: 100%;
+        min-width: 320px;
         border-collapse: separate;
         border-spacing: 0;
-        margin-bottom: 15px; /* 아래 여백 줄임 */
+        margin-bottom: 0;
         background-color: #ffffff;
         color: #333;
         border: 1px solid #ddd;
@@ -81,6 +89,7 @@
         display: flex;
         justify-content: flex-start;
         align-items: center;
+        flex-wrap: wrap;
       }
       .year-content,
       .conference-content {
@@ -275,31 +284,33 @@
       </div>
 
       <!-- 검색 옵션을 테이블로 표시 -->
-      <table class="options-table">
-        <thead>
-          <tr>
-            <th colspan="2">검색 옵션</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td class="option-label">선택 옵션</td>
-            <td>{{ option_text }}</td>
-          </tr>
-          <tr>
-            <td class="option-label">연도 범위</td>
-            <td>{{ options.startyear }} ~ {{ options.endyear }}</td>
-          </tr>
-          <tr>
-            <td class="option-label">한국인 판단 기준값(0.0-1.0)</td>
-            <td>{{ options.probability }}</td>
-          </tr>
-          <tr>
-            <td class="option-label">선택 학회/학술지</td>
-            <td>{{ options.selectedConferences | join(', ') }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-scroll-wrapper">
+        <table class="options-table">
+          <thead>
+            <tr>
+              <th colspan="2">검색 옵션</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="option-label">선택 옵션</td>
+              <td>{{ option_text }}</td>
+            </tr>
+            <tr>
+              <td class="option-label">연도 범위</td>
+              <td>{{ options.startyear }} ~ {{ options.endyear }}</td>
+            </tr>
+            <tr>
+              <td class="option-label">한국인 판단 기준값(0.0-1.0)</td>
+              <td>{{ options.probability }}</td>
+            </tr>
+            <tr>
+              <td class="option-label">선택 학회/학술지</td>
+              <td>{{ options.selectedConferences | join(', ') }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <div class="hint-box">
         논문 카드에서 <b>저자명</b>을 클릭하면 새 탭에서 <b>실적 요약</b>을

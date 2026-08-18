@@ -10,7 +10,7 @@
         .container { max-width: 1200px; margin: 30px auto; padding: 20px; }
         
         /* 헤더 스타일 */
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .header { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         h1 { margin: 0; color: #2c3e50; }
         .btn-back { text-decoration: none; padding: 10px 15px; background: #34495e; color: white; border-radius: 5px; font-weight: bold; }
         .btn-back:hover { background: #2c3e50; }
@@ -35,7 +35,10 @@
         .bg-other { background-color: #95a5a6; }
 
         @media (max-width: 768px) {
+            .container { padding: 12px; }
             .grid { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; }
+            h1 { font-size: 1.4rem; }
         }
     </style>
 </head>

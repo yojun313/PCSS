@@ -77,9 +77,16 @@
         border: 1px solid var(--border-color);
       }
 
+      /* 테이블을 감싸는 래퍼: 모바일에서 가로 스크롤만 발생하도록 함 */
+      .table-scroll-wrapper {
+        width: 100%;
+        overflow-x: auto;
+      }
+
       /* 옵션 테이블 스타일링 */
       .options-table {
         width: 100%;
+        min-width: 280px;
         border-collapse: collapse;
       }
 
@@ -270,6 +277,7 @@
         }
         .left-column {
           width: 100%;
+          min-width: 0;
         }
         pre#output {
           height: 40vh;
@@ -292,53 +300,55 @@
       <div class="wrapper">
         <!-- 왼쪽: 옵션 -->
         <div class="left-column" id="globalData">
-          <table class="options-table">
-            <thead>
-              <tr>
-                <th colspan="2">검색 옵션</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="option-label">옵션</td>
-                <td>{{ option_text }} ({{ options["option"] }})</td>
-              </tr>
-              <tr>
-                <td class="option-label">한국인 판단 기준값</td>
-                <td>{{ options["probability"] }}</td>
-              </tr>
-              <tr>
-                <td class="option-label">시작 연도</td>
-                <td>{{ options["startyear"] }}</td>
-              </tr>
-              <tr>
-                <td class="option-label">끝 연도</td>
-                <td>{{ options["endyear"] }}</td>
-              </tr>
-              <tr>
-                <td class="option-label">선택 학회/학술지</td>
-                <td>
-                  {% if options["selectedConferences"] and
-                  options["selectedConferences"]|length > 0 %} {{
-                  options["selectedConferences"] | join(", ") }} {% else %}
-                  (없음) {% endif %}
-                </td>
-              </tr>
+          <div class="table-scroll-wrapper">
+            <table class="options-table">
+              <thead>
+                <tr>
+                  <th colspan="2">검색 옵션</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="option-label">옵션</td>
+                  <td>{{ option_text }} ({{ options["option"] }})</td>
+                </tr>
+                <tr>
+                  <td class="option-label">한국인 판단 기준값</td>
+                  <td>{{ options["probability"] }}</td>
+                </tr>
+                <tr>
+                  <td class="option-label">시작 연도</td>
+                  <td>{{ options["startyear"] }}</td>
+                </tr>
+                <tr>
+                  <td class="option-label">끝 연도</td>
+                  <td>{{ options["endyear"] }}</td>
+                </tr>
+                <tr>
+                  <td class="option-label">선택 학회/학술지</td>
+                  <td>
+                    {% if options["selectedConferences"] and
+                    options["selectedConferences"]|length > 0 %} {{
+                    options["selectedConferences"] | join(", ") }} {% else %}
+                    (없음) {% endif %}
+                  </td>
+                </tr>
 
-              <tr>
-                <td class="option-label">Papers</td>
-                <td class="value-cell">
-                  <span id="paperCount" class="stat-pill">0</span>
-                </td>
-              </tr>
-              <tr>
-                <td class="option-label">Korean authors</td>
-                <td class="value-cell">
-                  <span id="koreanCount" class="stat-pill">0</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                <tr>
+                  <td class="option-label">Papers</td>
+                  <td class="value-cell">
+                    <span id="paperCount" class="stat-pill">0</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="option-label">Korean authors</td>
+                  <td class="value-cell">
+                    <span id="koreanCount" class="stat-pill">0</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           <div style="margin-top: 12px; display: flex; gap: 10px">
             <button
               id="cancelBtn"

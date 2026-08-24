@@ -474,6 +474,7 @@
           <button class="select-btn" id="toggle-select-btn">전체 선택</button>
 
           {% if email %}
+            <a class="select-btn" href="/profile">프로필</a>
             <form action="/auth/logout" method="post" style="display: inline-block;" onsubmit="return confirm('로그아웃 하시겠습니까?');">
               <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
               <button type="submit" class="select-btn">로그아웃</button>

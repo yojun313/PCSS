@@ -14,6 +14,7 @@ from app.routes.search_routes import router as search_router
 from app.routes.admin_routes import router as admin_router
 from app.routes.board_routes import router as board_router
 from app.routes.log_routes import router as log_router
+from app.routes.user_routes import router as user_router
 from app.db.mongo import get_mongo_client
 from app.db import errors_col
 from app.libs.logger import get_client_ip
@@ -125,6 +126,7 @@ app.include_router(search_router, prefix="/api/search")
 app.include_router(admin_router, prefix="/admin")
 app.include_router(board_router, prefix="/board")
 app.include_router(log_router, prefix="/logs")
+app.include_router(user_router)
 
 
 @app.exception_handler(404)

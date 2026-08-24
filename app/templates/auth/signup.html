@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PCSS 회원가입</title>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f9f9f9;
+        color: #333;
+      }
+
+      .container {
+        max-width: 560px;
+        margin: auto;
+        padding: 20px;
+      }
+
+      h1 {
+        text-align: center;
+        margin: 26px 0 18px;
+        color: rgba(200, 1, 80, 1);
+      }
+
+      .notice {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin: 0 0 18px 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        line-height: 1.5;
+      }
+
+      .error-msg {
+        background-color: #ffebee;
+        color: #c62828;
+        border: 1px solid #ef9a9a;
+        padding: 14px 18px;
+        margin: 0 0 18px 0;
+        border-radius: 8px;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      }
+
+      .card {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card h2 {
+        margin: 0 0 12px 0;
+        color: #34495e;
+        font-size: 18px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+
+      .form-group label {
+        font-weight: bold;
+        color: #34495e;
+        font-size: 14px;
+      }
+
+      .form-group input {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background-color: #fff;
+        color: #333;
+        font-size: 15px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .hint {
+        font-size: 12px;
+        color: #888;
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .btn {
+        padding: 11px 18px;
+        background-color: rgba(200, 1, 80, 1);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 15px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .btn:hover {
+        background-color: rgb(194, 50, 108);
+      }
+
+      .btn-block {
+        width: 100%;
+      }
+
+      .small {
+        font-size: 13px;
+        color: #666;
+        line-height: 1.6;
+        margin-top: 16px;
+        text-align: center;
+      }
+
+      .small a {
+        color: rgba(200, 1, 80, 1);
+        font-weight: bold;
+        text-decoration: none;
+      }
+
+      .small a:hover {
+        text-decoration: underline;
+      }
+
+      /* 반응형 디자인 */
+      @media (max-width: 768px) {
+        .container {
+          padding: 12px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>PCSS 회원가입</h1>
+
+      <div class="notice">
+        <p style="margin: 0 0 6px 0; font-weight: bold;">
+          POSTECH 이메일(@{{ domain }}) 계정으로만 가입할 수 있습니다.
+        </p>
+        <p style="margin: 0; font-size: 13px; opacity: 0.7;">
+          입력하신 주소로 6자리 인증 코드를 보내드립니다. 인증을 완료해야 계정이 생성됩니다.
+        </p>
+      </div>
+
+      {% if error %}
+      <div class="error-msg">
+        {{ error }}
+      </div>
+      {% endif %}
+
+      <div class="card">
+        <h2>계정 정보 입력</h2>
+
+        <form method="post" action="/auth/signup">
+          <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
+          <input type="hidden" name="next" value="{{ next }}" />
+
+          <div class="form-group">
+            <label for="name">이름</label>
+            <input id="name" name="name" type="text" value="{{ name or '' }}"
+                   autocomplete="name" placeholder="홍길동" />
+          </div>
+
+          <div class="form-group">
+            <label for="email">이메일</label>
+            <input id="email" name="email" type="email" value="{{ email or '' }}"
+                   placeholder="myid@{{ domain }}" autocomplete="email" required />
+          </div>
+
+          <div class="form-group">
+            <label for="password">비밀번호</label>
+            <input id="password" name="password" type="password"
+                   autocomplete="new-password" minlength="8" required />
+            <span class="hint">최소 8자 이상</span>
+          </div>
+
+          <div class="form-group">
+            <label for="password2">비밀번호 확인</label>
+            <input id="password2" name="password2" type="password"
+                   autocomplete="new-password" minlength="8" required />
+          </div>
+
+          <div class="row">
+            <button class="btn btn-block" type="submit">인증 코드 받기</button>
+          </div>
+        </form>
+
+        <p class="small">
+          이미 계정이 있으신가요?
+          <a href="/auth/login?next={{ next }}">로그인</a>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

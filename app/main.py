@@ -59,8 +59,18 @@ async def _startup():
     await get_mongo_client()
     if ENABLE_IP_BLOCKER:
         from app.db import blocked_ip_col
+
         blocked_ip_col.create_index("ip", unique=True)
         reload_blocked_cache()  # DB에서 기존 차단 IP 캐시에 로드
+
+    from app.db import users_col, pending_signups_col, auth_col
+
+    users_col.create_index("email", unique=True)
+    # 인증을 끝내지 않은 가입 요청은 TTL 인덱스로 알아서 정리된다
+    pending_signups_col.create_index("email", unique=True)
+    pending_signups_col.create_index("expires_at", expireAfterSeconds=0)
+    auth_col.create_index("session_id")
+    auth_col.create_index("expires_at", expireAfterSeconds=0)
 
 
 @app.exception_handler(RequestValidationError)

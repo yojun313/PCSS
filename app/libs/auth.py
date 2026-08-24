@@ -1,12 +1,24 @@
 # app/libs/auth.py
 import hashlib
 import os
-from datetime import datetime, timezone
+import secrets
+from datetime import datetime, timedelta, timezone
+import bcrypt
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 from app.db import auth_col, admin_col
 
 SESSION_COOKIE = "pcss_sub_session"
+SESSION_DAYS = 14
+
+# 가입 가능한 이메일 도메인 (POSTECH 계정만 허용)
+ALLOWED_EMAIL_DOMAIN = os.getenv("ALLOWED_EMAIL_DOMAIN", "postech.ac.kr")
+
+# 가입 인증 코드 정책
+OTP_TTL_MINUTES = 10
+OTP_MAX_TRIES = 5
+
+PASSWORD_MIN_LENGTH = 8
 
 
 def now_utc():
@@ -21,6 +33,75 @@ def auth_secret() -> str:
 def hash_code(email: str, code: str) -> str:
     raw = f"{email}|{code}|{auth_secret()}".encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
+
+
+def verify_code(email: str, code: str, expected_hash: str) -> bool:
+    if not expected_hash:
+        return False
+    return secrets.compare_digest(expected_hash, hash_code(email, code))
+
+
+def generate_code() -> str:
+    return f"{secrets.randbelow(1000000):06d}"
+
+
+# ---------------------------
+# 이메일 정규화 / 도메인 제한
+# ---------------------------
+def normalize_email(email: str) -> str:
+    return (email or "").strip().lower()
+
+
+def is_allowed_email(email: str) -> bool:
+    return normalize_email(email).endswith(f"@{ALLOWED_EMAIL_DOMAIN}")
+
+
+# ---------------------------
+# 비밀번호 해싱 (bcrypt)
+# ---------------------------
+def _pw_bytes(password: str) -> bytes:
+    # bcrypt는 72바이트를 넘는 입력을 거부하므로 해싱/검증에서 동일하게 잘라 쓴다
+    return (password or "").encode("utf-8")[:72]
+
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(_pw_bytes(password), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    if not password_hash:
+        return False
+    try:
+        return bcrypt.checkpw(_pw_bytes(password), password_hash.encode("utf-8"))
+    except ValueError:
+        return False
+
+
+def password_problem(password: str) -> str | None:
+    """비밀번호 정책 위반 사유를 돌려준다. 문제 없으면 None."""
+    if not password or len(password) < PASSWORD_MIN_LENGTH:
+        return f"비밀번호는 최소 {PASSWORD_MIN_LENGTH}자 이상이어야 합니다."
+    return None
+
+
+# ---------------------------
+# 세션 생성
+# ---------------------------
+def create_session(email: str, ip: str) -> tuple[str, int]:
+    """세션 문서를 만들고 (session_id, max_age초)를 돌려준다."""
+    now = now_utc()
+    session_id = secrets.token_urlsafe(32)
+    auth_col.insert_one(
+        {
+            "kind": "session",
+            "session_id": session_id,
+            "email": email,
+            "expires_at": now + timedelta(days=SESSION_DAYS),
+            "created_at": now,
+            "ip": ip,
+        }
+    )
+    return session_id, SESSION_DAYS * 24 * 3600
 
 
 def get_session_email(request: Request) -> str | None:

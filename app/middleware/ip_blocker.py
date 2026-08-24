@@ -22,6 +22,7 @@ _blocked_cache: set[str] = set()
 
 def reload_blocked_cache():
     from app.db import blocked_ip_col
+
     global _blocked_cache
     _blocked_cache = {doc["ip"] for doc in blocked_ip_col.find({}, {"ip": 1})}
 
@@ -47,11 +48,13 @@ class IPBlockerMiddleware(BaseHTTPMiddleware):
             _blocked_cache.add(ip)
             blocked_ip_col.update_one(
                 {"ip": ip},
-                {"$set": {
-                    "ip": ip,
-                    "blocked_at": datetime.now(timezone.utc),
-                    "reason": dict(request.query_params),
-                }},
+                {
+                    "$set": {
+                        "ip": ip,
+                        "blocked_at": datetime.now(timezone.utc),
+                        "reason": dict(request.query_params),
+                    }
+                },
                 upsert=True,
             )
             return JSONResponse(status_code=403, content={"detail": "Forbidden"})

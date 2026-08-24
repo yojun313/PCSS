@@ -8,6 +8,7 @@ dependencies = [
     "aiofiles>=25.1.0",
     "aiohttp>=3.13.5",
     "asgi-csrf>=0.11",
+    "bcrypt>=5.0.0",
     "bs4>=0.0.2",
     "fastapi>=0.136.1",
     "gunicorn>=25.3.0",

@@ -1,10 +1,6 @@
 import asyncio
-import os
-import json
-import smtplib
 from datetime import datetime, timedelta, timezone
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+from app.libs.email import send_html_email, sender_address
 from app.services.search_service import PCSSEARCHMongo
 from app.db import subscription_col, papers_col
 from app.core.templates import templates
@@ -45,13 +41,9 @@ class SubscriptionNotifier:
         }
 
     def _load_mail_config(self):
+        # 발송 설정은 app.libs.email이 MAIL_BACKEND에 따라 알아서 고른다
         try:
-            # 경로 조정
-            path = os.path.join(
-                os.path.dirname(__file__), "..", "data", "mail_lock.json"
-            )
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
+            return {"sender": sender_address()}
         except Exception as e:
             print(f"[Notifier] Mail config load failed: {e}")
             return None
@@ -61,22 +53,8 @@ class SubscriptionNotifier:
             print(f"[Notifier] No mail config. Skipping email to {receiver}")
             return
 
-        sender = self.mail_config["sender"]
-        password = self.mail_config["password"]
-
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = title
-        msg["From"] = sender
-        msg["To"] = receiver
-
-        # HTML 본문 추가
-        msg.attach(MIMEText(html_body, "html", "utf-8"))
-
         try:
-            with smtplib.SMTP("smtp.gmail.com", 587) as server:
-                server.starttls()
-                server.login(sender, password)
-                server.sendmail(sender, receiver, msg.as_string())
+            send_html_email(receiver, title, html_body)
             print(f"[Notifier] Sent to {receiver}")
         except Exception as e:
             print(f"[Notifier] Fail {receiver}: {e}")

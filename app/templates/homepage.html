@@ -53,22 +53,45 @@
         display: flex;           /* Flexbox 레이아웃 사용 */
         align-items: center;     /* 세로 중앙 정렬 */
         justify-content: flex-start; /* 왼쪽 정렬 */
+        flex-wrap: wrap;         /* 좁은 화면에서는 눌리지 말고 줄바꿈 */
         margin-bottom: 40px;
         margin-top: 20px;
       }
 
-      /* 왼쪽 로고 (가치창출대학 POSTECH) 스타일 */
-      .header-logo-left {
-        height: auto;
-        max-height: 100px;        /* 높이를 적절히 조절 (예: 60px) */
-        margin-right: 20px;      /* 오른쪽 로고와의 간격 설정 */
+      /* 왼쪽 로고 (POSTECH 시그니처) 스타일.
+         명시적 height로 고정한다. 예전 로고는 원본이 28px라 max-height가
+         사실상 적용되지 않고 원본 크기로 나왔지만, 새 시그니처는 원본이
+         96px라 그대로 두면 옆의 PCSS 타이틀(22px)보다 훨씬 커진다. */
+      .header-logo-container img.header-logo-left {
+        /* 워드마크는 시그니처 높이의 약 60%. flex-shrink를 막지 않으면
+           좁은 화면에서 가로만 눌려 로고가 찌그러진다. */
+        height: 24px;
+        width: auto;
+        max-height: none;        /* 아래 .header-logo-container img 규칙보다 우선 */
+        max-width: none;         /* max-width:100%면 높이 고정 상태로 가로만 눌린다 */
+        flex-shrink: 0;
+        margin-right: 18px;      /* 오른쪽 로고와의 간격 설정 */
       }
 
-      /* 오른쪽 로고 (PCSS 타이틀) 스타일 */
-      .header-logo-right {
-        height: auto;
-        max-height: 80px;        /* 기존 로고 높이 유지 또는 조절 */
-        margin-top: 15px;
+      /* 오른쪽 서비스 타이틀. 예전에는 title.png 이미지였는데, 실제 텍스트로
+         바꿔서 어느 화면에서도 선명하고(고정 비트맵이 아니므로) 확대/검색/
+         스크린리더에도 제대로 잡히게 했다. 색은 원본 이미지의 잉크색과 동일.
+         font-size 22px면 대문자 높이가 약 16px로, 옆 POSTECH 워드마크(~17px)와
+         눈높이가 맞는다. */
+      .header-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: rgb(201, 1, 95);
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      @media (max-width: 620px) {
+        .header-title {
+          font-size: 17px;
+          white-space: normal;   /* 좁은 화면에서는 잘리지 말고 줄바꿈 */
+        }
       }
             
       .header-logo-container img {
@@ -369,11 +392,9 @@
         
         <div class="header-logo-container">
           <a href="https://www.postech.ac.kr/kor/index.do">
-            <img src="/static/images/value_postech_logo.png" alt="POSTECH Value Creation University" class="header-logo-left">
+            <img src="/static/images/postech-signature.png" alt="POSTECH" class="header-logo-left">
           </a>
-          <a href="https://pcss.postech.ac.kr/">
-            <img src="/static/images/title.png" alt="PCSS: POSTECH Computer Scientist Search" class="header-logo-right">
-          </a>
+          <a href="https://pcss.postech.ac.kr/" class="header-title">PCSS: POSTECH Computer Scientist Search</a>
       </div>
 
         <div class="form-section">

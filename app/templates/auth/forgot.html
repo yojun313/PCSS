@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PCSS 비밀번호 찾기</title>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f9f9f9;
+        color: #333;
+      }
+
+      .container {
+        max-width: 560px;
+        margin: auto;
+        padding: 20px;
+      }
+
+      h1 {
+        text-align: center;
+        margin: 26px 0 18px;
+        color: rgba(200, 1, 80, 1);
+      }
+
+      .notice {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin: 0 0 18px 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        line-height: 1.5;
+      }
+
+      .error-msg {
+        background-color: #ffebee;
+        color: #c62828;
+        border: 1px solid #ef9a9a;
+        padding: 14px 18px;
+        margin: 0 0 18px 0;
+        border-radius: 8px;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      }
+
+      .card {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card h2 {
+        margin: 0 0 12px 0;
+        color: #34495e;
+        font-size: 18px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+
+      .form-group label {
+        font-weight: bold;
+        color: #34495e;
+        font-size: 14px;
+      }
+
+      .form-group input {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background-color: #fff;
+        color: #333;
+        font-size: 15px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .btn {
+        padding: 11px 18px;
+        background-color: rgba(200, 1, 80, 1);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 15px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .btn:hover {
+        background-color: rgb(194, 50, 108);
+      }
+
+      .btn-block {
+        width: 100%;
+      }
+
+      .small {
+        font-size: 13px;
+        color: #666;
+        line-height: 1.6;
+        margin-top: 16px;
+        text-align: center;
+      }
+
+      .small a {
+        color: rgba(200, 1, 80, 1);
+        font-weight: bold;
+        text-decoration: none;
+      }
+
+      .small a:hover {
+        text-decoration: underline;
+      }
+
+      /* 반응형 디자인 */
+      @media (max-width: 768px) {
+        .container {
+          padding: 12px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>비밀번호 찾기</h1>
+
+      <div class="notice">
+        <p style="margin: 0;">
+          가입할 때 사용한 POSTECH 이메일을 입력하시면 재설정 코드를 보내드립니다.
+        </p>
+      </div>
+
+      {% if error %}
+      <div class="error-msg">
+        {{ error }}
+      </div>
+      {% endif %}
+
+      <div class="card">
+        <h2>이메일 입력</h2>
+
+        <form method="post" action="/auth/forgot">
+          <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
+
+          <div class="form-group">
+            <label for="email">이메일</label>
+            <input id="email" name="email" type="email" value="{{ email or '' }}"
+                   placeholder="you@{{ domain }}" autocomplete="email" required autofocus />
+          </div>
+
+          <div class="row">
+            <button class="btn btn-block" type="submit">재설정 코드 받기</button>
+          </div>
+        </form>
+
+        <p class="small">
+          비밀번호가 기억나셨나요?
+          <a href="/auth/login">로그인</a>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

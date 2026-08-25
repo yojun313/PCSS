@@ -47,6 +47,17 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
       }
 
+      .ok-msg {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #a5d6a7;
+        padding: 14px 18px;
+        margin: 0 0 18px 0;
+        border-radius: 8px;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      }
+
       .card {
         background: #fff;
         border: 1px solid #ddd;
@@ -157,6 +168,12 @@
         </p>
       </div>
 
+      {% if message %}
+      <div class="ok-msg">
+        {{ message }}
+      </div>
+      {% endif %}
+
       {% if error %}
       <div class="error-msg">
         {{ error }}
@@ -188,6 +205,10 @@
         </form>
 
         <p class="small">
+          <a href="/auth/forgot">비밀번호를 잊으셨나요?</a>
+        </p>
+
+        <p class="small" style="margin-top: 4px;">
           아직 계정이 없으신가요?
           <a href="/auth/signup?next={{ next }}">회원가입</a>
         </p>

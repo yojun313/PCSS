@@ -6,7 +6,7 @@ from datetime import timedelta
 from app.core.templates import templates
 from app.libs.email import send_email
 from app.libs.logger import get_client_ip
-from app.db import auth_col, users_col, pending_signups_col
+from app.db import auth_col, users_col, pending_signups_col, password_resets_col
 from app.libs.auth import (
     SESSION_COOKIE,
     ALLOWED_EMAIL_DOMAIN,
@@ -232,6 +232,148 @@ async def signup_verify(
     # 가입 즉시 로그인 상태로 만들어 준다
     resp = RedirectResponse(url=next or "/", status_code=302)
     return _set_session(resp, email_norm, get_client_ip(request))
+
+
+# ---------------------------
+# 비밀번호 찾기 1단계: 이메일 입력 -> 재설정 코드 발송
+# ---------------------------
+@router.get("/forgot", response_class=HTMLResponse)
+async def forgot_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="auth/forgot.html",
+        context={"domain": ALLOWED_EMAIL_DOMAIN},
+    )
+
+
+@router.post("/forgot", response_class=HTMLResponse)
+async def forgot_send_code(request: Request, email: str = Form(...)):
+    email_norm = normalize_email(email)
+
+    if not is_allowed_email(email_norm):
+        return templates.TemplateResponse(
+            request=request,
+            name="auth/forgot.html",
+            context={
+                "domain": ALLOWED_EMAIL_DOMAIN,
+                "email": email_norm,
+                "error": f"@{ALLOWED_EMAIL_DOMAIN} 이메일만 사용할 수 있습니다.",
+            },
+            status_code=400,
+        )
+
+    user = users_col.find_one({"email": email_norm}, {"_id": 1})
+    if user:
+        now = now_utc()
+        code = generate_code()
+        password_resets_col.update_one(
+            {"email": email_norm},
+            {
+                "$set": {
+                    "email": email_norm,
+                    "code_hash": hash_code(email_norm, code),
+                    "expires_at": now + timedelta(minutes=OTP_TTL_MINUTES),
+                    "tries": 0,
+                    "created_at": now,
+                    "ip": get_client_ip(request),
+                }
+            },
+            upsert=True,
+        )
+        send_email(
+            receiver=email_norm,
+            title="[PCSS] 비밀번호 재설정 코드",
+            text=(
+                f"PCSS 비밀번호 재설정 코드입니다: {code}\n\n"
+                f"이 코드는 {OTP_TTL_MINUTES}분 후 만료됩니다.\n"
+                "본인이 요청하지 않았다면 이 메일을 무시하세요. 비밀번호는 그대로 유지됩니다.\n"
+            ),
+        )
+
+    # 가입되지 않은 주소인지 알려주지 않기 위해, 계정 유무와 상관없이 같은 화면을 보여준다
+    return templates.TemplateResponse(
+        request=request,
+        name="auth/reset.html",
+        context={
+            "email": email_norm,
+            "message": "가입된 계정이라면 재설정 코드를 메일로 보냈습니다.",
+        },
+    )
+
+
+# ---------------------------
+# 비밀번호 찾기 2단계: 코드 확인 -> 새 비밀번호 설정
+# ---------------------------
+@router.post("/reset", response_class=HTMLResponse)
+async def reset_password(
+    request: Request,
+    email: str = Form(...),
+    code: str = Form(...),
+    new_password: str = Form(...),
+    new_password2: str = Form(...),
+):
+    email_norm = normalize_email(email)
+    code = (code or "").strip()
+    now = now_utc()
+
+    def fail(msg: str, status_code: int = 400):
+        return templates.TemplateResponse(
+            request=request,
+            name="auth/reset.html",
+            context={"email": email_norm, "error": msg},
+            status_code=status_code,
+        )
+
+    pending = password_resets_col.find_one(
+        {"email": email_norm, "expires_at": {"$gt": now}}
+    )
+    if not pending:
+        return fail("코드가 만료되었거나 없습니다. 다시 요청해 주세요.")
+
+    if int(pending.get("tries", 0)) >= OTP_MAX_TRIES:
+        password_resets_col.delete_one({"email": email_norm})
+        return fail("시도 횟수를 초과했습니다. 처음부터 다시 요청해 주세요.", 429)
+
+    if not verify_code(email_norm, code, pending.get("code_hash", "")):
+        password_resets_col.update_one({"email": email_norm}, {"$inc": {"tries": 1}})
+        return fail("인증 코드가 올바르지 않습니다.")
+
+    # 코드가 맞았으니 비밀번호 정책을 확인한다 (코드는 아직 소모하지 않는다)
+    if new_password != new_password2:
+        return fail("새 비밀번호가 서로 일치하지 않습니다.")
+
+    problem = password_problem(new_password)
+    if problem:
+        return fail(problem)
+
+    user = users_col.find_one({"email": email_norm})
+    if not user:
+        password_resets_col.delete_one({"email": email_norm})
+        return fail("계정을 찾을 수 없습니다.")
+
+    users_col.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {
+                "password_hash": hash_password(new_password),
+                "password_changed_at": now,
+            }
+        },
+    )
+    password_resets_col.delete_one({"email": email_norm})
+
+    # 계정 복구 상황이므로 기존 세션은 전부 끊는다
+    auth_col.delete_many({"kind": "session", "email": email_norm})
+
+    return templates.TemplateResponse(
+        request=request,
+        name="auth/login.html",
+        context={
+            "next": "/",
+            "email": email_norm,
+            "message": "비밀번호를 재설정했습니다. 새 비밀번호로 로그인해 주세요.",
+        },
+    )
 
 
 @router.post("/logout")

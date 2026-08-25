@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PCSS 비밀번호 재설정</title>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f9f9f9;
+        color: #333;
+      }
+
+      .container {
+        max-width: 560px;
+        margin: auto;
+        padding: 20px;
+      }
+
+      h1 {
+        text-align: center;
+        margin: 26px 0 18px;
+        color: rgba(200, 1, 80, 1);
+      }
+
+      .notice {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin: 0 0 18px 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        line-height: 1.5;
+      }
+
+      .error-msg {
+        background-color: #ffebee;
+        color: #c62828;
+        border: 1px solid #ef9a9a;
+        padding: 14px 18px;
+        margin: 0 0 18px 0;
+        border-radius: 8px;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      }
+
+      .ok-msg {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #a5d6a7;
+        padding: 14px 18px;
+        margin: 0 0 18px 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      }
+
+      .card {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card h2 {
+        margin: 0 0 12px 0;
+        color: #34495e;
+        font-size: 18px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+
+      .form-group label {
+        font-weight: bold;
+        color: #34495e;
+        font-size: 14px;
+      }
+
+      .form-group input {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background-color: #fff;
+        color: #333;
+        font-size: 15px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .form-group input.code {
+        font-size: 20px;
+        letter-spacing: 6px;
+        text-align: center;
+      }
+
+      .hint {
+        font-size: 12px;
+        color: #888;
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .btn {
+        padding: 11px 18px;
+        background-color: rgba(200, 1, 80, 1);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 15px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .btn:hover {
+        background-color: rgb(194, 50, 108);
+      }
+
+      .btn-block {
+        width: 100%;
+      }
+
+      .small {
+        font-size: 13px;
+        color: #666;
+        line-height: 1.6;
+        margin-top: 16px;
+        text-align: center;
+      }
+
+      .small a {
+        color: rgba(200, 1, 80, 1);
+        font-weight: bold;
+        text-decoration: none;
+      }
+
+      .small a:hover {
+        text-decoration: underline;
+      }
+
+      /* 반응형 디자인 */
+      @media (max-width: 768px) {
+        .container {
+          padding: 12px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>비밀번호 재설정</h1>
+
+      {% if message %}
+      <div class="ok-msg">{{ message }}</div>
+      {% endif %}
+
+      {% if error %}
+      <div class="error-msg">{{ error }}</div>
+      {% endif %}
+
+      <div class="notice">
+        <p style="margin: 0;">
+          <strong>{{ email }}</strong> 주소로 보낸 6자리 코드와 새 비밀번호를 입력해 주세요.
+        </p>
+        <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.7;">
+          코드는 10분 후 만료됩니다. 메일이 보이지 않으면 스팸함도 확인해 주세요.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>새 비밀번호 설정</h2>
+
+        <form method="post" action="/auth/reset">
+          <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
+          <input type="hidden" name="email" value="{{ email }}" />
+
+          <div class="form-group">
+            <label for="code">인증 코드</label>
+            <input id="code" name="code" class="code" type="text" inputmode="numeric"
+                   pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"
+                   placeholder="000000" required autofocus />
+          </div>
+
+          <div class="form-group">
+            <label for="new_password">새 비밀번호</label>
+            <input id="new_password" name="new_password" type="password"
+                   autocomplete="new-password" minlength="8" required />
+            <span class="hint">최소 8자 이상</span>
+          </div>
+
+          <div class="form-group">
+            <label for="new_password2">새 비밀번호 확인</label>
+            <input id="new_password2" name="new_password2" type="password"
+                   autocomplete="new-password" minlength="8" required />
+          </div>
+
+          <div class="row">
+            <button class="btn btn-block" type="submit">비밀번호 재설정</button>
+          </div>
+        </form>
+
+        <p class="hint" style="margin-top: 12px;">
+          재설정하면 모든 기기에서 로그아웃되며, 새 비밀번호로 다시 로그인해야 합니다.
+        </p>
+
+        <p class="small">
+          코드를 받지 못하셨나요?
+          <a href="/auth/forgot">다시 요청하기</a>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCSS 메일 발송 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            color: rgba(200, 1, 80, 1);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        }
+        .card h2 {
+            margin: 0 0 16px 0;
+            color: #34495e;
+            font-size: 18px;
+            border-bottom: 2px solid rgba(200, 1, 80, 0.1);
+            padding-bottom: 10px;
+        }
+        .kv {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+        .kv:last-child { border-bottom: none; }
+        .kv .k { color: #888; }
+        .kv .v { font-weight: bold; color: #34495e; word-break: break-all; }
+        .mono {
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        .pill {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .pill-postech { background: rgba(200, 1, 80, 1); }
+        .pill-gmail { background: #34495e; }
+
+        .error-msg {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            word-break: break-word;
+        }
+        .ok-msg {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .warn-box {
+            background-color: #fff8e1;
+            border: 1px solid #ffe082;
+            color: #7a5c00;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-top: 14px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+        .form-group label {
+            font-weight: bold;
+            color: #34495e;
+            font-size: 14px;
+        }
+        .form-group input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 11px 18px;
+            background-color: rgba(200, 1, 80, 1);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 15px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn:hover { background-color: rgb(194, 50, 108); }
+        .btn-secondary { background-color: #34495e; }
+        .btn-secondary:hover { background-color: #2c3e50; }
+        .hint { font-size: 12px; color: #888; }
+
+        .steps {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .steps th, .steps td {
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+        .steps th {
+            width: 130px;
+            color: #888;
+            font-weight: normal;
+            white-space: nowrap;
+        }
+        .steps td {
+            font-family: Consolas, Monaco, monospace;
+            word-break: break-all;
+        }
+        .table-scroll { overflow-x: auto; }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 10px;
+            color: #666;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .container { margin: 16px auto; padding: 12px; }
+            .kv { flex-direction: column; align-items: flex-start; gap: 2px; }
+            .steps th { width: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>메일 발송 테스트</h1>
+
+    {% if message %}
+    <div class="ok-msg">{{ message }}</div>
+    {% endif %}
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    <div class="card">
+        <h2>현재 발송 설정</h2>
+        <div class="kv">
+            <span class="k">발송 경로 (MAIL_BACKEND)</span>
+            <span class="v">
+                <span class="pill {% if config.backend == 'postech' %}pill-postech{% else %}pill-gmail{% endif %}">
+                    {{ config.backend }}
+                </span>
+            </span>
+        </div>
+        <div class="kv">
+            <span class="k">SMTP 서버</span>
+            <span class="v mono">{{ config.host }}:{{ config.port }}</span>
+        </div>
+        <div class="kv">
+            <span class="k">인증 방식</span>
+            <span class="v">{{ config.auth }}</span>
+        </div>
+        <div class="kv">
+            <span class="k">발신 주소</span>
+            <span class="v mono">{{ config.sender_name }} &lt;{{ config.sender }}&gt;</span>
+        </div>
+        <div class="kv">
+            <span class="k">회신 주소 (Reply-To)</span>
+            <span class="v mono">{{ config.reply_to }}</span>
+        </div>
+        <div class="kv">
+            <span class="k">STARTTLS</span>
+            <span class="v">{{ '사용' if config.starttls else '사용 안 함' }}</span>
+        </div>
+        <div class="kv">
+            <span class="k">이 서버</span>
+            <span class="v mono">{{ config.hostname }} ({{ config.local_ip }})</span>
+        </div>
+
+        {% if config.backend == 'postech' %}
+        <div class="warn-box">
+            <strong>학교 무인증 릴레이는 등록된 IP에서만 동작합니다.</strong><br>
+            등록 IP: <span class="mono">141.223.145.21</span> (= pcss.postech.ac.kr)<br>
+            다른 서버에서 시도하면 <span class="mono">421 4.3.2 Service not available</span>로 거절됩니다.
+            그 경우 <span class="mono">MAIL_BACKEND=gmail</span>로 바꿔서 쓰세요.
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>테스트 실행</h2>
+
+        <form method="post" id="mail-test-form">
+            <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
+
+            <div class="form-group">
+                <label for="receiver">수신 주소</label>
+                <input id="receiver" name="receiver" type="email"
+                       value="{{ receiver }}" placeholder="you@postech.ac.kr" required />
+                <span class="hint">기본값은 지금 로그인한 관리자 계정입니다.</span>
+            </div>
+
+            <div class="row">
+                <button class="btn btn-secondary" type="submit"
+                        formaction="/admin/mail-test/check">연결 진단 (발송 안 함)</button>
+                <button class="btn" type="submit"
+                        formaction="/admin/mail-test/send"
+                        onclick="return confirm('실제로 테스트 메일을 발송합니다. 진행할까요?');">실제 발송</button>
+            </div>
+        </form>
+
+        <p class="hint" style="margin-top: 14px;">
+            <strong>연결 진단</strong>은 SMTP 연결부터 수신자 확인(RCPT)까지만 진행하고 되돌리므로
+            상대방에게 메일이 가지 않습니다. 설정이 맞는지 먼저 확인할 때 쓰세요.
+        </p>
+    </div>
+
+    {% if probe_result %}
+    <div class="card">
+        <h2>진단 결과</h2>
+
+        {% if probe_result.ok %}
+        <div class="ok-msg">발송 가능한 상태입니다. (실제로 메일을 보내지는 않았습니다)</div>
+        {% else %}
+        <div class="error-msg">{{ probe_result.error }}</div>
+        {% endif %}
+
+        <div class="table-scroll">
+            <table class="steps">
+                <tbody>
+                {% for label, detail in probe_result.steps %}
+                    <tr>
+                        <th>{{ label }}</th>
+                        <td>{{ detail }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <a href="/admin/dashboard" class="back-link">← 관리자 대시보드로 돌아가기</a>
+</div>
+
+</body>
+</html>

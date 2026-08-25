@@ -14,6 +14,7 @@ MAIL_BACKEND 환경변수로 발송 경로를 고른다.
 import json
 import os
 import smtplib
+import socket
 from email.header import Header
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -124,6 +125,112 @@ def send_mail(receiver, title, text=None, html=None, file_path=None) -> None:
         raise ValueError(
             f"알 수 없는 MAIL_BACKEND: {MAIL_BACKEND!r} (gmail 또는 postech)"
         )
+
+
+def _backend_host_port() -> tuple[str, int]:
+    if MAIL_BACKEND == "postech":
+        return POSTECH_SMTP_HOST, POSTECH_SMTP_PORT
+    return "smtp.gmail.com", 587
+
+
+def config_summary() -> dict:
+    """관리자 화면에 보여줄 현재 메일 설정. 비밀번호는 절대 담지 않는다."""
+    host, port = _backend_host_port()
+    try:
+        local_ip = socket.gethostbyname(socket.gethostname())
+    except Exception:
+        local_ip = "(확인 불가)"
+
+    try:
+        sender = sender_address()
+    except Exception as e:
+        sender = f"(확인 실패: {e})"
+
+    return {
+        "backend": MAIL_BACKEND,
+        "host": host,
+        "port": port,
+        "sender": sender,
+        "sender_name": MAIL_SENDER_NAME,
+        "reply_to": MAIL_REPLY_TO or "(설정 안 함)",
+        "starttls": MAIL_STARTTLS,
+        "auth": "무인증 (등록된 IP만 허용)"
+        if MAIL_BACKEND == "postech"
+        else "앱 비밀번호 로그인",
+        "hostname": socket.gethostname(),
+        "local_ip": local_ip,
+    }
+
+
+def probe(receiver: str) -> dict:
+    """실제 발송 없이 SMTP 핸드셰이크만 확인한다.
+
+    RCPT까지만 진행하고 RSET으로 되돌리므로 수신자에게 메일이 가지 않는다.
+    """
+    steps = []
+    try:
+        sender = sender_address()
+        steps.append(("발신 주소", sender))
+
+        if MAIL_BACKEND not in ("gmail", "postech"):
+            return {
+                "ok": False,
+                "steps": steps,
+                "error": f"알 수 없는 MAIL_BACKEND: {MAIL_BACKEND!r} (gmail 또는 postech)",
+            }
+
+        host, port = _backend_host_port()
+        server = smtplib.SMTP(host, port, timeout=SMTP_TIMEOUT)
+        try:
+            steps.append(("SMTP 연결", f"{host}:{port} 연결 성공"))
+            code, banner = server.ehlo()
+            first = banner.decode(errors="replace").splitlines()[0]
+            steps.append(("EHLO", f"{code} {first}"))
+
+            if MAIL_BACKEND == "gmail":
+                server.starttls()
+                server.ehlo()
+                steps.append(("STARTTLS", "적용됨"))
+                cfg = _gmail_config()
+                server.login(cfg["sender"], cfg["password"])
+                steps.append(("로그인", "성공"))
+            elif MAIL_STARTTLS and server.has_extn("starttls"):
+                server.starttls()
+                server.ehlo()
+                steps.append(("STARTTLS", "적용됨"))
+            else:
+                steps.append(("STARTTLS", "사용하지 않음"))
+
+            c1, m1 = server.mail(sender)
+            steps.append(("MAIL FROM", f"{c1} {m1.decode(errors='replace')}"))
+            c2, m2 = server.rcpt(receiver)
+            steps.append(("RCPT TO", f"{c2} {m2.decode(errors='replace')}"))
+
+            server.rset()
+            steps.append(("RSET", "실제 발송 없이 되돌림"))
+
+            ok = c1 == 250 and c2 in (250, 251)
+            return {
+                "ok": ok,
+                "steps": steps,
+                "error": None if ok else "수신자가 거부되었습니다.",
+            }
+        finally:
+            try:
+                server.quit()
+            except Exception:
+                pass
+
+    except smtplib.SMTPConnectError as e:
+        hint = ""
+        if MAIL_BACKEND == "postech":
+            hint = (
+                " — 이 서버 IP가 학교에 등록돼 있지 않을 가능성이 큽니다."
+                " 무인증 릴레이는 등록된 IP(141.223.145.21)에서만 동작합니다."
+            )
+        return {"ok": False, "steps": steps, "error": f"연결 거부: {e}{hint}"}
+    except Exception as e:
+        return {"ok": False, "steps": steps, "error": f"{type(e).__name__}: {e}"}
 
 
 def send_email(receiver, title, text, file_path=None) -> None:

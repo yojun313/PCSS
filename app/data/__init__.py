@@ -16,7 +16,15 @@ else:
         for doc in name_col.find({}, {"_id": 0, "name": 1, "score": 1})
     }
     print(f"Loaded {len(name_dict)} LLM names from DB")
-author_list = list(authors_col.find({}, {"_id": 0, "name": 1, "pid": 1}))
+author_list = [
+    {
+        "name": doc.get("name", ""),
+        "pid": doc.get("pid", ""),
+        "name_norm": doc.get("name", "").lower().replace(" ", ""),
+        "pid_norm": doc.get("pid", "").lower().replace(" ", ""),
+    }
+    for doc in authors_col.find({}, {"_id": 0, "name": 1, "pid": 1})
+]
 
 print("Loaded conferences from DB")
 

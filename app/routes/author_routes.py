@@ -67,12 +67,8 @@ async def author_autocomplete(query: str = Query(..., min_length=1)):
         if not keywords:
             return JSONResponse(content=[])
 
-        # 2. 정규식 패턴 미리 컴파일 (반복문 성능 최적화)
-        patterns = []
-        for word in keywords:
-            # "wonhwa" -> r"w\s*o\s*n\s*h\s*w\s*a" 변환
-            char_pattern = r"\s*".join([re.escape(c) for c in word])
-            patterns.append(re.compile(char_pattern, re.IGNORECASE))
+        # 2. 검색어 정규화 (공백 제거 + 소문자화, name_norm/pid_norm과 동일한 규칙)
+        norm_keywords = [w.lower().replace(" ", "") for w in keywords]
 
         results = []
         count = 0
@@ -86,10 +82,13 @@ async def author_autocomplete(query: str = Query(..., min_length=1)):
             if not pid:
                 continue
 
+            name_norm = author.get("name_norm", "")
+            pid_norm = author.get("pid_norm", "")
+
             is_match = True
-            for pattern in patterns:
-                # search는 문자열 중간 매칭도 허용합니다.
-                if not (pattern.search(name) or pattern.search(pid)):
+            for kw in norm_keywords:
+                # 부분 문자열 포함 여부만 확인 (기존 정규식과 동일한 매칭 결과)
+                if kw not in name_norm and kw not in pid_norm:
                     is_match = False
                     break  # 하나라도 매칭 안 되면 즉시 중단 (Pruning)
 

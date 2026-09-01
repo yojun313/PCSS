@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from app.libs.email import send_html_email, sender_address
 from app.services.search_service import PCSSEARCHMongo
-from app.db import subscription_col, papers_col
+from app.db import subscription_col, papers_col, notifier_state_col
 from app.core.templates import templates
 from collections import defaultdict
 
@@ -28,6 +28,9 @@ class SubscriptionProcessor(PCSSEARCHMongo):
 
     async def _fetch_papers(self, conf_list: list) -> list:
         return [p for p in self.target_papers if p.get("conference") in conf_list]
+
+
+NOTIFIER_STATE_ID = "subscription_notifier"
 
 
 class SubscriptionNotifier:
@@ -122,9 +125,29 @@ class SubscriptionNotifier:
             traceback.print_exc()
             return "<h1>Error generating email</h1>"
 
+    async def _advance_state(self, run_started_at: datetime):
+        # 이번 실행이 어디까지 처리했는지 기록해서, 다음 실행이 같은 논문을
+        # "최근 논문"으로 다시 잡아 중복 발송하지 않도록 함
+        await asyncio.to_thread(
+            notifier_state_col.update_one,
+            {"_id": NOTIFIER_STATE_ID},
+            {"$set": {"last_notified_at": run_started_at}},
+            upsert=True,
+        )
+
     async def run(self):
         print("[Notifier] Start")
-        cutoff_date = datetime.now(timezone.utc) - timedelta(days=32)
+        run_started_at = datetime.now(timezone.utc)
+
+        state = await asyncio.to_thread(
+            notifier_state_col.find_one, {"_id": NOTIFIER_STATE_ID}
+        )
+        # 최초 실행 등 상태가 없을 때만 32일 전으로 폴백
+        cutoff_date = (
+            state["last_notified_at"]
+            if state and state.get("last_notified_at")
+            else run_started_at - timedelta(days=32)
+        )
 
         recent_papers_cursor = papers_col.find(
             {"created_at": {"$gte": cutoff_date}},
@@ -143,6 +166,7 @@ class SubscriptionNotifier:
 
         if not recent_papers:
             print("[Notifier] No new papers.")
+            await self._advance_state(run_started_at)
             return
 
         subs = list(subscription_col.find({"is_enabled": True}))
@@ -174,3 +198,5 @@ class SubscriptionNotifier:
                 title = f"[PCSS 구독] {len(result_dict)}개의 새로운 관심 논문이 도착했습니다."
 
                 await asyncio.to_thread(self._send_email_sync, email, title, html_body)
+
+        await self._advance_state(run_started_at)

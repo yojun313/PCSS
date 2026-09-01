@@ -6,7 +6,7 @@ import platform
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from app.data import name_dict, author_list
-from app.db import name_col, authors_col
+from app.db import name_col, authors_col, scheduler_state_col
 from update import update_authors
 from update import update_papers
 from app.services.subscription_service import SubscriptionNotifier
@@ -110,6 +110,26 @@ def run_job():
     print(f"[{datetime.now()}] === 모든 작업 종료 ===\n")
 
 
+SCHEDULER_STATE_ID = "monthly_job"
+
+
+def already_ran_this_month(now: datetime) -> bool:
+    """이번 달 안에 이미 run_job()이 성공적으로 시작된 적이 있는지 확인"""
+    state = scheduler_state_col.find_one({"_id": SCHEDULER_STATE_ID})
+    last_run_at = state.get("last_run_at") if state else None
+    if not last_run_at:
+        return False
+    return (last_run_at.year, last_run_at.month) == (now.year, now.month)
+
+
+def record_run(now: datetime):
+    scheduler_state_col.update_one(
+        {"_id": SCHEDULER_STATE_ID},
+        {"$set": {"last_run_at": now}},
+        upsert=True,
+    )
+
+
 def next_monthly_run(now: datetime) -> datetime:
     """
     다음 실행 시각 계산: 매달 1일 00:00:00
@@ -132,7 +152,15 @@ def main():
     print("=== DBLP Scheduler & Notifier Started ===")
     print("매달 1일 00:00에 데이터 갱신 및 구독 메일을 발송합니다.\n")
 
-    run_job()
+    now = datetime.now()
+    if already_ran_this_month(now):
+        print(
+            f"[{now}] 이번 달({now.year}-{now.month:02d})에는 이미 실행되었으므로, "
+            "재시작으로 인한 즉시 재실행을 건너뜁니다."
+        )
+    else:
+        run_job()
+        record_run(datetime.now())
 
     while True:
         now = datetime.now()
@@ -152,6 +180,7 @@ def main():
 
         # 대기 종료 후 작업 실행
         run_job()
+        record_run(datetime.now())
 
 
 if __name__ == "__main__":

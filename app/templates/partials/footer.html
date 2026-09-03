@@ -1,0 +1,150 @@
+<style>
+  /* --- Site Footer (shared, extracted from homepage.html) --- */
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .footer-wrapper {
+    background-color: #2b2b2b;
+    color: #aaa;
+    width: 100%;
+    padding: 40px 0;
+    margin-top: auto;
+    border-top: 1px solid #444;
+  }
+
+  .footer-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 30px;
+  }
+
+  .footer-left {
+    flex: 1;
+    min-width: 300px;
+  }
+
+  .footer-title {
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+  }
+
+  .footer-info {
+    font-size: 12px;
+    line-height: 1.6;
+    color: #999;
+  }
+
+  .footer-info p {
+    margin: 4px 0;
+  }
+
+  .footer-info a {
+    color: #bbb;
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+
+  .footer-info a:hover {
+    color: #fff;
+    text-decoration: underline;
+  }
+
+  .copyright {
+    margin-top: 20px;
+    font-size: 11px;
+    color: #666;
+  }
+
+  .footer-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 15px;
+  }
+
+  .footer-logos {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .footer-logo-img {
+    height: 20px;
+    width: auto;
+    opacity: 0.9;
+  }
+
+  .footer-logo-text {
+    width: 150px;
+    height: auto;
+    opacity: 0.8;
+  }
+
+  @media (max-width: 768px) {
+    .footer-inner {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .footer-left {
+      align-items: center;
+    }
+    .footer-right {
+      align-items: center;
+    }
+  }
+</style>
+
+<footer class="footer-wrapper">
+  <div class="footer-inner">
+    <div class="footer-left">
+      <div class="footer-title">Address</div>
+      <div class="footer-info">
+        <p><strong>Department of Computer Science and Engineering, POSTECH</strong></p>
+        <p>77 Cheongam-ro, Nam-gu, Pohang, Gyeongsangbuk-do, Korea (37673)</p>
+        <p style="margin-top: 10px;">
+            <strong>제작자:</strong>
+            <a href="https://github.com/yojun313" target="_blank">Yojun Moon</a> <a href="mailto:yojun313@postech.ac.kr">(yojun313@postech.ac.kr)</a> |
+            <a href="https://www.psal.postech.ac.kr/gkim" target="_blank">Prof. Gwangsun Kim</a> <a href="mailto:g.kim@postech.ac.kr">(g.kim@postech.ac.kr)</a>
+        </p>
+        <p style="opacity: 0.7; margin-top: 5px;">
+            본 서비스는 POSTECH 구성원 대상으로 제공하며, 요청 처리 및 서버 관리 목적에 한해 개인정보를 수집·이용합니다.
+        </p>
+        {% if is_admin %}
+        <p style="margin-top: 5px;">
+          <a href="/admin/dashboard" style="color: #ff88a2;">[관리자 대시보드]</a>
+        </p>
+        {% endif %}
+      </div>
+      <div class="copyright">
+        Copyright © 2026. POSTECH CSE. All rights reserved.
+      </div>
+    </div>
+
+    <div class="footer-right">
+      <a href="https://www.postech.ac.kr/kor/index.do">
+        <img src="/static/images/postech-logo.png" alt="POSTECH" class="footer-logo-img">
+      </a>
+      <a href="https://cse.postech.ac.kr/csepostech/index.do">
+        <img src="/static/images/cse-logo.png" alt="CSE" class="footer-logo-text">
+      </a>
+      <a href="https://www.postech.ac.kr/kor/usage-guide/privacy_policy.do"
+         target="_blank"
+         style="margin-top: 15px; font-size: 12px; color: #ddd; text-decoration: none; font-weight: bold; opacity: 0.9;">
+         개인정보취급처리방침
+      </a>
+    </div>
+  </div>
+</footer>

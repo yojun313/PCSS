@@ -338,9 +338,9 @@ def main_menu():
 
 
 if __name__ == "__main__":
-    # 서버 연결 테스트
+    # 서버 연결 테스트 (/docs는 비활성화되어 루트로 확인 — 응답 코드는 무관, 연결만 보면 됨)
     try:
-        requests.get(API_BASE_URL + "/docs")
+        requests.get(API_BASE_URL + "/")
     except requests.exceptions.ConnectionError:
         print(
             f"오류: 서버({API_BASE_URL})에 연결할 수 없습니다. FastAPI 서버를 먼저 실행해주세요."

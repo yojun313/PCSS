@@ -38,7 +38,13 @@ ENABLE_IP_BLOCKER = os.getenv("ENABLE_IP_BLOCKER", "true").lower() == "true"
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
 
-app = FastAPI(title="PCSS API", version="1.0.0")
+app = FastAPI(
+    title="PCSS API",
+    version="1.0.0",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 app.add_middleware(
@@ -100,9 +106,8 @@ class AccessControlMiddleware(BaseHTTPMiddleware):
         if not ENABLE_ACCESS_CONTROL:
             return await call_next(request)
 
-        if request.url.path.startswith(
-            ("/static", "/auth", "/favicon.ico", "/docs", "/openapi.json")
-        ):
+        # /docs·/openapi.json은 앱 생성 시 비활성화됨(docs_url=None 등) — 우회 목록에서도 제외
+        if request.url.path.startswith(("/static", "/auth", "/favicon.ico")):
             return await call_next(request)
 
         ip = get_client_ip(request)

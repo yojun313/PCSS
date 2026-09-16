@@ -1,142 +1,135 @@
 <!doctype html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PCSS Admin Dashboard</title>
-    <style>
-        /* 기존 스타일 재사용 */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f9f9f9;
-            color: #333;
-        }
-        .container {
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        h1 {
-            color: rgba(200, 1, 80, 1);
-            margin-bottom: 40px;
-        }
-        .admin-info {
-            margin-bottom: 30px;
-            padding: 10px;
-            background-color: #f0f0f0;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            color: #555;
-        }
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-        .menu-card {
-            display: block;
-            text-decoration: none;
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 30px 20px;
-            color: #34495e;
-            font-weight: bold;
-            font-size: 1.2rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .menu-card:hover {
-            background-color: #fdfdfd;
-            border-color: rgba(200, 1, 80, 1);
-            color: rgba(200, 1, 80, 1);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .back-link {
-            display: inline-block;
-            margin-top: 40px;
-            color: #666;
-            text-decoration: none;
-            font-size: 0.9rem;
-        }
-        .back-link:hover {
-            text-decoration: underline;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PCSS 관리자</title>
+  <style>
+    :root {
+      --pink: #c80150;
+      --navy: #2c3e50;
+      --bg: #f5f6fa;
+      --border: #e8e9ee;
+      --muted: #778;
+      --faint: #99a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", Arial, sans-serif;
+      margin: 0; background: var(--bg); color: #333;
+    }
+    .container { max-width: 1000px; width: 100%; margin: 0 auto; padding: 28px 20px 60px; }
 
-        /* 반응형 디자인 */
-        @media (max-width: 768px) {
-            .container {
-                margin: 20px auto;
-                padding: 15px;
-            }
-            .menu-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    .header {
+      display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between;
+      align-items: center; margin-bottom: 24px;
+    }
+    h1 { margin: 0; font-size: 24px; color: var(--navy); }
+    .account {
+      font-size: 13px; color: var(--muted); background: #fff;
+      border: 1px solid var(--border); border-radius: 999px; padding: 7px 14px;
+    }
+    .account b { color: var(--navy); }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .menu-card {
+      display: flex; align-items: flex-start; gap: 14px;
+      text-decoration: none; background: #fff;
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 18px; color: var(--navy);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    }
+    .menu-card:hover {
+      border-color: var(--pink);
+      box-shadow: 0 4px 12px rgba(200,1,80,0.1);
+      transform: translateY(-1px);
+    }
+    .menu-icon {
+      flex: none; width: 40px; height: 40px; border-radius: 10px;
+      background: rgba(200,1,80,0.08); color: var(--pink);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 19px;
+    }
+    .menu-title { font-weight: 700; font-size: 15px; }
+    .menu-desc { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+    .back-link {
+      display: inline-block; margin-top: 28px; color: var(--muted);
+      text-decoration: none; font-size: 13px;
+    }
+    .back-link:hover { color: var(--pink); }
+
+    @media (max-width: 640px) {
+      .menu-grid { grid-template-columns: 1fr; }
+      .header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>관리자 대시보드</h1>
-
-        <div class="admin-info">
-            접속 계정: <strong>{{ email }}</strong>
-        </div>
-
-        <div class="menu-grid">
-            <a href="/admin/manage/admins" class="menu-card">
-                <div class="menu-title">관리자 계정 관리</div>
-                <div style="font-size: 0.8rem; font-weight: normal; margin-top: 8px; opacity: 0.7;">
-                    관리자 추가 / 삭제
-                </div>
-            </a>
-
-            <a href="/conferences/manage" class="menu-card">
-                학회 목록 관리
-                <div style="font-size: 0.8rem; font-weight: normal; margin-top: 8px; opacity: 0.7;">
-                    학회 추가 / 수정 / 삭제
-                </div>
-            </a>
-
-            <a href="/author/manage" class="menu-card">
-                이름(저자) 관리
-                <div style="font-size: 0.8rem; font-weight: normal; margin-top: 8px; opacity: 0.7;">
-                    한국인 저자 요청 승인 / 거절
-                </div>
-            </a>
-
-            <a href="/author/manage/names" class="menu-card">
-                한국인 확률값 관리
-                <div style="font-size: 0.8rem; font-weight: normal; margin-top: 8px; opacity: 0.7;">
-                    이름 한국인 확률값 DB 관리
-                </div>
-            </a>
-
-            <a href="/logs" class="menu-card">
-                <div class="menu-title">로그 분석 대시보드</div>
-                <div style="font-size: 0.8rem; font-weight: normal; margin-top: 8px; opacity: 0.7;">
-                    사용자 로그 시각화
-                </div>
-            </a>
-
-            <a href="/admin/mail-test" class="menu-card">
-                <div class="menu-title">메일 발송 테스트</div>
-                <div style="font-size: 0.8rem; font-weight: normal; margin-top: 8px; opacity: 0.7;">
-                    발송 설정 확인 / 연결 진단
-                </div>
-            </a>
-        </div>
-
-        <a href="/" class="back-link">← 메인 페이지로 돌아가기</a>
+  <div class="container">
+    <div class="header">
+      <h1>관리자 대시보드</h1>
+      <span class="account"><b>{{ email }}</b> 로 접속 중</span>
     </div>
-    {% include "partials/footer.html" %}
-  </body>
+
+    <div class="menu-grid">
+      <a href="/logs" class="menu-card">
+        <span class="menu-icon">&#9783;</span>
+        <span>
+          <span class="menu-title">로그 분석</span>
+          <div class="menu-desc">방문·검색 추이, 유입 경로, 브라우저, 인기 학회까지 한 화면에</div>
+        </span>
+      </a>
+
+      <a href="/admin/manage/admins" class="menu-card">
+        <span class="menu-icon">&#9787;</span>
+        <span>
+          <span class="menu-title">관리자 계정 관리</span>
+          <div class="menu-desc">관리자 추가 / 삭제</div>
+        </span>
+      </a>
+
+      <a href="/conferences/manage" class="menu-card">
+        <span class="menu-icon">&#9733;</span>
+        <span>
+          <span class="menu-title">학회 목록 관리</span>
+          <div class="menu-desc">학회 추가 / 수정 / 삭제</div>
+        </span>
+      </a>
+
+      <a href="/author/manage" class="menu-card">
+        <span class="menu-icon">&#9998;</span>
+        <span>
+          <span class="menu-title">이름(저자) 관리</span>
+          <div class="menu-desc">한국인 저자 요청 승인 / 거절</div>
+        </span>
+      </a>
+
+      <a href="/author/manage/names" class="menu-card">
+        <span class="menu-icon">&#37;</span>
+        <span>
+          <span class="menu-title">한국인 확률값 관리</span>
+          <div class="menu-desc">이름별 한국인 확률값 DB 관리</div>
+        </span>
+      </a>
+
+      <a href="/admin/mail-test" class="menu-card">
+        <span class="menu-icon">&#9993;</span>
+        <span>
+          <span class="menu-title">메일 발송 테스트</span>
+          <div class="menu-desc">발송 설정 확인 / 연결 진단</div>
+        </span>
+      </a>
+    </div>
+
+    <a href="/" class="back-link">&larr; 메인 페이지로 돌아가기</a>
+  </div>
+  {% include "partials/footer.html" %}
+</body>
 </html>

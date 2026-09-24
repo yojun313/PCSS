@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>PCSS 이름 판별 요청</title>
   <style>
     /* 기본 라이트 모드 */
@@ -154,7 +154,10 @@
   
     /* 작은 화면 반응형 */
     @media (max-width: 768px) {
+      /* footer.html 이 body 를 flex column 으로 만들어서, margin:auto 로 가운데 둔 컨테이너는 표 내용만큼 넓어져 화면 밖으로 넘친다 → 폭을 화면에 고정 */
       .container {
+        width: 100%;
+        box-sizing: border-box;
         padding: 12px;
       }
   
@@ -202,6 +205,7 @@
       }
     }
   </style>  
+  {% include "partials/pwa_head.html" %}
 </head>
 <body>
   <div class="container">

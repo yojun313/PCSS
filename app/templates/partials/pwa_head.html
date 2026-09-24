@@ -1,0 +1,14 @@
+{# 모든 페이지 <head> 맨 끝에 include 한다 (페이지 <style> 뒤에 와야 mobile.css 가 이긴다).
+   apple-mobile-web-app-* 메타와 아이콘은 "홈 화면에 추가" 순간 한 번만 읽힌다 → 바꾸면 지우고 다시 추가. #}
+<meta name="theme-color" content="#f9f9f9">
+<link rel="manifest" href="/static/manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+{# black-translucent 금지: iOS 홈 화면 앱에서 화면 아래가 상태바 높이만큼 잘린다. 밝은 테마라 default(불투명 흰색) #}
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="PCSS">
+<meta name="application-name" content="PCSS">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="/static/mobile.css">
+<script src="/static/viewport.js" defer></script>

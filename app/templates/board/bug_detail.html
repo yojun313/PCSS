@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <title>{{ bug.title }} - 버그제보</title>
     <style>
         body { font-family: Arial, sans-serif; background: #f9f9f9; padding: 20px; box-sizing: border-box; }
@@ -28,6 +28,7 @@
             }
         }
     </style>
+  {% include "partials/pwa_head.html" %}
 </head>
 <body>
     <div class="container">

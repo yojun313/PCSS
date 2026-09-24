@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>PCSS</title>
     <style>
       /* 기본 라이트 모드 스타일 */
@@ -282,8 +282,63 @@
         .author-role-group {
             flex-wrap: wrap;
         }
+        .year-group {
+          width: 100%;
+        }
+        /* 손가락으로 누르기 쉬운 높이 (체크박스 줄 전체가 라벨이라 줄 어디를 눌러도 된다) */
+        .checkbox-group label {
+          min-height: 40px;
+          margin-bottom: 0;
+        }
+        .author-role-group label {
+          min-height: 36px;
+        }
+        .select-btn {
+          min-height: 40px;
+        }
+      }
+
+      .mobile-search-bar {
+        display: none;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 50;
+        align-items: center;
+        gap: 12px;
+        padding: 10px max(16px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+        background-color: rgba(255, 255, 255, 0.96);
+        border-top: 1px solid #ddd;
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+      }
+      .mobile-search-bar .selected-count {
+        flex: 1;
+        min-width: 0;
+        font-size: 0.9rem;
+        color: #34495e;
+      }
+      .mobile-search-bar button {
+        min-height: 44px;
+        padding: 0 28px;
+        background-color: rgba(200, 1, 80, 1);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 1rem;
+      }
+      /* 학회를 고르는 곳(아래)과 검색 버튼(맨 위)이 멀어서, 모바일에서는 하단에 검색 버튼을 고정 */
+      @media (max-width: 768px) {
+        .mobile-search-bar {
+          display: flex;
+        }
+        body {
+          padding-bottom: calc(68px + env(safe-area-inset-bottom));
+        }
       }
     </style>
+    {% include "partials/pwa_head.html" %}
   </head>
   <body>
     <div class="container">
@@ -308,7 +363,7 @@
               </div>
             </div>
             
-            <div style="display:flex; gap:20px; flex-wrap:wrap;">
+            <div class="year-group" style="display:flex; gap:20px; flex-wrap:wrap;">
                 <div class="form-group">
                   <label for="startyear">시작 연도:</label>
                   <select id="startyear" name="startyear">
@@ -413,6 +468,11 @@
       </div>
     </div>
 
+    <div class="mobile-search-bar">
+      <span class="selected-count" id="mobile-selected-count">학회를 선택하세요</span>
+      <button type="button" id="mobile-submit-btn">검색</button>
+    </div>
+
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const grid = document.getElementById("conference-grid");
@@ -428,7 +488,13 @@
         // ---------------------------
         // util: 선택 리스트 갱신
         // ---------------------------
+        const mobileSelectedCount = document.getElementById("mobile-selected-count");
+        document.getElementById("mobile-submit-btn").addEventListener("click", () => submitBtn.click());
+
         function updateSelectedList() {
+          const checkedCount = document.querySelectorAll(".conference-checkbox:checked").length;
+          mobileSelectedCount.textContent = checkedCount ? `${checkedCount}개 학회 선택됨` : "학회를 선택하세요";
+
           if (!selectedList) return;
       
           const checkboxes = document.querySelectorAll(".conference-checkbox");

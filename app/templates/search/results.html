@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="csrf-token" content="{{ request.scope['csrftoken']() }}">
     <title>PCSS 검색 결과</title>
     <style>
@@ -206,6 +206,15 @@
         .conference-header {
           font-size: 12px;
           padding: 6px 8px;
+          min-height: 40px; /* 손가락으로 접고 펴기 쉬운 높이 */
+          box-sizing: border-box;
+        }
+        /* 저자 → 연도 → 학회로 3단 중첩되므로 단마다 들여쓰기를 줄여 카드 폭을 확보 */
+        .conference-section {
+          padding: 3px;
+        }
+        .conference-content {
+          padding: 3px 2px;
         }
         .card-title {
           font-size: 12px;
@@ -274,6 +283,7 @@
         line-height: 1.4;
       }
     </style>
+    {% include "partials/pwa_head.html" %}
   </head>
   <body>
     <div class="container">

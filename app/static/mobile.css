@@ -1,0 +1,30 @@
+/* 모바일 · 홈 화면 앱 공통 규칙. partials/pwa_head.html 이 각 페이지 <style> 뒤에 불러온다.
+   색 · 테마는 건드리지 않고 레이아웃 · 터치 동작만 다룬다. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: manipulation; }
+button, a, label, summary, select, input[type="checkbox"], input[type="radio"] {
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+
+/* viewport-fit=cover → 가로 모드 노치를 직접 피한다. 페이지마다 body 여백이 달라서 body 대신 html 에 준다
+   (body 배경은 캔버스 전체로 번지므로 여백 부분도 같은 색). */
+html {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+.footer-wrapper { padding-bottom: max(40px, calc(env(safe-area-inset-bottom) + 20px)) !important; }
+
+@media (pointer: coarse), (max-width: 767.98px) {
+  /* 16px 미만 입력창은 iOS 가 포커스할 때 화면을 확대한다 */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+  textarea, select { font-size: 16px !important; }
+  .table-responsive, .table-wrapper, .table-container, [class*="table-wrap"] {
+    overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch;
+  }
+  button:active, .btn:active, .select-btn:active { opacity: .7; }
+}
+
+@media (max-width: 767.98px) {
+  img, video, svg { max-width: 100%; }
+  pre, code { overflow-wrap: anywhere; }
+  pre { white-space: pre-wrap; }
+}

@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <title>관리자 계정 관리 - PCSS</title>
     <style>
         body { font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333; margin: 0; }
@@ -36,7 +36,10 @@
 
         /* 반응형 디자인 */
         @media (max-width: 768px) {
+            /* footer.html 이 body 를 flex column 으로 만들어서, margin:auto 로 가운데 둔 컨테이너는 표 내용만큼 넓어져 화면 밖으로 넘친다 → 폭을 화면에 고정 */
             .container {
+                width: 100%;
+                box-sizing: border-box;
                 margin: 15px auto;
                 padding: 15px;
             }
@@ -51,6 +54,7 @@
             }
         }
     </style>
+  {% include "partials/pwa_head.html" %}
 </head>
 <body>
     <div class="container">

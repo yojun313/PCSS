@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- 홈 화면 아이콘 원본. 꽉 찬 정사각형(rx 없음): iOS 가 모서리를 직접 둥글게 자른다.
+       PNG 재생성: uv run --with playwright python render_icons.py app/static/icons/icon.svg app/static/icons/ -->
+  <rect width="1024" height="1024" fill="#c80150"/>
+  <text x="512" y="512" text-anchor="middle" dominant-baseline="central"
+        font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-weight="800"
+        font-size="300" letter-spacing="-6" fill="#ffffff">PCSS</text>
+</svg>

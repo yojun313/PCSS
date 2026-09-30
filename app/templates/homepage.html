@@ -295,6 +295,7 @@
         }
         .select-btn {
           min-height: 40px;
+          box-sizing: border-box; /* <a> 는 content-box 라 padding 만큼 <button> 보다 커진다 */
         }
       }
 
@@ -335,6 +336,56 @@
         }
         body {
           padding-bottom: calc(68px + env(safe-area-inset-bottom));
+        }
+      }
+
+      /* 검색 조건 프리셋 · 공유 */
+      .preset-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin: -14px 0 10px 0;
+      }
+      .preset-bar select {
+        flex: 1 1 200px;
+        min-width: 0;
+        max-width: 320px;
+        padding: 7px 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: #fff;
+        color: #333;
+      }
+      .preset-btn {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: #fff;
+        color: #34495e;
+        font-size: 0.85rem;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .preset-btn:hover {
+        background: #f1f3f5;
+      }
+      .preset-btn.share {
+        color: rgba(200, 1, 80, 1);
+        border-color: rgba(200, 1, 80, 0.35);
+      }
+      @media (max-width: 768px) {
+        .preset-bar {
+          margin-top: -18px;
+        }
+        .preset-bar select {
+          flex-basis: 100%;
+          max-width: none;
+          min-height: 40px;
+        }
+        .preset-btn {
+          flex: 1 1 auto;
+          min-height: 40px;
         }
       }
     </style>
@@ -431,6 +482,15 @@
           </form>
         </div>
 
+        <div class="preset-bar">
+          <select id="preset-select" aria-label="저장한 검색 조건">
+            <option value="">저장한 조건 불러오기</option>
+          </select>
+          <button type="button" class="preset-btn" id="preset-save">현재 조건 저장</button>
+          <button type="button" class="preset-btn" id="preset-delete" hidden>삭제</button>
+          <button type="button" class="preset-btn share" id="share-link-btn">검색 조건 링크 복사</button>
+        </div>
+
         <details class="pcss-notice" style="margin: 16px 0; color: #555; font-size: 0.9rem;" open>
             <summary style="cursor: pointer; font-weight: bold; margin-bottom: 5px;">결과 페이지 표기 규칙 (Click to fold)</summary>
             <div class="notice-body" style="padding: 10px; background: #fff; border: 1px solid #eee; border-radius: 4px;">
@@ -447,6 +507,7 @@
 
         <div class="select-all-container">
           <button class="select-btn" id="toggle-select-btn">전체 선택</button>
+          <a class="select-btn" id="ranking-btn" href="/rankings">연구자 랭킹</a>
 
           {% if email %}
             <a class="select-btn" href="/profile">프로필</a>
@@ -622,12 +683,138 @@
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             return r.json();
           })
-          .then((data) => createCheckboxes(data))
+          .then((data) => {
+            createCheckboxes(data);
+            applyConditions(conditionsFromUrl());
+          })
           .catch((err) => console.error("Error fetching conference data:", err));
       
         // ---------------------------
         // 2) 제출 버튼 클릭: FastAPI job 시작
         // ---------------------------
+        // ---------------------------
+        // 4) 검색 조건 공유 링크 · 프리셋
+        //    ?c=AAAI,IJCAI&s=2020&e=2025&p=0.7&o=1,3  (결과 화면의 "조건 수정 · 공유"도 이 형식)
+        // ---------------------------
+        const PRESET_KEY = "pcss.presets";
+        const presetSelect = document.getElementById("preset-select");
+        const presetDeleteBtn = document.getElementById("preset-delete");
+
+        function currentConditions() {
+          return {
+            c: Array.from(document.querySelectorAll(".conference-checkbox:checked")).map((cb) => cb.value),
+            s: document.getElementById("startyear").value,
+            e: document.getElementById("endyear").value,
+            p: document.getElementById("probability").value,
+            o: Array.from(document.querySelectorAll('input[name="option"]:checked')).map((el) => el.value),
+          };
+        }
+
+        function conditionsFromUrl() {
+          const q = new URLSearchParams(location.search);
+          if (![...q.keys()].length) return null;
+          const list = (k) => (q.get(k) || "").split(",").map((x) => x.trim()).filter(Boolean);
+          return { c: list("c"), s: q.get("s"), e: q.get("e"), p: q.get("p"), o: list("o") };
+        }
+
+        function applyConditions(cond) {
+          if (!cond) return;
+          const setSelect = (el, v) => {
+            if (v != null && [...el.options].some((o) => o.value === String(v))) el.value = String(v);
+          };
+          const start = document.getElementById("startyear");
+          setSelect(start, cond.s);
+          updateEndYearOptions(parseInt(start.value, 10));
+          setSelect(document.getElementById("endyear"), cond.e);
+          setSelect(document.getElementById("probability"), cond.p);
+          if (cond.o && cond.o.length) {
+            document.querySelectorAll('input[name="option"]').forEach((el) => {
+              el.checked = cond.o.includes(el.value);
+            });
+          }
+          if (cond.c) {
+            const wanted = new Set(cond.c);
+            document.querySelectorAll(".conference-checkbox").forEach((cb) => {
+              cb.checked = wanted.has(cb.value);
+            });
+          }
+          updateSelectedList();
+          syncKindToggleButtons();
+        }
+
+        function shareUrl() {
+          const cond = currentConditions();
+          const q = new URLSearchParams({ c: cond.c.join(","), s: cond.s, e: cond.e, p: cond.p, o: cond.o.join(",") });
+          return `${location.origin}/?${q}`;
+        }
+
+        function loadPresets() {
+          try {
+            return JSON.parse(localStorage.getItem(PRESET_KEY) || "[]");
+          } catch (e) {
+            return [];
+          }
+        }
+
+        function savePresets(list) {
+          try {
+            localStorage.setItem(PRESET_KEY, JSON.stringify(list));
+          } catch (e) {
+            alert("브라우저 저장소를 사용할 수 없어 저장하지 못했습니다.");
+          }
+        }
+
+        function renderPresets(selected = "") {
+          presetSelect.length = 1;
+          loadPresets().forEach((pr) => presetSelect.add(new Option(`${pr.name} (${pr.c.length}개 학회)`, pr.name)));
+          presetSelect.value = selected;
+          presetDeleteBtn.hidden = !selected;
+        }
+
+        presetSelect.addEventListener("change", () => {
+          const pr = loadPresets().find((x) => x.name === presetSelect.value);
+          presetDeleteBtn.hidden = !pr;
+          if (pr) applyConditions(pr);
+        });
+
+        document.getElementById("preset-save").addEventListener("click", () => {
+          const cond = currentConditions();
+          if (!cond.c.length) {
+            alert("저장할 학회를 먼저 선택해주세요.");
+            return;
+          }
+          const name = (window.prompt("이 검색 조건의 이름 (예: 시스템 탑티어)", presetSelect.value || "") || "").trim();
+          if (!name) return;
+          const list = loadPresets().filter((x) => x.name !== name);
+          list.push({ name, ...cond });
+          list.sort((a, b) => a.name.localeCompare(b.name));
+          savePresets(list);
+          renderPresets(name);
+        });
+
+        presetDeleteBtn.addEventListener("click", () => {
+          const name = presetSelect.value;
+          if (!name || !confirm(`'${name}' 조건을 삭제할까요?`)) return;
+          savePresets(loadPresets().filter((x) => x.name !== name));
+          renderPresets();
+        });
+
+        document.getElementById("share-link-btn").addEventListener("click", async () => {
+          if (!currentConditions().c.length) {
+            alert("공유할 학회를 먼저 선택해주세요.");
+            return;
+          }
+          const url = shareUrl();
+          try {
+            await navigator.clipboard.writeText(url);
+            alert("검색 조건 링크를 복사했습니다.");
+          } catch (e) {
+            window.prompt("아래 링크를 복사하세요", url);
+          }
+        });
+
+        renderPresets();
+
         function getCsrfToken() {
           const value = `; ${document.cookie}`;
           const parts = value.split(`; csrftoken=`);

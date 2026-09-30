@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
+from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse, Response
+from typing import Optional
+from urllib.parse import urlencode
 from uuid import uuid4
 import asyncio
 import json
@@ -18,9 +20,27 @@ from app.db import log_col
 from datetime import datetime, timezone
 from app.libs.logger import get_client_ip
 from app.libs.auth import get_session_email
+from app.services.insights_service import result_author_meta
+from app.services.export_service import build_export_rows, to_csv, to_xlsx
 
 
 router = APIRouter()
+
+
+def search_query_string(options: dict) -> str:
+    """검색 조건 -> 메인 페이지가 읽는 공유용 쿼리 (?c=AAAI,IJCAI&s=2020&e=2025&p=0.7&o=1,3)"""
+    raw_option = options.get("options", [])
+    if isinstance(raw_option, int):
+        raw_option = [raw_option]
+    return urlencode(
+        {
+            "c": ",".join(options.get("selectedConferences") or []),
+            "s": options.get("startyear", ""),
+            "e": options.get("endyear", ""),
+            "p": options.get("probability", ""),
+            "o": ",".join(str(o) for o in raw_option or []),
+        }
+    )
 
 
 @router.get("/conferences")
@@ -243,11 +263,66 @@ async def search_page(request: Request, job_id: str):
         request=request,
         name="search/results.html",
         context={
+            "job_id": job_id,
             "options": options,
             "option_text": option_text,
             "pythonResult": pythonResult,
+            "author_meta": await result_author_meta(pythonResult),
+            "requery_url": "/?" + search_query_string(options),
             "FASTAPI_BASE": "http://pcss.postech.ac.kr:8000",
         },
+    )
+
+
+@router.get("/export/{job_id}")
+async def search_export(
+    job_id: str,
+    fmt: str = Query("xlsx", pattern="^(xlsx|csv)$"),
+    q: str = "",
+    min_score: Optional[float] = Query(None, ge=0.0, le=1.0),
+    conference: str = "",
+):
+    job = get_job(job_id)
+    if not job or job.status != "done":
+        raise HTTPException(404, "검색 결과가 없거나 아직 끝나지 않았습니다.")
+
+    options = job.options or {}
+    result = job.result or {}
+    rows = build_export_rows(
+        result,
+        await result_author_meta(result),
+        q=q,
+        min_score=min_score,
+        conference=conference,
+    )
+
+    stamp = datetime.now().strftime("%Y%m%d")
+    if fmt == "csv":
+        body, media = to_csv(rows), "text/csv; charset=utf-8"
+    else:
+        filters = [
+            ["이름 검색", q or "-"],
+            ["최소 확률", min_score if min_score is not None else "-"],
+            ["학회 필터", conference or "전체"],
+        ]
+        options_rows = [
+            ["연도 범위", f"{options.get('startyear')} ~ {options.get('endyear')}"],
+            ["한국인 판단 기준값", options.get("probability")],
+            ["선택 학회", ", ".join(options.get("selectedConferences") or [])],
+            *filters,
+            [
+                "같은 조건으로 다시 검색",
+                "https://pcss.postech.ac.kr/?" + search_query_string(options),
+            ],
+        ]
+        body = to_xlsx(rows, options_rows)
+        media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    filename = f"pcss_{stamp}.{fmt}"
+    return Response(
+        content=body,
+        media_type=media,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 

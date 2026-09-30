@@ -17,3 +17,4 @@ gunicorn
 sshtunnel
 motor
 asgi_csrf
+openpyxl

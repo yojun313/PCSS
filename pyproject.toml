@@ -16,6 +16,7 @@ dependencies = [
     "jinja2>=3.1.6",
     "lxml>=6.1.0",
     "motor>=3.7.1",
+    "openpyxl>=3.1.5",
     "pandas>=3.0.2",
     "paramiko<3.0.0",
     "pydantic[email]>=2.13.3",

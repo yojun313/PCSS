@@ -15,6 +15,7 @@ from app.routes.admin_routes import router as admin_router
 from app.routes.board_routes import router as board_router
 from app.routes.log_routes import router as log_router
 from app.routes.user_routes import router as user_router
+from app.routes.ranking_routes import router as ranking_router
 from app.db.mongo import get_mongo_client
 from app.db import errors_col
 from app.libs.logger import get_client_ip
@@ -87,6 +88,17 @@ async def _startup():
     auth_col.create_index("session_id")
     auth_col.create_index("expires_at", expireAfterSeconds=0)
 
+    # 저자 페이지 · 랭킹이 pid 로 논문을 찾는다 (없으면 매번 전체 스캔)
+    from app.db import papers_col
+
+    papers_col.create_index("author_pids")
+
+    # 랭킹 집계는 무거워서(수 초) 백그라운드로 미리 캐시해 둔다
+    import asyncio
+    from app.services.insights_service import warm_ranking_cache
+
+    asyncio.create_task(warm_ranking_cache())
+
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -140,6 +152,7 @@ app.include_router(admin_router, prefix="/admin")
 app.include_router(board_router, prefix="/board")
 app.include_router(log_router, prefix="/logs")
 app.include_router(user_router)
+app.include_router(ranking_router, prefix="/rankings")
 
 
 @app.exception_handler(404)

@@ -20,6 +20,7 @@ from rich.panel import Panel
 from rich.console import Console
 from datetime import datetime, timezone
 from pymongo import UpdateOne, ASCENDING
+from app.libs.dblp_profile import profile_from_www
 
 # params에 param 추가 시 규칙
 """
@@ -165,11 +166,22 @@ def build_name_to_pid_index(xml_path: str) -> dict[str, str | list[str]]:
 
                 # --- [메모리 적재 1] DB 저장용 데이터 ---
                 primary_name = authors[0]
+                # 소속(note type=affiliation)과 홈페이지(url) — 저자 페이지 · 랭킹 · 내보내기에 표시
+                profile = profile_from_www(
+                    {
+                        "note": [
+                            {**n.attrib, "text": "".join(n.itertext())}
+                            for n in elem.findall("note")
+                        ],
+                        "url": ["".join(u.itertext()) for u in elem.findall("url")],
+                    }
+                )
                 doc = {
                     "pid": pid,
                     "name": primary_name,
                     # "aliases": authors, # 필요하면 주석 해제
-                    # "url": elem.findtext("url") or "", # 필요하면 주석 해제
+                    "affiliations": profile["affiliations"],
+                    "urls": profile["urls"],
                     "updated_at": run_ts,
                     "last_seen_at": run_ts,
                 }

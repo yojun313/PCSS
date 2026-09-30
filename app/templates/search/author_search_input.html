@@ -254,11 +254,15 @@
 
       // 2. FORM SUBMIT EVENT
       form.addEventListener("submit", function(e) {
+          e.preventDefault();
           if (!pidInp.value) {
-              e.preventDefault();
               alert("정확한 검색을 위해 자동완성 목록에서 저자를 선택해주세요.");
               inp.focus();
+              return;
           }
+          // 공유 · 북마크할 수 있는 저자 페이지 주소로 이동 (pid 의 '/' 는 그대로 둔다)
+          const pidPath = pidInp.value.split("/").map(encodeURIComponent).join("/");
+          window.location.href = `/author/p/${pidPath}`;
       });
 
       async function fetchSuggestions(query) {
@@ -284,25 +288,18 @@
               const div = document.createElement("div");
               
               // 화면 표시 내용
-              let displayText = `<span>${item.name}</span>`;
-              if (item.affiliation) {
-                  displayText += `<span class='pid-hint'> (${item.affiliation})</span>`;
-              } else {
-                  displayText += `<span class='pid-hint'> (PID: ${item.pid})</span>`;
-              }
-              div.innerHTML = displayText;
-              
-              // 데이터 바인딩
-              div.innerHTML += `<input type='hidden' value='${item.name}'>`;
-              div.innerHTML += `<input type='hidden' value='${item.pid}'>`;
+              // 소속이 있으면 동명이인 구분용으로 PID 대신 보여 준다
+              const nameEl = document.createElement("span");
+              nameEl.textContent = item.name;
+              const hintEl = document.createElement("span");
+              hintEl.className = "pid-hint";
+              hintEl.textContent = item.affiliation ? ` (${item.affiliation})` : ` (PID: ${item.pid})`;
+              div.append(nameEl, hintEl);
               
               // 클릭 이벤트
               div.addEventListener("click", function(e) {
-                  const nameVal = this.getElementsByTagName("input")[0].value;
-                  const pidVal = this.getElementsByTagName("input")[1].value;
-                  
-                  inp.value = nameVal;
-                  pidInp.value = pidVal; // PID 주입
+                  inp.value = item.name;
+                  pidInp.value = item.pid; // PID 주입
                   
                   closeAllLists();
               });

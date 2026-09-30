@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+    <title>PCSS 연구자 랭킹</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background-color: #f9f9f9;
+        color: #333;
+        font-size: 14px;
+      }
+      .container {
+        max-width: 1100px;
+        width: 100%;
+        box-sizing: border-box;
+        margin: 30px auto;
+        padding: 20px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #c80150;
+        text-align: center;
+        margin: 0 0 8px 0;
+      }
+      .lead {
+        text-align: center;
+        color: #666;
+        font-size: 13px;
+        margin: 0 0 20px 0;
+        line-height: 1.5;
+      }
+
+      .filters {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+        gap: 10px;
+        align-items: end;
+        padding: 14px;
+        background: #f8f9fa;
+        border: 1px solid #eee;
+        border-radius: 8px;
+      }
+      .filters label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 12px;
+        font-weight: bold;
+        color: #34495e;
+        min-width: 0;
+      }
+      .filters select {
+        height: 36px;
+        padding: 0 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: #fff;
+        color: #333;
+        min-width: 0;
+      }
+      .filters .check {
+        flex-direction: row;
+        align-items: center;
+        gap: 6px;
+        height: 36px;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+      .filters .check input {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+      }
+
+      .summary {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 6px;
+        margin: 16px 0 8px 0;
+        font-size: 13px;
+        color: #555;
+      }
+      .summary b {
+        color: #333;
+      }
+
+      .rank-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        border-top: 2px solid #eee;
+      }
+      .rank-head,
+      .rank-row {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr) 90px 80px 80px minmax(0, 170px);
+        gap: 10px;
+        align-items: center;
+        padding: 10px 6px;
+        border-bottom: 1px solid #eee;
+      }
+      .rank-head {
+        font-size: 12px;
+        font-weight: bold;
+        color: #555;
+        background: #f8f9fa;
+      }
+      .rank-row:hover {
+        background: #fafafa;
+      }
+      .num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .rank {
+        font-weight: bold;
+        color: #34495e;
+        text-align: center;
+      }
+      .rank-row:nth-child(-n + 4) .rank {
+        color: #c80150;
+      }
+      .who {
+        min-width: 0;
+      }
+      .who a {
+        font-weight: bold;
+        color: #333;
+        text-decoration: none;
+      }
+      .who a:hover {
+        color: #c80150;
+        text-decoration: underline;
+      }
+      .who .score {
+        font-size: 11px;
+        color: #888;
+        margin-left: 4px;
+      }
+      .who .aff {
+        display: block;
+        font-size: 12px;
+        color: #777;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .metric {
+        font-weight: bold;
+        color: #c80150;
+      }
+      .venues {
+        font-size: 12px;
+        color: #555;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .mobile-meta {
+        display: none;
+      }
+      .loading-note {
+        margin: 12px 0 0 0;
+        padding: 8px 12px;
+        background: rgba(200, 1, 80, 0.06);
+        border-radius: 6px;
+        color: #c80150;
+        font-size: 13px;
+      }
+      .no-data {
+        text-align: center;
+        color: #999;
+        padding: 30px 0;
+      }
+      .note {
+        margin-top: 14px;
+        font-size: 12px;
+        color: #888;
+        line-height: 1.6;
+      }
+      .home-link {
+        display: block;
+        text-align: center;
+        margin-top: 24px;
+        color: #666;
+        text-decoration: none;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          margin: 12px auto;
+          padding: 14px;
+          border-radius: 0;
+        }
+        h1 {
+          font-size: 24px;
+        }
+        .filters {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          padding: 10px;
+        }
+        .filters select {
+          height: 40px;
+        }
+        .filters .check {
+          grid-column: 1 / -1;
+          height: 32px;
+        }
+        /* 휴대폰: 순위 · 이름(소속, 보조 수치) · 기준 논문 수 세 칸만 */
+        .rank-head,
+        .rank-row {
+          grid-template-columns: 34px minmax(0, 1fr) 56px;
+          gap: 8px;
+          padding: 10px 2px;
+        }
+        .col-total,
+        .col-first-year,
+        .col-venues {
+          display: none;
+        }
+        .mobile-meta {
+          display: block;
+          font-size: 11px;
+          color: #888;
+          margin-top: 2px;
+        }
+      }
+    </style>
+    {% include "partials/pwa_head.html" %}
+  </head>
+  <body>
+    <div class="container">
+      <h1>연구자 랭킹</h1>
+      <p class="lead">
+        PCSS 대상 학회에서 최근 {{ years }}년({{ start }}–{{ end }}) 동안 <b>{{ metric_label }}</b> 논문이 많은 한국인 연구자 순위입니다.
+      </p>
+
+      <form class="filters" id="ranking-form" method="get" action="/rankings">
+        <label>
+          분야
+          <select name="kind">
+            <option value="all" {% if kind == "all" %}selected{% endif %}>전체 분야</option>
+            {% for k in kinds %}
+            <option value="{{ k }}" {% if kind == k %}selected{% endif %}>{{ k }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          기간
+          <select name="years">
+            {% for y in periods %}
+            <option value="{{ y }}" {% if years == y %}selected{% endif %}>최근 {{ y }}년</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          기준
+          <select name="metric">
+            {% for key, label in metrics.items() %}
+            <option value="{{ key }}" {% if metric == key %}selected{% endif %}>{{ label }} 논문</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          한국인 판단 기준값
+          <select name="prob">
+            {% for v in [0.5, 0.6, 0.7, 0.8, 0.9, 1.0] %}
+            <option value="{{ v }}" {% if (prob - v)|abs < 0.001 %}selected{% endif %}>{{ v }} 이상</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="check" title="PCSS 대상 학회의 첫 논문이 선택한 기간 안에 있는 연구자만">
+          <input type="checkbox" name="newcomer" value="true" {% if newcomer %}checked{% endif %} />
+          신진 연구자만
+        </label>
+      </form>
+
+      <p class="loading-note" id="loading-note" hidden>집계 중입니다… 처음 보는 조건은 10초 정도 걸릴 수 있습니다.</p>
+
+      <div class="summary">
+        <span>
+          {% if newcomer %}첫 논문이 {{ start }}년 이후인 {% endif %}조건에 맞는 연구자 <b>{{ candidates }}명</b>
+          {% if candidates > rows|length %}· 상위 {{ rows|length }}명 표시{% endif %}
+        </span>
+        <span>{{ confs|length }}개 학회 기준</span>
+      </div>
+
+      {% if rows %}
+      <ol class="rank-list">
+        <li class="rank-head" aria-hidden="true">
+          <span class="rank">순위</span>
+          <span>연구자</span>
+          <span class="num">{{ metric_label }}</span>
+          <span class="num col-total">전체 논문</span>
+          <span class="num col-first-year">첫 논문</span>
+          <span class="col-venues">주요 학회</span>
+        </li>
+        {% for r in rows %}
+        <li class="rank-row">
+          <span class="rank">{{ r.rank }}</span>
+          <span class="who">
+            <a href="/author/p/{{ r.pid | urlencode }}?prob={{ prob }}">{{ r.name }}</a><span class="score">({{ '%.1f' % r.score }})</span>
+            {% if r.affiliation %}<span class="aff">{{ r.affiliation }}</span>{% endif %}
+            <span class="mobile-meta">
+              전체 {{ r.total_w }}편{% if r.first_year %} · 첫 논문 {{ r.first_year }}{% endif %}{% if r.top_venues %} · {{ r.top_venues | join(", ") }}{% endif %}
+            </span>
+          </span>
+          <span class="num metric">{{ r.metric }}편</span>
+          <span class="num col-total">{{ r.total_w }}편</span>
+          <span class="num col-first-year">{{ r.first_year or "-" }}</span>
+          <span class="venues col-venues">{{ r.top_venues | join(", ") }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="no-data">조건에 맞는 연구자가 없습니다.</p>
+      {% endif %}
+
+      <p class="note">
+        · 한국인 여부는 이름 기반 LLM 판단 확률로 정하므로 오차가 있을 수 있습니다. 저자 페이지에서 정정 요청을 보낼 수 있습니다.<br />
+        · "첫 논문"은 PCSS 대상 학회 기준입니다. 소속은 DBLP 개인 페이지에 등록된 정보입니다.<br />
+        · 같은 논문 수는 같은 순위로 표시하고, 기간 내 전체 논문 수가 많은 순으로 나열합니다.
+      </p>
+
+      <a href="/" class="home-link">← 메인 페이지로 돌아가기</a>
+    </div>
+
+    <script>
+      // 조건을 바꾸면 바로 다시 조회 (주소가 바뀌므로 그대로 공유 · 북마크 가능)
+      const form = document.getElementById("ranking-form");
+      form.addEventListener("change", () => {
+        document.body.style.cursor = "progress";
+        document.getElementById("loading-note").hidden = false;
+        form.requestSubmit();
+      });
+    </script>
+    {% include "partials/footer.html" %}
+  </body>
+</html>

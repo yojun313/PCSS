@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from urllib.parse import quote
 from fastapi import Form
 from app.core.templates import templates
-from app.services.author_service import compute_author_stats_mongo
+from app.services.insights_service import ROLE_LABELS, compute_author_page, get_profiles
 from app.db import name_col, req_korean_col, authors_col
 from app.data import name_dict, author_list
 from datetime import datetime, timezone
@@ -13,35 +14,44 @@ import math
 router = APIRouter()
 
 
-@router.post("/stats/page", response_class=HTMLResponse)
-async def author_stats_page(
-    request: Request,
-    target_author: str = Form(...),  # 화면 표시용 이름
-    target_pid: str = Form(...),  # [추가] DB 검색용 PID
-    url: str = Form(""),
+def author_page_url(pid: str, probability: float | None = None) -> str:
+    # pid 에는 '/' 가 들어간다 (예: 81/10063) → 경로 그대로 두고 나머지만 인코딩
+    url = f"/author/p/{quote(pid, safe='/')}"
+    return f"{url}?prob={probability}" if probability is not None else url
+
+
+@router.post("/stats/page")
+async def author_stats_page_legacy(
+    target_pid: str = Form(...),
     probability: float = Form(0.8),
 ):
-    result = await compute_author_stats_mongo(
-        target_pid=target_pid,
-    )
+    # 예전 POST 폼 · 북마크 호환: 공유 가능한 GET 주소로 보낸다
+    return RedirectResponse(author_page_url(target_pid, probability), status_code=303)
 
-    if not url and target_pid:
-        url = f"https://dblp.org/pid/{target_pid}"
 
-    # 한국인 판단 로직 (이름 기준 유지)
-    score = name_dict.get(target_author, 0)
-    is_korean = score >= probability
+@router.get("/p/{pid:path}", response_class=HTMLResponse)
+async def author_page(
+    request: Request,
+    pid: str,
+    prob: float = Query(0.8, ge=0.0, le=1.0),
+):
+    data = await compute_author_page(pid)
+    if not data["papers"] and not data["profile"]:
+        raise HTTPException(404, "Author not found")
+
+    score = name_dict.get(data["name"], 0)
+    is_korean = score >= prob
 
     return templates.TemplateResponse(
         request=request,
         name="search/author_stats.html",
         context={
-            "name": target_author,
-            "url": url,
-            "stats": result.get("stats", (0, 0, 0, 0)),
-            "total": result.get("total", 0),
-            "papers": result.get("papers", []),
+            **data,
+            "url": f"https://dblp.org/pid/{pid}.html",
+            "probability": prob,
+            "score": score,
             "is_korean": is_korean,
+            "role_labels": ROLE_LABELS,
         },
     )
 
@@ -104,6 +114,11 @@ async def author_autocomplete(query: str = Query(..., min_length=1)):
             # 최대 10개만 찾고 종료
             if count >= 10:
                 break
+
+        # 동명이인을 구분하도록 소속을 붙인다 (템플릿은 affiliation 이 있으면 PID 대신 보여 준다)
+        profiles = await get_profiles(r["pid"] for r in results)
+        for r in results:
+            r["affiliation"] = profiles.get(r["pid"], {}).get("affiliation", "")
 
         return JSONResponse(content=results)
 

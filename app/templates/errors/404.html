@@ -5,64 +5,101 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Page Not Found - PCSS</title>
     <style>
-        /* [기본: 라이트 모드] */
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
-            color: #333;
-            background-color: #ffffff; /* 배경색 명시 */
             margin: 0;
+            color: #333;
+            background-color: #f9f9f9;
+        }
+        /* footer.html 이 body 를 flex column 으로 만든다 → 본문이 남는 높이를 채워 푸터를 바닥에 둔다 */
+        .error-main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+        }
+        .error-card {
+            width: 100%;
+            max-width: 480px;
             box-sizing: border-box;
+            padding: 40px 30px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
         }
-        h1 { 
-            font-size: 50px; 
-            color: #c80150; 
-            margin-bottom: 20px; 
+        .error-code {
+            font-size: 64px;
+            font-weight: bold;
+            line-height: 1;
+            color: #c80150;
+            margin: 0;
         }
-        p { 
-            font-size: 18px; 
-            color: #666; 
-            margin-bottom: 30px; 
-            line-height: 1.5;
+        .error-title {
+            font-size: 20px;
+            color: #34495e;
+            margin: 12px 0 16px 0;
         }
-        /* 에러 상세 메시지 (기존 인라인 스타일 대체) */
+        .error-text {
+            font-size: 15px;
+            color: #666;
+            line-height: 1.6;
+            margin: 0 0 24px 0;
+        }
         .error-detail {
-            font-size: 14px;
+            display: block;
+            margin-top: 6px;
+            font-size: 13px;
             color: #999;
         }
-        a { 
-            text-decoration: none; 
-            background-color: #34495e; 
-            color: white; 
-            padding: 10px 20px; 
-            border-radius: 5px; 
+        /* 페이지 전체 a 에 주면 푸터 링크까지 버튼이 된다 → 이 버튼에만 */
+        .home-btn {
             display: inline-block;
-            transition: background-color 0.3s;
+            padding: 10px 22px;
+            border-radius: 5px;
+            background-color: #34495e;
+            color: #fff;
+            font-weight: bold;
+            text-decoration: none;
+            transition: background-color 0.2s;
         }
-        a:hover {
+        .home-btn:hover {
             background-color: #2c3e50;
         }
 
-        /* 반응형 디자인 */
         @media (max-width: 768px) {
-            body {
-                padding: 30px 20px;
+            .error-main {
+                padding: 30px 16px;
             }
-            h1 {
-                font-size: 36px;
+            .error-card {
+                padding: 32px 20px;
+            }
+            .error-code {
+                font-size: 48px;
+            }
+            .home-btn {
+                min-height: 44px;
+                box-sizing: border-box;
+                padding: 12px 22px;
             }
         }
     </style>
   {% include "partials/pwa_head.html" %}
 </head>
 <body>
-    <h1>404 Not Found</h1>
-    <p>
-        요청하신 페이지나 작업을 찾을 수 없습니다.<br>
-        <span style="font-size: 14px; color: #999;">({{ error_message }})</span>
-    </p>
-    <a href="/">메인으로 돌아가기</a>
+    <main class="error-main">
+        <div class="error-card">
+            <h1 class="error-code">404</h1>
+            <h2 class="error-title">Not Found</h2>
+            <p class="error-text">
+                요청하신 페이지나 작업을 찾을 수 없습니다.<br>
+                주소가 바뀌었거나, 검색 결과가 만료되었을 수 있습니다.
+                {% if error_message and error_message != "요청하신 페이지를 찾을 수 없습니다." %}<span class="error-detail">({{ error_message }})</span>{% endif %}
+            </p>
+            <a href="/" class="home-btn">메인으로 돌아가기</a>
+        </div>
+    </main>
     {% include "partials/footer.html" %}
-  </body>
+</body>
 </html>

@@ -1,10 +1,17 @@
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from app.core.templates import templates
 from app.libs.auth import _require_admin_or_redirect
 from app.libs.email import config_summary, probe, send_mail
-from app.db import admin_col
+from app.db import (
+    admin_col,
+    conf_col,
+    log_col,
+    req_korean_col,
+    subscription_col,
+    users_col,
+)
 
 router = APIRouter()
 
@@ -32,8 +39,133 @@ async def admin_dashboard(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="admin/dashboard.html",
-        context={"email": email},
+        context={"email": email, **_dashboard_summary()},
     )
+
+
+_KST = timezone(timedelta(hours=9))
+
+
+def _kst(ts, fmt="%m-%d %H:%M"):
+    if not ts:
+        return "-"
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return ts.astimezone(_KST).strftime(fmt)
+
+
+def _dashboard_summary() -> dict:
+    """대시보드 첫 화면 요약. 컬렉션이 모두 작아(로그 수천 건) 매 요청 집계한다.
+    로그 ts 는 naive UTC 로 저장되므로 '오늘'은 한국 자정을 UTC 로 바꿔 자른다."""
+    now = datetime.now(timezone.utc)
+    today0 = now.astimezone(_KST).replace(hour=0, minute=0, second=0, microsecond=0)
+    today0 = today0.astimezone(timezone.utc).replace(tzinfo=None)
+    yday0 = today0 - timedelta(days=1)
+    naive_now = now.replace(tzinfo=None)
+
+    today_hits = log_col.count_documents({"ts": {"$gte": today0}})
+    # 어제 같은 시각까지와 비교해야 오전에 "▼90%"처럼 보이지 않는다
+    yday_hits = log_col.count_documents(
+        {"ts": {"$gte": yday0, "$lt": naive_now - timedelta(days=1)}}
+    )
+    today_ips = len(
+        log_col.distinct("ip", {"ts": {"$gte": today0}, "ip": {"$nin": [None, ""]}})
+    )
+    week_searches = log_col.count_documents(
+        {"type": "search_start", "ts": {"$gte": naive_now - timedelta(days=7)}}
+    )
+
+    # 최근 14일 일별 요청 · 검색 (한국 시간)
+    start = today0 - timedelta(days=13)
+    by_day = {
+        r["_id"]: r
+        for r in log_col.aggregate(
+            [
+                {"$match": {"ts": {"$gte": start}}},
+                {
+                    "$group": {
+                        "_id": {
+                            "$dateToString": {
+                                "format": "%Y-%m-%d",
+                                "date": "$ts",
+                                "timezone": "Asia/Seoul",
+                            }
+                        },
+                        "hits": {"$sum": 1},
+                        "searches": {
+                            "$sum": {
+                                "$cond": [{"$eq": ["$type", "search_start"]}, 1, 0]
+                            }
+                        },
+                    }
+                },
+            ]
+        )
+    }
+    daily = []
+    for i in range(14):
+        d = (start + timedelta(days=i, hours=9)).strftime("%Y-%m-%d")
+        r = by_day.get(d, {})
+        daily.append(
+            {"date": d, "hits": r.get("hits", 0), "searches": r.get("searches", 0)}
+        )
+
+    pending = [
+        {
+            "name": r.get("name", ""),
+            "type": r.get("type"),
+            "score": r.get("score", 0),
+            "when": _kst(r.get("updated_at")),
+        }
+        for r in req_korean_col.find({}).sort("updated_at", -1).limit(6)
+    ]
+
+    recent_logs = [
+        {
+            "ts": _kst(log.get("ts")),
+            "type": log.get("type") or "",
+            "email": log.get("email") or "",
+            "ip": log.get("ip") or "-",
+            "path": log.get("path") or "",
+        }
+        for log in log_col.find({}).sort("ts", -1).limit(10)
+    ]
+
+    recent_users = [
+        {
+            "name": u.get("name") or "",
+            "email": u.get("email") or "",
+            "joined": _kst(u.get("created_at"), "%Y-%m-%d"),
+            "last": _kst(u.get("last_login_at")),
+        }
+        for u in users_col.find(
+            {}, {"name": 1, "email": 1, "created_at": 1, "last_login_at": 1}
+        )
+        .sort("created_at", -1)
+        .limit(8)
+    ]
+
+    return {
+        "stats": {
+            "today_hits": today_hits,
+            "yday_hits": yday_hits,
+            "today_ips": today_ips,
+            "week_searches": week_searches,
+            "pending": req_korean_col.count_documents({}),
+            "users": users_col.count_documents({}),
+            "new_users": users_col.count_documents(
+                {"created_at": {"$gte": naive_now - timedelta(days=30)}}
+            ),
+            "subs": subscription_col.count_documents({"is_enabled": True}),
+            "subs_total": subscription_col.count_documents({}),
+            "confs": conf_col.count_documents({}),
+            "admins": admin_col.count_documents({}),
+        },
+        "daily": daily,
+        "pending_list": pending,
+        "recent_logs": recent_logs,
+        "recent_users": recent_users,
+    }
 
 
 # 관리자 목록 페이지

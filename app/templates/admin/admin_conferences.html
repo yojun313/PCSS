@@ -1,624 +1,237 @@
 <!doctype html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
-    <title>PCSS 학회 관리</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+  <title>PCSS 학회 관리</title>
+  {% include "partials/admin_head.html" %}
+  <style>
+    .conf-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 12px;
+      padding: 0 20px 20px;
+    }
+    .conf-item {
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 14px 16px; border: 1px solid var(--border-light); border-radius: var(--radius-lg);
+      background: #fcfcfd; min-width: 0;
+    }
+    .conf-item:hover { border-color: var(--border); }
+    .conf-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .conf-name { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15px; font-weight: 800; color: var(--heading); }
+    .conf-meta { margin-top: 3px; font-size: 12px; color: var(--text-faint); }
+    .pillbox { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px; padding: 3px 6px 3px 10px;
+      border: 1px solid var(--border); border-radius: 999px; background: var(--surface); font-size: 12px;
+    }
+    .pill.base { border-color: var(--primary-pale-2); background: var(--primary-pale); }
+    .pill form { margin: 0; display: inline-flex; }
+    .pill .x {
+      border: none; background: transparent; color: var(--text-faint); cursor: pointer;
+      width: 18px; height: 18px; border-radius: 50%; padding: 0; font-size: 14px; line-height: 1;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .pill .x:hover { background: var(--danger-bg); color: var(--danger); }
+    .pill:not(:has(form)) { padding-right: 10px; }
+    .pill-add { cursor: pointer; border-style: dashed; color: var(--text-muted); font-family: inherit; padding-right: 10px; }
+    .pill-add:hover { border-color: var(--navy); color: var(--heading); }
+    .add-param { display: flex; gap: 6px; margin: 0; }
+    .add-param .input { flex: 1; padding-top: 6px; padding-bottom: 6px; font-size: 13px; }
+    .kind-row { display: flex; gap: 8px; }
+    .kind-row select { flex: 0 0 150px; }
+    @media (max-width: 767.98px) {
+      .conf-grid { grid-template-columns: minmax(0, 1fr); padding: 0 16px 16px; }
+      .kind-row { flex-direction: column; }
+      .kind-row select { flex-basis: auto; }
+    }
+  </style>
+</head>
+<body>
+  {% include "partials/admin_header.html" %}
 
-    <style>
-      /* ===== 홈페이지 스타일 베이스(그대로 반영) ===== */
-      body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        background-color: #f9f9f9;
-        color: #333;
-      }
+  {% set kinds = [] %}
+  {% for c in conferences %}{% if c.kind not in kinds %}{% set _ = kinds.append(c.kind) %}{% endif %}{% endfor %}
 
-      .container {
-        max-width: 1400px;
-        margin: auto;
-        padding: 20px;
-      }
-
-      h1 {
-        text-align: center;
-        margin: 26px 0 18px;
-        color: rgba(200, 1, 80, 1);
-      }
-
-      .notice {
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 14px 18px;
-        margin: 0 0 18px 0;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-        line-height: 1.5;
-        font-size: 13px;
-      }
-
-      .notice b {
-        color: rgba(200, 1, 80, 1);
-      }
-
-      .notice.error {
-        border-color: #b32626;
-      }
-
-      .topbar {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 18px;
-      }
-
-      .select-all-container {
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-        gap: 10px;
-        margin: 0 0 18px 0;
-      }
-
-      .select-btn {
-        padding: 8px 15px;
-        background-color: #34495e;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        transition: background-color 0.3s ease;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-      }
-
-      .select-btn:hover {
-        background-color: #2c3e50;
-      }
-
-      .mono {
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
-      }
-
-      /* ===== 학회 관리용 레이아웃(홈 스타일에 맞춘 카드/그리드) ===== */
-      .grid-2 {
-        display: grid;
-        grid-template-columns: 380px 1fr;
-        gap: 18px;
-        align-items: start;
-      }
-
-      @media (max-width: 980px) {
-        .grid-2 {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      .card {
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 18px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-
-      .card h2 {
-        margin: 0 0 12px 0;
-        color: #34495e;
-        font-size: 18px;
-      }
-
-      .form-group {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-bottom: 12px;
-      }
-
-      .form-group label {
-        font-weight: bold;
-        color: #34495e;
-        min-width: 70px;
-      }
-
-      .form-group input,
-      .form-group textarea,
-      .form-group select {
-        flex: 1;
-        min-width: 220px;
-        padding: 8px 10px;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        background-color: #fff;
-        color: #333;
-      }
-
-      .form-group textarea {
-        min-height: 92px;
-        resize: vertical;
-      }
-
-      .row {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-
-      .btn {
-        padding: 10px 18px;
-        background-color: rgba(200, 1, 80, 1);
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 700;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .btn:hover {
-        background-color: rgb(194, 50, 108);
-      }
-
-      .btn-secondary {
-        background-color: #34495e;
-      }
-
-      .btn-secondary:hover {
-        background-color: #2c3e50;
-      }
-
-      .btn-danger {
-        background-color: #b32626;
-      }
-
-      .btn-danger:hover {
-        background-color: #9f1f1f;
-      }
-
-      .small {
-        font-size: 12px;
-        color: #666;
-        line-height: 1.5;
-        margin-top: 10px;
-      }
-
-      /* 목록 상단 툴바 */
-      .toolbar {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 12px;
-      }
-
-      .toolbar .left {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-
-      .search {
-        height: 20px;
-        padding: 8px 10px;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        background-color: #fff;
-        color: #333;
-        font-size: 14px;
-        outline: none;
-      }
-
-      .search:focus {
-        border-color: rgba(200, 1, 80, 0.6);
-        box-shadow: 0 0 0 3px rgba(200, 1, 80, 0.12);
-      }
-
-      .tag {
-        display: inline-flex;
-        gap: 6px;
-        align-items: center;
-        padding: 6px 10px;
-        border-radius: 999px;
-        border: 1px solid #ddd;
-        background: #f3f3f3;
-        font-size: 12px;
-        color: #34495e;
-      }
-
-      .conf-item {
-        border-top: 1px solid #eee;
-        padding-top: 14px;
-        margin-top: 14px;
-      }
-      .conf-item:first-child {
-        border-top: none;
-        padding-top: 0;
-        margin-top: 0;
-      }
-
-      .conf-head {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        flex-wrap: wrap;
-        align-items: flex-start;
-      }
-
-      .conf-name {
-        font-weight: 800;
-        color: #34495e;
-      }
-
-      .pillbox {
-        margin-top: 10px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 10px;
-        border: 1px solid #ddd;
-        border-radius: 999px;
-        background: #fff;
-        font-size: 12px;
-      }
-
-      .pill form {
-        margin: 0;
-      }
-
-      .pill .x {
-        border: none;
-        background: transparent;
-        color: #b32626;
-        cursor: pointer;
-        font-weight: 900;
-        padding: 0;
-        line-height: 1;
-      }
-
-      .toolbar select {
-        height: 38px;
-        padding: 8px 10px;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        background-color: #fff;
-        color: #9c7979;
-        font-size: 14px;
-        outline: none;
-      }
-
-      /* 드롭다운 화살표/간격 정리 */
-      .toolbar select {
-        min-width: 160px;
-        cursor: pointer;
-        appearance: none;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        padding-right: 34px; /* 화살표 자리 */
-        background-image:
-          linear-gradient(45deg, transparent 50%, #666 50%),
-          linear-gradient(135deg, #666 50%, transparent 50%),
-          linear-gradient(to right, transparent, transparent);
-        background-position:
-          calc(100% - 16px) 15px,
-          calc(100% - 11px) 15px,
-          0 0;
-        background-size:
-          5px 5px,
-          5px 5px,
-          100% 100%;
-        background-repeat: no-repeat;
-      }
-
-      /* 포커스(홈 스타일 톤에 맞춰 핑크 강조) */
-      .toolbar .search:focus,
-      .toolbar select:focus {
-        border-color: rgba(200, 1, 80, 0.6);
-        box-shadow: 0 0 0 3px rgba(200, 1, 80, 0.12);
-      }
-
-      .kind-field {
-        height: 38px;
-        padding: 8px 10px;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-        font-size: 14px;
-        background-color: #fff;
-        color: #333;
-      }
-
-      /* 분야 select 화살표도 예쁘게(툴바 select랑 동일 톤) */
-      select.kind-field {
-        cursor: pointer;
-        appearance: none;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        padding-right: 34px;
-        background-image:
-          linear-gradient(45deg, transparent 50%, #666 50%),
-          linear-gradient(135deg, #666 50%, transparent 50%),
-          linear-gradient(to right, transparent, transparent);
-        background-position:
-          calc(100% - 16px) 15px,
-          calc(100% - 11px) 15px,
-          0 0;
-        background-size:
-          5px 5px,
-          5px 5px,
-          100% 100%;
-        background-repeat: no-repeat;
-      }
-
-      .kind-field:focus {
-        border-color: rgba(200, 1, 80, 0.6);
-        box-shadow: 0 0 0 3px rgba(200, 1, 80, 0.12);
-      }
-
-      /* 모바일 */
-      @media (max-width: 768px) {
-        .container {
-          padding: 12px;
-        }
-        h1 {
-          font-size: 22px;
-        }
-        .search {
-          width: 100%;
-          min-width: 0;
-        }
-      }
-    </style>
-    {% include "partials/pwa_head.html" %}
-  </head>
-
-  <body>
-    <div class="container">
-      <h1>PCSS 학회 관리</h1>
-
-      <div class="topbar">
-        <div class="notice" style="margin: 0; flex: 1">
-          <b>관리자 전용</b> 학회 키(params)와 kind/name을 관리합니다.
+  <main class="admin-main">
+    <div class="admin-wrap">
+      <div class="page-head">
+        <div>
+          <h1>학회 목록</h1>
+          <p class="page-sub">검색에 쓰이는 학회와 DBLP 키(params)를 관리합니다. 첫 번째 param이 기준(base) 키입니다.</p>
         </div>
       </div>
 
-      {% if error %}
-      <div class="notice error"><b>오류:</b> {{ error }}</div>
-      {% endif %} {% if success %}
-      <div class="notice"><b>{{ success }}</b></div>
-      {% endif %} {% set kinds = [] %} {% for c in conferences %} {% if c.kind
-      not in kinds %} {% set _ = kinds.append(c.kind) %} {% endif %} {% endfor
-      %}
+      {% if error %}<div class="alert alert-error"><b>오류</b> {{ error }}</div>{% endif %}
+      {% if success %}<div class="alert alert-success">{{ success }}</div>{% endif %}
 
-      <div class="grid-2">
-        <!-- 좌측: 생성 -->
-        <div class="card">
-          <h2>새 학회 생성</h2>
-
-          <form method="post" action="/conferences/manage/create">
+      <div class="grid grid-side">
+        <section class="card card-pad sticky-col">
+          <div class="card-head"><h2>새 학회 추가</h2></div>
+          <form method="post" action="/conferences/manage/create" id="create-form">
             <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
-            <div class="form-group">
-                <label for="kindSelect">분야</label>
-                <div style="flex: 1; min-width: 220px; display: flex; gap: 10px; flex-wrap: wrap;">
-                    <select id="kindSelect" class="search kind-field" style="min-width: 180px">
-                        <option value="">직접 입력</option>
-                        {% for k in kinds %}
-                        <option value="{{ k }}">{{ k }}</option>
-                        {% endfor %}
-                    </select>
-                    <input id="kindInput" type="text" class="search kind-field" placeholder="예: ML, CV, NLP" style="flex: 1; min-width: 220px" />
-                    <input id="kind" name="kind" type="hidden" />
-                </div>
+            <div class="field">
+              <label for="kindInput">분야</label>
+              <div class="kind-row">
+                <select id="kindSelect" class="input">
+                  <option value="">직접 입력</option>
+                  {% for k in kinds %}<option value="{{ k }}">{{ k }}</option>{% endfor %}
+                </select>
+                <input id="kindInput" type="text" class="input" placeholder="예: ML, CV, NLP" />
+              </div>
+              <input id="kind" name="kind" type="hidden" />
             </div>
-        
-            <div class="form-group">
-                <label for="name">이름</label>
-                <input id="name" name="name" type="text" placeholder="예: NeurIPS" />
+            <div class="field">
+              <label for="name">이름</label>
+              <input id="name" name="name" type="text" class="input" placeholder="예: NeurIPS" />
             </div>
-        
-            <div class="form-group" style="align-items: flex-start">
-                <label for="params_text" style="margin-top: 6px">Params</label>
-                <textarea id="params_text" name="params_text" placeholder="줄바꿈/콤마로 여러 개 입력 (필수)" required></textarea>
+            <div class="field">
+              <label for="params_text">Params</label>
+              <textarea id="params_text" name="params_text" class="input mono" placeholder="conf/nips&#10;conf/neurips" required></textarea>
+              <div class="hint">줄바꿈이나 콤마로 여러 개 입력합니다. 모든 학회를 통틀어 겹치지 않아야 하고, 첫 번째가 base param이 됩니다.</div>
             </div>
-        
-            <div class="row">
-                <button class="btn" type="submit">생성</button>
-                <button class="btn btn-secondary" type="reset">초기화</button>
+            <div class="input-row">
+              <button class="btn btn-primary" type="submit" style="flex: 1;">추가</button>
+              <button class="btn btn-ghost" type="reset">초기화</button>
             </div>
-        
-            <div class="small">
-                - Params는 전체 문서에서 유일해야 합니다.<br />
-                - base param은 첫 번째 param으로 처리됩니다.
-            </div>
-        </form>
-        </div>
+          </form>
+        </section>
 
-        <!-- 우측: 목록 -->
-        <div class="card">
-          <h2>학회 목록</h2>
-
+        <section class="card list-card" style="margin-bottom: 0;">
+          <header class="list-head">
+            <div class="list-title">
+              <h2>등록된 학회</h2>
+              <span class="count">{{ conferences|length }}</span>
+              <span class="list-sub">분야 {{ kinds|length }}개</span>
+            </div>
+          </header>
           <div class="toolbar">
-            <div class="left">
-              <input
-                id="q"
-                class="search"
-                type="text"
-                placeholder="검색: kind, name, param"
-              />
-              <select id="kindFilter">
-                <option value="">모든 분야</option>
-                {% for k in kinds %}
-                <option value="{{ k }}">{{ k }}</option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <div class="small" style="margin: 0">
-              총 {{ conferences | length }}개
-            </div>
+            <input id="q" class="input input-search" type="search" placeholder="분야, 이름, param으로 찾기" />
+            <select id="kindFilter" class="input">
+              <option value="">모든 분야</option>
+              {% for k in kinds %}<option value="{{ k }}">{{ k }}</option>{% endfor %}
+            </select>
+            <span class="toolbar-meta" id="shown-count"></span>
           </div>
 
-          <div id="list">
-            {% if not conferences %}
-            <div class="small">등록된 학회가 없습니다.</div>
-            {% endif %} {% for c in conferences %} {% set base = c.params[0] %}
-            <div
-              class="conf-item conf-card"
-              data-kind="{{ c.kind }}"
-              data-name="{{ (c.name or '') }}"
-              data-params="{{ (c.params | join(' ')) }}"
-            >
+          <div class="conf-grid" id="list">
+            {% for c in conferences %}{% set base = c.params[0] %}
+            <div class="conf-item conf-card" data-kind="{{ c.kind }}" data-name="{{ c.name or '' }}" data-params="{{ c.params|join(' ') }}">
               <div class="conf-head">
-                <div>
+                <div style="min-width: 0;">
                   <div class="conf-name">
-                    <span class="tag">[{{ c.kind }}]</span>
-                    {% if c.name %} {{ c.name }} {% else %}<span class="small"
-                      >(no name)</span
-                    >{% endif %}
+                    <span class="badge badge-navy">{{ c.kind or '-' }}</span>
+                    {% if c.name %}{{ c.name }}{% else %}<span class="faint" style="font-weight: 400;">(이름 없음)</span>{% endif %}
                   </div>
-                  <div class="small" style="margin-top: 6px">
-                    base: <span class="mono">{{ base }}</span> · {{ c.params |
-                    length }} params
-                  </div>
+                  {% if (c.params|length) > 1 %}<div class="conf-meta">base <span class="mono">{{ base }}</span> · params {{ c.params|length }}개</div>{% endif %}
                 </div>
-
-                <form method="post" action="/conferences/manage/{{ base }}/delete" style="margin: 0">
+                <form method="post" action="/conferences/manage/{{ base }}/delete" style="margin: 0;">
                   <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
-                  <button class="btn btn-danger" type="submit" onclick="return confirm('정말 삭제할까요?');">
-                    삭제
-                  </button>
+                  <button class="btn btn-outline-danger btn-xs" type="submit" onclick="return confirm('[{{ c.name or base }}] 학회를 삭제할까요?');">삭제</button>
                 </form>
               </div>
 
               <div class="pillbox">
                 {% for p in c.params %}
-                <span class="pill">
+                <span class="pill {{ 'base' if loop.first else '' }}">
                   <span class="mono">{{ p }}</span>
-                  {% if (c.params | length) > 1 %}
-                  <form method="post" action="/conferences/manage/{{ base }}/params/delete" style="display: inline">
+                  {% if (c.params|length) > 1 %}
+                  <form method="post" action="/conferences/manage/{{ base }}/params/delete">
                     <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
                     <input type="hidden" name="param" value="{{ p }}" />
-                    <button class="x" type="submit" title="삭제">×</button>
+                    <button class="x" type="submit" title="{{ p }} 삭제" aria-label="{{ p }} 삭제">&times;</button>
                   </form>
                   {% endif %}
                 </span>
                 {% endfor %}
+                <button type="button" class="pill pill-add" data-add-toggle>+ param</button>
               </div>
 
-              {% if (c.params | length) <= 1 %}
-              <div class="small" style="margin-top: 8px">
-                마지막 param은 삭제할 수 없습니다.
-              </div>
-              {% endif %}
-
-              <div style="margin-top: 12px">
-                <form method="post" action="/conferences/manage/{{ base }}/params/add" class="row" style="margin: 0">
-                  <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
-                  <input
-                    name="params_text"
-                    type="text"
-                    class="search"
-                    placeholder="param 추가: 콤마/줄바꿈 가능"
-                    style="flex: 1; min-width: 220px"
-                  />
-                  <button class="btn btn-secondary" type="submit">추가</button>
-                </form>
-              </div>
+              <form method="post" action="/conferences/manage/{{ base }}/params/add" class="add-param" hidden>
+                <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
+                <input name="params_text" type="text" class="input mono" placeholder="param 추가 (콤마로 여러 개)" required />
+                <button class="btn btn-secondary btn-xs" type="submit">추가</button>
+              </form>
             </div>
             {% endfor %}
           </div>
-        </div>
+          <div class="empty" id="no-match" {% if conferences %}hidden{% endif %}>
+            {{ '조건에 맞는 학회가 없습니다.' if conferences else '등록된 학회가 없습니다.' }}
+          </div>
+        </section>
       </div>
     </div>
+  </main>
 
-    <script>
-      (function () {
-        // ===== 목록 검색/필터 =====
-        const q = document.getElementById("q");
-        const kindFilter = document.getElementById("kindFilter");
-        const cards = Array.from(document.querySelectorAll(".conf-card"));
+  <script>
+    (function () {
+      // ===== 목록 검색/필터 =====
+      const q = document.getElementById("q");
+      const kindFilter = document.getElementById("kindFilter");
+      const cards = Array.from(document.querySelectorAll(".conf-card"));
+      const shownCount = document.getElementById("shown-count");
+      const noMatch = document.getElementById("no-match");
+      const norm = (s) => (s || "").toLowerCase();
 
-        function norm(s) {
-          return (s || "").toLowerCase();
+      function apply() {
+        const query = norm(q.value);
+        const kind = kindFilter.value || "";
+        let shown = 0;
+        cards.forEach((card) => {
+          const ck = card.dataset.kind || "";
+          const hay = norm(ck + " " + card.dataset.name + " " + card.dataset.params);
+          const ok = (!query || hay.includes(query)) && (!kind || ck === kind);
+          card.hidden = !ok;
+          if (ok) shown++;
+        });
+        shownCount.textContent = (query || kind) ? `${shown}개 표시` : "";
+        if (cards.length) noMatch.hidden = shown > 0;
+      }
+      q.addEventListener("input", apply);
+      kindFilter.addEventListener("change", apply);
+
+      // ===== param 추가 폼 열기 =====
+      document.getElementById("list").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-add-toggle]");
+        if (!b) return;
+        const f = b.closest(".conf-item").querySelector(".add-param");
+        f.hidden = !f.hidden;
+        if (!f.hidden) f.querySelector("input[name=params_text]").focus();
+      });
+
+      // ===== 새 학회: 분야 select + input => hidden(kind) =====
+      const kindSelect = document.getElementById("kindSelect");
+      const kindInput = document.getElementById("kindInput");
+      const kindHidden = document.getElementById("kind");
+
+      function syncKind() {
+        const selected = (kindSelect.value || "").trim();
+        if (selected) {
+          kindHidden.value = selected;
+          kindInput.value = selected;
+          kindInput.readOnly = true;
+        } else {
+          kindInput.readOnly = false;
+          kindHidden.value = (kindInput.value || "").trim();
         }
+      }
+      kindSelect.addEventListener("change", syncKind);
+      kindInput.addEventListener("input", syncKind);
+      syncKind();
 
-        function apply() {
-          const query = norm(q?.value);
-          const kind = kindFilter?.value || "";
-
-          cards.forEach((card) => {
-            const ck = card.getAttribute("data-kind") || "";
-            const name = card.getAttribute("data-name") || "";
-            const params = card.getAttribute("data-params") || "";
-
-            const hay = norm(ck + " " + name + " " + params);
-            const okQuery = !query || hay.includes(query);
-            const okKind = !kind || ck === kind;
-
-            card.style.display = okQuery && okKind ? "" : "none";
-          });
+      const form = document.getElementById("create-form");
+      form.addEventListener("submit", (event) => {
+        syncKind();
+        if (!kindHidden.value.trim()) {
+          alert("분야를 선택하거나 직접 입력해주세요.");
+          event.preventDefault();
         }
-
-        if (q) q.addEventListener("input", apply);
-        if (kindFilter) kindFilter.addEventListener("change", apply);
-
-        // ===== 새 학회 생성: kind select + input => hidden(kind) =====
-        const kindSelect = document.getElementById("kindSelect");
-        const kindInput = document.getElementById("kindInput");
-        const kindHidden = document.getElementById("kind");
-
-        function syncKind() {
-          const selected = (kindSelect?.value || "").trim();
-          const typed = (kindInput?.value || "").trim();
-
-          if (selected) {
-            kindHidden.value = selected;
-            kindInput.value = selected;
-            kindInput.readOnly = true; // disabled보다 readOnly가 UX 더 좋음(포커스/스타일 유지)
-          } else {
-            kindInput.readOnly = false;
-            kindHidden.value = typed;
-          }
-        }
-
-        if (kindSelect && kindInput && kindHidden) {
-          kindSelect.addEventListener("change", syncKind);
-          kindInput.addEventListener("input", syncKind);
-          syncKind();
-        }
-
-        // 폼 제출 직전에 한번 더 보정(안전장치)
-        const createForm = kindHidden?.closest("form");
-        if (createForm) {
-          createForm.addEventListener("submit", () => {
-            syncKind();
-            // 빈 값 방지(서버 required 대체)
-            if (!kindHidden.value.trim()) {
-              alert("Kind를 선택하거나 직접 입력해주세요.");
-              event.preventDefault();
-            }
-          });
-        }
-      })();
-    </script>
-    {% include "partials/footer.html" %}
-  </body>
+      });
+      // 초기화 버튼은 select 를 되돌린 뒤 readOnly 상태도 맞춘다
+      form.addEventListener("reset", () => setTimeout(syncKind));
+    })();
+  </script>
+  {% include "partials/footer.html" %}
+</body>
 </html>

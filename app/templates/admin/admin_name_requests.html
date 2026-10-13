@@ -1,274 +1,121 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="ko">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>PCSS 이름 판별 요청</title>
-  <style>
-    /* 기본 라이트 모드 */
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f9f9f9;
-      color: #333;
-    }
-  
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-  
-    h2 {
-      text-align: center;
-      margin: 28px 0 18px;
-      color: rgba(200, 1, 80, 1);
-      font-size: 28px;
-    }
-  
-    /* 카드 느낌의 래퍼 */
-    .card {
-      background: #ffffff;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      padding: 18px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-  
-    /* 테이블 */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background-color: #fff;
-      border-radius: 10px;
-      overflow: hidden; /* 둥근 모서리 유지 */
-    }
-  
-    thead th {
-      background-color: #f3f3f3;
-      color: #34495e;
-      font-weight: bold;
-      text-align: left;
-      padding: 12px 12px;
-      border-bottom: 1px solid #ddd;
-      font-size: 14px;
-    }
-  
-    tbody td {
-      padding: 12px 12px;
-      border-bottom: 1px solid #eee;
-      font-size: 14px;
-      vertical-align: middle;
-    }
-  
-    tbody tr:hover td {
-      background-color: #fafafa;
-    }
-  
-    /* 상태 텍스트 */
-    .type-add {
-      color: rgba(200, 1, 80, 1);
-      font-weight: bold;
-    }
-  
-    .type-del {
-      color: #34495e;
-      font-weight: bold;
-    }
-  
-    .type-unknown {
-      color: #999;
-      font-weight: bold;
-    }
-  
-    /* 액션 버튼 */
-    .btn {
-      padding: 8px 14px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 13px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-  
-    .btn-approve {
-      background-color: rgba(200, 1, 80, 1);
-      color: #fff;
-    }
-  
-    .btn-approve:hover {
-      background-color: rgb(194, 50, 108);
-    }
-  
-    .btn-deny {
-      background-color: #34495e;
-      color: #fff;
-      margin-left: 8px;
-    }
-  
-    .btn-deny:hover {
-      background-color: #2c3e50;
-    }
-  
-    /* 액션 셀에서 버튼 줄바꿈 방지 */
-    .actions {
-      white-space: nowrap;
-    }
-  
-    /* 빈 상태 */
-    .empty {
-      text-align: center;
-      color: #777;
-      padding: 18px;
-      font-size: 14px;
-    }
-
-    .notice-error{
-      background:#fff;
-      border:1px solid #ddd;
-      border-left:4px solid rgba(200,1,80,1);
-      border-radius:10px;
-      padding:12px 14px;
-      margin:0 0 12px 0;
-      box-shadow:0 2px 4px rgba(0,0,0,0.08);
-      line-height:1.5;
-    }
-    .topbar{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      margin:0 0 14px 0;
-    }
-    .whoami{
-      color:#666;
-      font-size:13px;
-    }
-    .mono{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      color:#34495e;
-    }
-    
-  
-    /* 작은 화면 반응형 */
-    @media (max-width: 768px) {
-      /* footer.html 이 body 를 flex column 으로 만들어서, margin:auto 로 가운데 둔 컨테이너는 표 내용만큼 넓어져 화면 밖으로 넘친다 → 폭을 화면에 고정 */
-      .container {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 12px;
-      }
-  
-      h2 {
-        font-size: 22px;
-        margin: 20px 0 14px;
-      }
-  
-      .card {
-        padding: 12px;
-      }
-  
-      table, thead, tbody, th, td, tr {
-        display: block;
-      }
-  
-      thead {
-        display: none;
-      }
-  
-      tbody tr {
-        border: 1px solid #ddd;
-        border-radius: 10px;
-        margin-bottom: 12px;
-        overflow: hidden;
-        background: #fff;
-      }
-  
-      tbody td {
-        border-bottom: 1px solid #eee;
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-      }
-  
-      /* 각 td 앞에 라벨 표시하려면 HTML에 data-label을 넣는 방식이 베스트인데,
-         지금 HTML을 안 바꾸는 조건이라 최소한으로만 반응형 처리 */
-      .actions {
-        justify-content: flex-end;
-      }
-  
-      .btn {
-        padding: 8px 12px;
-        font-size: 12px;
-      }
-    }
-  </style>  
-  {% include "partials/pwa_head.html" %}
+  {% include "partials/admin_head.html" %}
 </head>
 <body>
-  <div class="container">
-    <h2>PCSS 이름 판별 요청</h2>
+  {% include "partials/admin_header.html" %}
 
-    {% if error %}
-      <div class="notice-error"><b>오류:</b> {{ error }}</div>
-    {% endif %}
-
-    <div class="card">
-      <div class="table-scroll" style="overflow-x: auto;">
-      <table>
-        <thead>
-          <tr>
-            <th>이름</th>
-            <th>현재 점수</th>
-            <th>요청 타입</th>
-            <th>요청 시각(UTC)</th>
-            <th>액션</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {% for r in requests %}
-          <tr>
-            <td>{{ r.name }}</td>
-            <td>{{ r.score }}</td>
-            <td>
-              {% if r.type == 1 %}
-                <span class="type-add">ADD(한국인으로 표시)</span>
-              {% elif r.type == 0 %}
-                <span class="type-del">DELETE(한국인 표시 해제)</span>
-              {% else %}
-                <span class="type-unknown">UNKNOWN</span>
-              {% endif %}
-            </td>
-            <td>{{ r.updated_at }}</td>
-            <td class="actions">
-              <form method="post" action="/author/requests/approve" style="display:inline;">
-                <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
-                <input type="hidden" name="name" value="{{ r.name }}">
-                <button class="btn btn-approve" type="submit">수락</button>
-              </form>
-              
-              <form method="post" action="/author/requests/deny" style="display:inline; margin-left:8px;">
-                <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
-                <input type="hidden" name="name" value="{{ r.name }}">
-                <button class="btn btn-deny" type="submit">거절/삭제</button>
-              </form>                 
-            </td>
-          </tr>
-          {% endfor %}
-
-          {% if requests|length == 0 %}
-          <tr>
-            <td class="empty" colspan="5">대기 중인 요청이 없습니다.</td>
-          </tr>
-          {% endif %}
-        </tbody>
-      </table>
+  <main class="admin-main">
+    <div class="admin-wrap">
+      <div class="page-head">
+        <div>
+          <h1>이름 판별 요청</h1>
+          <p class="page-sub">사용자가 보낸 한국인 저자 표시 / 해제 요청입니다. 수락하면 해당 이름의 확률값이 바로 바뀝니다.</p>
+        </div>
+        <div class="page-actions">
+          <a class="btn btn-ghost btn-sm" href="/author/manage/names">한국인 확률값 관리</a>
+        </div>
       </div>
+
+      {% if error %}
+      <div class="alert alert-error"><b>오류</b> {{ error }}</div>
+      {% endif %}
+
+      <section class="card list-card">
+        <header class="list-head">
+          <div class="list-title">
+            <h2>대기 중</h2>
+            <span class="count {{ 'hot' if requests else '' }}">{{ requests|length }}</span>
+            <span class="list-sub">최근 요청 순</span>
+          </div>
+        </header>
+        {% if requests %}
+        <div class="toolbar">
+          <input class="input input-search" type="search" id="req-search" placeholder="이름으로 찾기">
+          <div class="seg" id="req-filter">
+            <button type="button" class="active" data-f="">전체</button>
+            <button type="button" data-f="1">한국인 표시</button>
+            <button type="button" data-f="0">표시 해제</button>
+          </div>
+        </div>
+        {% endif %}
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>이름</th>
+                <th class="num">현재 점수</th>
+                <th>요청</th>
+                <th>요청 시각 (UTC)</th>
+                <th class="actions">처리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in requests %}
+              <tr data-name="{{ r.name|lower }}" data-type="{{ r.type }}">
+                <td style="font-weight: 700; color: var(--heading);">{{ r.name }}</td>
+                <td class="num">{{ r.score }}</td>
+                <td>
+                  {% if r.type == 1 %}<span class="badge badge-primary">한국인으로 표시</span>
+                  {% elif r.type == 0 %}<span class="badge badge-navy">한국인 표시 해제</span>
+                  {% else %}<span class="badge badge-muted">알 수 없음</span>{% endif %}
+                </td>
+                <td class="tnum nowrap faint">{{ r.updated_at[:19]|replace('T', ' ') if r.updated_at else '-' }}</td>
+                <td class="actions">
+                  <form method="post" action="/author/requests/approve">
+                    <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
+                    <input type="hidden" name="name" value="{{ r.name }}">
+                    <button class="btn btn-primary btn-xs" type="submit">수락</button>
+                  </form>
+                  <form method="post" action="/author/requests/deny">
+                    <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
+                    <input type="hidden" name="name" value="{{ r.name }}">
+                    <button class="btn btn-ghost btn-xs" type="submit">거절</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td class="empty" colspan="5">대기 중인 요청이 없습니다.</td></tr>
+              {% endfor %}
+              <tr id="no-match" hidden><td class="empty" colspan="5">조건에 맞는 요청이 없습니다.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
-  </div>
-    {% include "partials/footer.html" %}
-  </body>
+  </main>
+
+  <script>
+    (function () {
+      const q = document.getElementById("req-search");
+      const seg = document.getElementById("req-filter");
+      if (!q || !seg) return;
+      const rows = Array.from(document.querySelectorAll("tr[data-name]"));
+      let f = "";
+      function apply() {
+        const v = q.value.trim().toLowerCase();
+        let shown = 0;
+        rows.forEach(tr => {
+          const ok = (!v || tr.dataset.name.includes(v)) && (!f || tr.dataset.type === f);
+          tr.hidden = !ok;
+          if (ok) shown++;
+        });
+        document.getElementById("no-match").hidden = shown > 0;
+      }
+      q.addEventListener("input", apply);
+      seg.addEventListener("click", e => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        seg.querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b));
+        f = b.dataset.f;
+        apply();
+      });
+    })();
+  </script>
+  {% include "partials/footer.html" %}
+</body>
 </html>

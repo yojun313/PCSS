@@ -4,133 +4,227 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <title>PCSS 관리자</title>
+  {% include "partials/admin_head.html" %}
+  <script src="/static/vendor/chart.umd.min.js"></script>
   <style>
-    :root {
-      --pink: #c80150;
-      --navy: #2c3e50;
-      --bg: #f5f6fa;
-      --border: #e8e9ee;
-      --muted: #778;
-      --faint: #99a;
-    }
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", Arial, sans-serif;
-      margin: 0; background: var(--bg); color: #333;
-    }
-    .container { max-width: 1000px; width: 100%; margin: 0 auto; padding: 28px 20px 60px; }
-
-    .header {
-      display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between;
-      align-items: center; margin-bottom: 24px;
-    }
-    h1 { margin: 0; font-size: 24px; color: var(--navy); }
-    .account {
-      font-size: 13px; color: var(--muted); background: #fff;
-      border: 1px solid var(--border); border-radius: 999px; padding: 7px 14px;
-    }
-    .account b { color: var(--navy); }
-
-    .menu-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 14px;
-    }
-    .menu-card {
-      display: flex; align-items: flex-start; gap: 14px;
-      text-decoration: none; background: #fff;
-      border: 1px solid var(--border); border-radius: 12px;
-      padding: 18px; color: var(--navy);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-      transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
-    }
-    .menu-card:hover {
-      border-color: var(--pink);
-      box-shadow: 0 4px 12px rgba(200,1,80,0.1);
-      transform: translateY(-1px);
-    }
-    .menu-icon {
-      flex: none; width: 40px; height: 40px; border-radius: 10px;
-      background: rgba(200,1,80,0.08); color: var(--pink);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 19px;
-    }
-    .menu-title { font-weight: 700; font-size: 15px; }
-    .menu-desc { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
-
-    .back-link {
-      display: inline-block; margin-top: 28px; color: var(--muted);
-      text-decoration: none; font-size: 13px;
-    }
-    .back-link:hover { color: var(--pink); }
-
-    @media (max-width: 640px) {
-      .menu-grid { grid-template-columns: 1fr; }
-      .header { flex-direction: column; align-items: flex-start; }
-    }
+    .chart-box { position: relative; height: 260px; }
+    .pending-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border-light); }
+    .pending-row:last-child { border-bottom: none; }
+    .pending-name { font-weight: 700; color: var(--heading); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pending-meta { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+    .side-col { display: flex; flex-direction: column; }
+    .side-col .side-body { flex: 1; }
   </style>
-  {% include "partials/pwa_head.html" %}
 </head>
 <body>
+  {% include "partials/admin_header.html" %}
 
-  <div class="container">
-    <div class="header">
-      <h1>관리자 대시보드</h1>
-      <span class="account"><b>{{ email }}</b> 로 접속 중</span>
+  <main class="admin-main">
+    <div class="admin-wrap">
+      <div class="page-head">
+        <div>
+          <h1>관리자 대시보드</h1>
+          <p class="page-sub">오늘의 방문 · 처리할 요청 · 서비스 현황을 한눈에 봅니다. 시간은 모두 한국 시간입니다.</p>
+        </div>
+        <div class="page-actions">
+          <a class="btn btn-secondary btn-sm" href="/logs">로그 자세히 보기</a>
+          <a class="btn btn-primary btn-sm" href="/board/notice/write">공지 작성</a>
+        </div>
+      </div>
+
+      {% set s = stats %}
+      <div class="stat-cards">
+        <a class="stat-card" href="/logs?days=7">
+          <div class="stat-label">오늘 활동</div>
+          <div class="stat-value">{{ "{:,}".format(s.today_hits) }}</div>
+          <div class="stat-sub">순방문 IP {{ "{:,}".format(s.today_ips) }}
+            {% if s.yday_hits %}
+              {% set pct = ((s.today_hits - s.yday_hits) / s.yday_hits * 100) | round | int %}
+              {% if pct > 0 %}<span class="delta up">▲ {{ pct }}%</span>{% elif pct < 0 %}<span class="delta down">▼ {{ -pct }}%</span>{% endif %}
+            {% endif %}
+          </div>
+        </a>
+        <a class="stat-card" href="/logs?days=7">
+          <div class="stat-label">최근 7일 검색</div>
+          <div class="stat-value">{{ "{:,}".format(s.week_searches) }}</div>
+          <div class="stat-sub">검색 실행 횟수</div>
+        </a>
+        <a class="stat-card {{ 'alert' if s.pending else '' }}" href="/author/manage">
+          <div class="stat-label">대기 중 이름 요청</div>
+          <div class="stat-value">{{ s.pending }}</div>
+          <div class="stat-sub">{{ "처리가 필요합니다" if s.pending else "모두 처리됨" }}</div>
+        </a>
+        <div class="stat-card">
+          <div class="stat-label">회원</div>
+          <div class="stat-value">{{ "{:,}".format(s.users) }}</div>
+          <div class="stat-sub">최근 30일 신규 {{ s.new_users }}명</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">메일 구독</div>
+          <div class="stat-value">{{ "{:,}".format(s.subs) }}</div>
+          <div class="stat-sub">활성 / 전체 {{ s.subs_total }}건</div>
+        </div>
+        <a class="stat-card" href="/conferences/manage">
+          <div class="stat-label">등록 학회</div>
+          <div class="stat-value">{{ "{:,}".format(s.confs) }}</div>
+          <div class="stat-sub">관리자 {{ s.admins }}명</div>
+        </a>
+      </div>
+
+      <div class="grid grid-main">
+        <section class="card card-pad">
+          <div class="card-head">
+            <h2>최근 14일 활동</h2>
+            <a class="hint-inline" href="/logs">로그 분석 &rsaquo;</a>
+          </div>
+          <div class="chart-box"><canvas id="dailyChart"></canvas></div>
+        </section>
+
+        <section class="card card-pad side-col">
+          <div class="card-head">
+            <h2>대기 중인 이름 요청 <span class="count {{ 'hot' if s.pending else '' }}">{{ s.pending }}</span></h2>
+            <a class="hint-inline" href="/author/manage">전체 보기 &rsaquo;</a>
+          </div>
+          <div class="side-body">
+            {% for r in pending_list %}
+            <div class="pending-row">
+              <div style="min-width: 0;">
+                <div class="pending-name">{{ r.name }}</div>
+                <div class="pending-meta">현재 점수 {{ r.score }} · {{ r.when }}</div>
+              </div>
+              {% if r.type == 1 %}<span class="badge badge-primary">한국인 표시</span>
+              {% elif r.type == 0 %}<span class="badge badge-navy">표시 해제</span>
+              {% else %}<span class="badge badge-muted">알 수 없음</span>{% endif %}
+            </div>
+            {% else %}
+            <div class="empty">대기 중인 요청이 없습니다.</div>
+            {% endfor %}
+          </div>
+          {% if s.pending %}
+          <a class="btn btn-primary btn-sm btn-block" href="/author/manage" style="margin-top: 12px;">요청 처리하러 가기</a>
+          {% endif %}
+        </section>
+      </div>
+
+      <div class="card-head" style="margin: 28px 0 12px;"><h2>관리 메뉴</h2></div>
+      <div class="menu-grid" style="margin-bottom: 28px;">
+        <a href="/logs" class="menu-card">
+          <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></span>
+          <span><span class="menu-title">로그 분석</span><span class="menu-desc">방문·검색 추이, 유입 경로, 브라우저, 인기 학회</span></span>
+        </a>
+        <a href="/author/manage" class="menu-card">
+          <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+          <span><span class="menu-title">이름 요청{% if s.pending %} <span class="badge badge-solid">{{ s.pending }}</span>{% endif %}</span><span class="menu-desc">한국인 저자 표시 요청 수락 / 거절</span></span>
+        </a>
+        <a href="/author/manage/names" class="menu-card">
+          <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M19 8v6M22 11h-6"/></svg></span>
+          <span><span class="menu-title">한국인 확률값</span><span class="menu-desc">이름별 한국인 확률값 검색 · 수정</span></span>
+        </a>
+        <a href="/conferences/manage" class="menu-card">
+          <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+          <span><span class="menu-title">학회 목록</span><span class="menu-desc">학회 추가 / 수정 / 삭제, DBLP 키 관리</span></span>
+        </a>
+        <a href="/admin/manage/admins" class="menu-card">
+          <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+          <span><span class="menu-title">관리자 계정</span><span class="menu-desc">관리자 추가 / 삭제</span></span>
+        </a>
+        <a href="/admin/mail-test" class="menu-card">
+          <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg></span>
+          <span><span class="menu-title">메일 발송 테스트</span><span class="menu-desc">발송 설정 확인 / 연결 진단</span></span>
+        </a>
+        <a href="/rankings" class="menu-card">
+          <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg></span>
+          <span><span class="menu-title">저자 랭킹</span><span class="menu-desc">공개 랭킹 페이지 확인</span></span>
+        </a>
+        <a href="/board" class="menu-card">
+          <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+          <span><span class="menu-title">게시판</span><span class="menu-desc">공지사항 작성 · 버그 제보 확인</span></span>
+        </a>
+      </div>
+
+      <div class="grid grid-pairs">
+        <section class="card list-card" style="margin-bottom: 0;">
+          <header class="list-head">
+            <div class="list-title"><h2>최근 활동</h2><span class="list-sub">최신 10건</span></div>
+            <a class="btn btn-ghost btn-sm" href="/logs">전체 로그</a>
+          </header>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>시간</th><th>유형</th><th>사용자</th><th>경로</th></tr></thead>
+              <tbody>
+                {% for log in recent_logs %}
+                <tr>
+                  <td class="tnum nowrap">{{ log.ts }}</td>
+                  <td>
+                    {% if 'homepage' in log.type %}<span class="badge badge-navy">방문</span>
+                    {% elif 'search' in log.type %}<span class="badge badge-primary">검색</span>
+                    {% elif 'subscription' in log.type %}<span class="badge badge-success">구독</span>
+                    {% else %}<span class="badge badge-muted">{{ log.type or "기타" }}</span>{% endif %}
+                  </td>
+                  <td class="ellipsis" style="max-width: 220px;">{{ log.email or log.ip }}</td>
+                  <td class="mono ellipsis" style="max-width: 160px;">{{ log.path or "-" }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="empty">기록이 없습니다.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card list-card" style="margin-bottom: 0;">
+          <header class="list-head">
+            <div class="list-title"><h2>최근 가입 회원</h2><span class="count">{{ s.users }}</span></div>
+          </header>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>이름</th><th>이메일</th><th>가입일</th><th>마지막 로그인</th></tr></thead>
+              <tbody>
+                {% for u in recent_users %}
+                <tr>
+                  <td class="nowrap" style="font-weight: 700; color: var(--heading);">{{ u.name or "-" }}</td>
+                  <td class="ellipsis" style="max-width: 240px;">{{ u.email }}</td>
+                  <td class="tnum nowrap">{{ u.joined }}</td>
+                  <td class="tnum nowrap">{{ u.last }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="empty">가입한 회원이 없습니다.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
     </div>
+  </main>
 
-    <div class="menu-grid">
-      <a href="/logs" class="menu-card">
-        <span class="menu-icon">&#9783;</span>
-        <span>
-          <span class="menu-title">로그 분석</span>
-          <div class="menu-desc">방문·검색 추이, 유입 경로, 브라우저, 인기 학회까지 한 화면에</div>
-        </span>
-      </a>
-
-      <a href="/admin/manage/admins" class="menu-card">
-        <span class="menu-icon">&#9787;</span>
-        <span>
-          <span class="menu-title">관리자 계정 관리</span>
-          <div class="menu-desc">관리자 추가 / 삭제</div>
-        </span>
-      </a>
-
-      <a href="/conferences/manage" class="menu-card">
-        <span class="menu-icon">&#9733;</span>
-        <span>
-          <span class="menu-title">학회 목록 관리</span>
-          <div class="menu-desc">학회 추가 / 수정 / 삭제</div>
-        </span>
-      </a>
-
-      <a href="/author/manage" class="menu-card">
-        <span class="menu-icon">&#9998;</span>
-        <span>
-          <span class="menu-title">이름(저자) 관리</span>
-          <div class="menu-desc">한국인 저자 요청 승인 / 거절</div>
-        </span>
-      </a>
-
-      <a href="/author/manage/names" class="menu-card">
-        <span class="menu-icon">&#37;</span>
-        <span>
-          <span class="menu-title">한국인 확률값 관리</span>
-          <div class="menu-desc">이름별 한국인 확률값 DB 관리</div>
-        </span>
-      </a>
-
-      <a href="/admin/mail-test" class="menu-card">
-        <span class="menu-icon">&#9993;</span>
-        <span>
-          <span class="menu-title">메일 발송 테스트</span>
-          <div class="menu-desc">발송 설정 확인 / 연결 진단</div>
-        </span>
-      </a>
-    </div>
-
-    <a href="/" class="back-link">&larr; 메인 페이지로 돌아가기</a>
-  </div>
+  <script>
+    (function () {
+      const daily = {{ daily | tojson }};
+      if (!window.Chart) return;
+      new Chart(document.getElementById("dailyChart"), {
+        data: {
+          labels: daily.map(d => d.date.slice(5).replace("-", "/")),
+          datasets: [
+            { type: "bar", label: "활동", data: daily.map(d => d.hits),
+              backgroundColor: "rgba(200,1,80,0.75)", borderRadius: 3, order: 2 },
+            { type: "line", label: "검색", data: daily.map(d => d.searches),
+              borderColor: "#34495e", backgroundColor: "#34495e", borderWidth: 2,
+              pointRadius: 2, tension: 0.3, order: 1 },
+          ],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: { legend: { position: "top", align: "end", labels: { boxWidth: 10, font: { size: 11 } } } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: "#f0f1f5" }, ticks: { precision: 0 } },
+            x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true } },
+          },
+        },
+      });
+    })();
+  </script>
   {% include "partials/footer.html" %}
 </body>
 </html>

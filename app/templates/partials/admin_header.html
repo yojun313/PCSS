@@ -1,0 +1,46 @@
+{# 관리자 화면 상단 헤더. 현재 경로로 메뉴 활성 상태를 정한다. #}
+{% set _path = request.url.path.rstrip('/') or '/' %}
+{% set _pending = admin_pending_requests() %}
+{% set _nav = [
+  ('/admin/dashboard', '대시보드'),
+  ('/logs', '로그 분석'),
+  ('/author/manage', '이름 요청'),
+  ('/author/manage/names', '한국인 확률값'),
+  ('/conferences/manage', '학회 목록'),
+  ('/admin/manage/admins', '관리자 계정'),
+  ('/admin/mail-test', '메일 테스트'),
+] %}
+<header class="admin-header">
+  <div class="admin-wrap">
+    <div class="admin-header-top">
+      <a class="admin-brand" href="/admin/dashboard">
+        <img src="/static/images/postech-signature.png" alt="POSTECH">
+        <span class="admin-brand-divider"></span>
+        <span class="admin-brand-name">PCSS<small>관리자</small></span>
+      </a>
+      <div class="admin-account">
+        {% if email %}
+        <span class="admin-account-email" title="{{ email }}">
+          <span class="admin-avatar">{{ email[0] }}</span>
+          <span>{{ email }}</span>
+        </span>
+        {% endif %}
+        <a class="btn btn-ghost btn-sm" href="/">메인으로</a>
+      </div>
+    </div>
+    <nav class="admin-nav" aria-label="관리자 메뉴">
+      {% for href, label in _nav %}
+      <a href="{{ href }}" class="{{ 'active' if _path == href else '' }}">{{ label }}{% if href == '/author/manage' and _pending %}<span class="nav-count">{{ _pending }}</span>{% endif %}</a>
+      {% endfor %}
+    </nav>
+  </div>
+</header>
+<script>
+  // 좁은 화면에서 메뉴가 옆으로 넘치면, 지금 페이지 항목이 보이도록 밀어 둔다.
+  (function () {
+    var a = document.querySelector('.admin-nav a.active');
+    if (a && a.parentNode.scrollWidth > a.parentNode.clientWidth) {
+      a.parentNode.scrollLeft = a.offsetLeft - (a.parentNode.clientWidth - a.offsetWidth) / 2;
+    }
+  })();
+</script>

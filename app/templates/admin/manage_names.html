@@ -1,312 +1,114 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="csrf-token" content="{{ request.scope['csrftoken']() }}">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
-    <title>PCSS 한국인 확률값 관리</title>
-    <style>
-      /* --- 공통 스타일 --- */
-      body {
-        font-family: 'Segoe UI', Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        background-color: #f9f9f9;
-        color: #333;
-      }
+  <meta charset="UTF-8">
+  <meta name="csrf-token" content="{{ request.scope['csrftoken']() }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>PCSS 한국인 확률값 관리</title>
+  {% include "partials/admin_head.html" %}
+  <style>
+    .status-select { width: 170px; padding-top: 6px; padding-bottom: 6px; font-size: 13px; font-weight: 700; }
+    .status-select.is-korean { background-color: var(--success-bg); border-color: var(--success-border); color: var(--success); }
+    .status-select.is-saving { background-color: var(--warning-bg); border-color: var(--warning-border); color: var(--warning-text); }
 
-      .container {
-        max-width: 1200px;
-        margin: 40px auto;
-        padding: 20px;
-      }
-
-      h1 {
-        text-align: center;
-        margin-bottom: 30px;
-        color: rgba(200, 1, 80, 1);
-      }
-
-      /* 상단 Admin 정보 및 링크 바 */
-      .admin-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        padding: 10px 20px;
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        border: 1px solid #ddd;
-      }
-
-      .admin-info { font-weight: bold; color: #555; }
-
-      .nav-btn {
-        padding: 8px 15px;
-        background-color: #34495e;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        text-decoration: none;
-        font-size: 0.9rem;
-        transition: background-color 0.2s;
-      }
-      .nav-btn:hover { background-color: #2c3e50; }
-
-      /* 알림창(Status) 스타일 추가 */
-      .status {
-        display: none; /* 기본 숨김 */
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 10px;
-        padding: 12px 14px;
-        margin: 0 0 20px 0;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-        line-height: 1.5;
-        font-size: 14px;
-      }
-      .status .badge {
-        font-size: 12px;
-        font-weight: 800;
-        border-radius: 999px;
-        padding: 4px 10px;
-        border: 1px solid #ddd;
-        background: #fafafa;
-        color: #444;
-        white-space: nowrap;
-      }
-      /* 상태별 색상 */
-      .status.saving .badge {
-        border-color: rgba(200, 1, 80, 0.35);
-        background: rgba(200, 1, 80, 0.06);
-        color: rgba(200, 1, 80, 1);
-      }
-      .status.ok .badge {
-        border-color: rgba(0, 140, 60, 0.35);
-        background: rgba(0, 140, 60, 0.06);
-        color: rgba(0, 140, 60, 1);
-      }
-      .status.fail .badge {
-        border-color: rgba(179, 38, 38, 0.35);
-        background: rgba(179, 38, 38, 0.06);
-        color: rgba(179, 38, 38, 1);
-      }
-
-      /* 검색 폼 섹션 */
-      .form-section {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        padding: 20px;
-        background-color: #ffffff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        margin-bottom: 20px;
-      }
-
-      .search-input {
-        flex: 1;
-        max-width: 400px;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-size: 1rem;
-      }
-
-      .action-btn {
-        padding: 10px 20px;
-        background-color: rgba(200, 1, 80, 1);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: bold;
-        text-decoration: none;
-      }
-      .action-btn:hover { background-color: rgb(194, 50, 108); }
-      .action-btn.secondary { background-color: #6c757d; }
-      .action-btn.secondary:hover { background-color: #5a6268; }
-
-      .info-alert {
-        text-align: center;
-        margin-bottom: 20px;
-        color: #666;
-        font-size: 0.95rem;
-      }
-
-      /* 테이블 스타일 */
-      .table-card {
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 0;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-      }
-
-      table { width: 100%; border-collapse: collapse; text-align: left; }
-      th, td { padding: 15px; border-bottom: 1px solid #eee; }
-      th { background-color: #f1f1f1; color: #34495e; font-weight: bold; }
-      tr:last-child td { border-bottom: none; }
-      tr:hover { background-color: #fafafa; }
-
-      .status-select {
-        padding: 6px 10px;
-        border-radius: 4px;
-        border: 1px solid #ccc;
-        cursor: pointer;
-        font-size: 0.9rem;
-      }
-
-      /* 페이지네이션 */
-      .pagination {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        list-style: none;
-        padding: 0;
-        margin-top: 30px;
-        gap: 5px;
-      }
-      .pagination li { display: inline; }
-      .pagination a, .pagination span {
-        padding: 8px 16px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        text-decoration: none;
-        color: #333;
-        background: #fff;
-        transition: all 0.2s;
-      }
-      .pagination a:hover { background-color: #f1f1f1; }
-      .pagination .active span {
-        background-color: rgba(200, 1, 80, 1);
-        color: white;
-        border-color: rgba(200, 1, 80, 1);
-      }
-      .pagination .disabled a { color: #ccc; pointer-events: none; }
-      .footer { text-align: center; font-size: 12px; margin-top: 40px; padding: 20px 0; color: #666; }
-
-      @media (max-width: 768px) {
-        /* footer.html 이 body 를 flex column 으로 만들어서, margin:auto 로 가운데 둔 컨테이너는 표 내용만큼 넓어져 화면 밖으로 넘친다 → 폭을 화면에 고정 */
-        .container { width: 100%; box-sizing: border-box; margin: 20px auto; padding: 12px; }
-        .admin-bar { flex-direction: column; gap: 10px; text-align: center; }
-        .form-section { flex-direction: column; }
-        .search-input { width: 100%; }
-        .action-btn { width: 100%; }
-        th, td { padding: 10px 5px; font-size: 0.9rem; }
-      }
-    </style>
-  {% include "partials/pwa_head.html" %}
+    /* 저장 상태 알림 - 화면 아래에 잠깐 떠 있다 사라진다 */
+    .toast {
+      position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 60;
+      transform: translate(-50%, 12px); opacity: 0; pointer-events: none;
+      display: flex; align-items: center; gap: 10px; max-width: calc(100% - 32px);
+      padding: 10px 16px; border-radius: 999px; background: #2b2b2b; color: #fff;
+      font-size: 13px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); transition: opacity .2s, transform .2s;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .toast .badge { background: rgba(255,255,255,0.14); color: #fff; }
+    .toast.ok .badge { background: var(--success); }
+    .toast.fail .badge { background: var(--danger); }
+  </style>
 </head>
 <body>
+  {% include "partials/admin_header.html" %}
 
-<div class="container">
-    <h1>PCSS 한국인 확률값 관리</h1>
+  <main class="admin-main">
+    <div class="admin-wrap">
+      <div class="page-head">
+        <div>
+          <h1>한국인 확률값</h1>
+          <p class="page-sub">이름별 한국인 확률값입니다. 상태를 바꾸면 바로 저장되고, 0.8 이상이면 검색에서 한국인으로 분류됩니다.</p>
+        </div>
+        <div class="page-actions">
+          <a class="btn btn-ghost btn-sm" href="/author/manage">이름 요청 보기</a>
+        </div>
+      </div>
 
-    <div class="admin-bar">
-        <span class="admin-info">Admin: {{ email }}</span>
-        <a href="/author/manage" class="nav-btn">← Go to Requests</a>
-    </div>
-
-    <div class="status" id="autosave-status">
-        <div id="autosave-text" style="min-width: 0;"></div>
-        <div class="badge" id="autosave-badge">저장</div>
-    </div>
-
-    <form method="get" action="/author/manage/names" class="form-section">
-        <input type="text" name="q" class="search-input" placeholder="Search by name..." value="{{ q }}">
-        <button class="action-btn" type="submit">Search</button>
-        {% if q %}
-            <a href="/author/manage/names" class="action-btn secondary">Reset</a>
-        {% endif %}
-    </form>
-
-    <div class="info-alert">
-        Total <strong>{{ total_count }}</strong> names found. (Page: {{ page }} / {{ total_pages }})
-    </div>
-
-    <div class="table-card">
-        <div class="table-scroll" style="overflow-x: auto;">
-        <table>
+      <section class="card list-card">
+        <header class="list-head">
+          <div class="list-title">
+            <h2>{{ '검색 결과' if q else '전체 이름' }}</h2>
+            <span class="count">{{ "{:,}".format(total_count) }}</span>
+            {% if q %}<span class="list-sub">“{{ q }}”</span>{% endif %}
+          </div>
+        </header>
+        <form method="get" action="/author/manage/names" class="toolbar">
+          <input type="search" name="q" class="input input-search" placeholder="이름으로 검색 (부분 일치)" value="{{ q }}">
+          <button class="btn btn-primary btn-sm" type="submit">검색</button>
+          {% if q %}<a href="/author/manage/names" class="btn btn-ghost btn-sm">초기화</a>{% endif %}
+          <span class="toolbar-meta">{{ page }} / {{ total_pages or 1 }} 페이지 · 페이지당 100개</span>
+        </form>
+        <div class="table-wrap">
+          <table class="table">
             <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Current Score</th>
-                    <th>Update Status</th>
-                    <th>Last Updated</th>
-                </tr>
+              <tr>
+                <th>이름</th>
+                <th class="num">현재 점수</th>
+                <th>상태</th>
+                <th>마지막 수정</th>
+              </tr>
             </thead>
             <tbody>
             {% for author in authors %}
-                <tr>
-                    <td><strong>{{ author.name }}</strong></td>
-                    <td class="score-cell">{{ author.score }}</td>
-                    <td>
-                        <select class="status-select" 
-                                onchange="updateStatus(this, '{{ author.name }}')"
-                                style="width: 160px; {% if author.score >= 0.8 %}background-color: #e8f5e9; color: #1b5e20;{% else %}background-color: #fff; color: #333;{% endif %}">
-                            <option value="1" {% if author.score >= 0.8 %}selected{% endif %}>Korean (1.0)</option>
-                            <option value="0" {% if author.score < 0.8 %}selected{% endif %}>Others (0.0)</option>
-                        </select>
-                    </td>
-                    <td style="color: #888; font-size: 0.85rem;">
-                        {{ author.updated_at.strftime('%Y-%m-%d %H:%M') if author.updated_at else '-' }}
-                    </td>
-                </tr>
+              <tr>
+                <td style="font-weight: 700; color: var(--heading);">{{ author.name }}</td>
+                <td class="num score-cell">{{ author.score }}</td>
+                <td>
+                  <select class="input status-select {{ 'is-korean' if author.score >= 0.8 else '' }}"
+                          data-name="{{ author.name }}" onchange="updateStatus(this)">
+                    <option value="1" {% if author.score >= 0.8 %}selected{% endif %}>한국인 (1.0)</option>
+                    <option value="0" {% if author.score < 0.8 %}selected{% endif %}>기타 (0.0)</option>
+                  </select>
+                </td>
+                <td class="tnum nowrap faint">{{ author.updated_at.strftime('%Y-%m-%d %H:%M') if author.updated_at else '-' }}</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="4" class="empty">{{ '검색 결과가 없습니다.' if q else '등록된 이름이 없습니다.' }}</td></tr>
             {% endfor %}
             </tbody>
-        </table>
+          </table>
         </div>
+        {% if total_pages > 1 %}
+        <div class="list-foot pager">
+          <a class="btn btn-ghost btn-sm {{ 'is-disabled' if page <= 1 else '' }}" href="/author/manage/names?page={{ page - 1 }}&q={{ q|urlencode }}">&lsaquo; 이전</a>
+          <span class="pager-label">{{ page }} / {{ total_pages }}</span>
+          <a class="btn btn-ghost btn-sm {{ 'is-disabled' if page >= total_pages else '' }}" href="/author/manage/names?page={{ page + 1 }}&q={{ q|urlencode }}">다음 &rsaquo;</a>
+        </div>
+        {% endif %}
+      </section>
     </div>
+  </main>
 
-    <ul class="pagination">
-        <li class="{% if page <= 1 %}disabled{% endif %}">
-            <a href="/author/manage/names?page={{ page - 1 }}&q={{ q }}">Previous</a>
-        </li>
-        <li class="active">
-            <span>{{ page }}</span>
-        </li>
-        <li class="{% if page >= total_pages %}disabled{% endif %}">
-            <a href="/author/manage/names?page={{ page + 1 }}&q={{ q }}">Next</a>
-        </li>
-    </ul>
-</div>
+  <div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-text"></span><span class="badge" id="toast-badge"></span></div>
 
 <script>
-    // 알림창 제어 타이머 변수
-    let _statusHideTimer = null;
-
-    // 알림창 상태 설정 함수 (구독 관리 페이지와 동일 로직)
+    let _toastTimer = null;
     function setStatus(mode, text, badgeText) {
-        const box = document.getElementById("autosave-status");
-        const msg = document.getElementById("autosave-text");
-        const badge = document.getElementById("autosave-badge");
-        if (!box || !msg || !badge) return;
-
-        // 기존 클래스 제거 후 새 모드 추가
-        box.classList.remove("saving", "ok", "fail");
+        const box = document.getElementById("toast");
+        box.classList.remove("ok", "fail");
         if (mode) box.classList.add(mode);
-
-        msg.textContent = text || "";
-        badge.textContent = badgeText || "저장";
-        box.style.display = "flex"; // 보이게 설정
-
-        // 기존 타이머 취소
-        clearTimeout(_statusHideTimer);
-
-        // 2.5초 뒤에 자동으로 사라지게 설정 (ok나 fail일 때만)
-        if (mode === 'ok' || mode === 'fail') {
-            _statusHideTimer = setTimeout(() => {
-                box.style.display = 'none';
-            }, 2500);
+        document.getElementById("toast-text").textContent = text || "";
+        document.getElementById("toast-badge").textContent = badgeText || "";
+        box.classList.add("show");
+        clearTimeout(_toastTimer);
+        if (mode === "ok" || mode === "fail") {
+            _toastTimer = setTimeout(() => box.classList.remove("show"), 2500);
         }
     }
 
@@ -319,78 +121,38 @@
         return "";
     }
 
-    async function updateStatus(selectElement, name) {
-        const isKorean = selectElement.value === "1";
-        const originalBg = selectElement.style.backgroundColor;
-        const originalColor = selectElement.style.color;
-        
-        // 1. 저장 중 상태 표시
-        setStatus("saving", `'${name}' 상태 업데이트 중...`, "저장 중");
-        selectElement.style.backgroundColor = "#fff3cd"; 
-        selectElement.style.color = "#856404";
-        selectElement.disabled = true;
+    async function updateStatus(sel) {
+        const name = sel.dataset.name;
+        const isKorean = sel.value === "1";
 
-        let url = "";
-        let method = "";
+        setStatus("saving", `'${name}' 저장 중...`, "저장 중");
+        sel.classList.add("is-saving");
+        sel.disabled = true;
 
-        if (isKorean) {
-            url = `/author/korean/${encodeURIComponent(name)}`;
-            method = "POST";
-        } else {
-            url = `/author/korean/${encodeURIComponent(name)}`;
-            method = "DELETE";
-        }
-        const csrfToken = getCsrfToken();
         try {
-            const response = await fetch(url, {
-                method: method,
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'x-csrftoken': csrfToken
-                }
+            const response = await fetch(`/author/korean/${encodeURIComponent(name)}`, {
+                method: isKorean ? "POST" : "DELETE",
+                headers: { "Content-Type": "application/json", "x-csrftoken": getCsrfToken() },
             });
-
             if (response.ok) {
-                // 2. 성공 시 알림 표시
-                setStatus("ok", `'${name}' 업데이트 완료`, "저장됨");
-
-                // 스타일 업데이트
-                if (isKorean) {
-                    selectElement.style.backgroundColor = "#e8f5e9";
-                    selectElement.style.color = "#1b5e20";
-                } else {
-                    selectElement.style.backgroundColor = "#ffffff";
-                    selectElement.style.color = "#333333";
-                }
-
-                const td = selectElement.parentElement;
-                const scoreCell = td.previousElementSibling; 
-                if (scoreCell) {
-                    scoreCell.textContent = isKorean ? "1" : "0";
-                }
+                setStatus("ok", `'${name}' → ${isKorean ? "한국인" : "기타"}`, "저장됨");
+                sel.classList.toggle("is-korean", isKorean);
+                const scoreCell = sel.closest("tr").querySelector(".score-cell");
+                if (scoreCell) scoreCell.textContent = isKorean ? "1" : "0";
             } else {
-                // 3. 실패 시 알림 표시
-                const errText = await response.text();
-                setStatus("fail", `업데이트 실패: ${errText}`, "오류");
-                
-                // 원복
-                selectElement.value = isKorean ? "0" : "1";
-                selectElement.style.backgroundColor = originalBg;
-                selectElement.style.color = originalColor;
+                setStatus("fail", `저장 실패: ${await response.text()}`, "오류");
+                sel.value = isKorean ? "0" : "1";
             }
         } catch (error) {
             console.error("Error:", error);
-            setStatus("fail", "네트워크 오류 발생", "실패");
-            
-            // 원복
-            selectElement.value = isKorean ? "0" : "1";
-            selectElement.style.backgroundColor = originalBg;
-            selectElement.style.color = originalColor;
+            setStatus("fail", "네트워크 오류가 발생했습니다", "실패");
+            sel.value = isKorean ? "0" : "1";
         } finally {
-            selectElement.disabled = false;
+            sel.classList.remove("is-saving");
+            sel.disabled = false;
         }
     }
 </script>
-    {% include "partials/footer.html" %}
-  </body>
+  {% include "partials/footer.html" %}
+</body>
 </html>

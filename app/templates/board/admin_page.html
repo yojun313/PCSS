@@ -1,51 +1,48 @@
 <!doctype html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
-    <title>{% if mode == 'edit' %}공지사항 수정{% else %}공지사항 작성{% endif %} - PCSS</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333; }
-        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1 { color: #c80150; margin-top: 0; }
-        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; }
-        input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        textarea { height: 300px; resize: vertical; }
-        .btn-group { margin-top: 20px; text-align: right; }
-        button { padding: 10px 20px; background: #c80150; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        button:hover { background: #a00140; }
-        a.cancel { color: #666; text-decoration: none; margin-right: 15px; }
-
-        /* 반응형 디자인 */
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            .container {
-                padding: 20px;
-            }
-        }
-    </style>
-  {% include "partials/pwa_head.html" %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>{% if mode == 'edit' %}공지사항 수정{% else %}공지사항 작성{% endif %} - PCSS</title>
+  {% include "partials/admin_head.html" %}
+  <style>
+    .notice-form textarea.input { min-height: 420px; line-height: 1.7; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>{% if mode == 'edit' %}공지사항 수정{% else %}공지사항 작성{% endif %}</h1>
-        
-        <form method="post" action="{{ ('/board/notice/edit/' + notice['_id']|string) if mode == 'edit' else '/board/notice/write' }}">
-            <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
-            <label>제목</label>
-            <input type="text" name="title" required placeholder="제목 입력" value="{{ notice.title if notice else '' }}">
-            
-            <label>내용</label>
-            <textarea name="content" required placeholder="내용 입력">{{ notice.content if notice else '' }}</textarea>
-            
-            <div class="btn-group">
-                <a href="/board" class="cancel">취소</a>
-                <button type="submit">{% if mode == 'edit' %}수정 완료{% else %}등록{% endif %}</button>
-            </div>
+  {% include "partials/admin_header.html" %}
+
+  <main class="admin-main">
+    <div class="admin-wrap">
+      <div class="page-head">
+        <div>
+          <h1>{% if mode == 'edit' %}공지사항 수정{% else %}공지사항 작성{% endif %}</h1>
+          <p class="page-sub">게시판 공지 탭에 올라갑니다.</p>
+        </div>
+        <div class="page-actions">
+          <a class="btn btn-ghost btn-sm" href="/board">게시판으로</a>
+        </div>
+      </div>
+
+      <section class="card card-pad">
+        <form class="notice-form" method="post" action="{{ ('/board/notice/edit/' + notice['_id']|string) if mode == 'edit' else '/board/notice/write' }}">
+          <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
+          <div class="field">
+            <label for="title">제목</label>
+            <input class="input" id="title" type="text" name="title" required placeholder="제목을 입력하세요" value="{{ notice.title if notice else '' }}">
+          </div>
+          <div class="field">
+            <label for="content">내용</label>
+            <textarea class="input" id="content" name="content" required placeholder="내용을 입력하세요">{{ notice.content if notice else '' }}</textarea>
+          </div>
+          <div class="input-row" style="justify-content: flex-end;">
+            <a href="/board" class="btn btn-ghost">취소</a>
+            <button type="submit" class="btn btn-primary">{% if mode == 'edit' %}수정 완료{% else %}등록{% endif %}</button>
+          </div>
         </form>
+      </section>
     </div>
-    {% include "partials/footer.html" %}
-  </body>
+  </main>
+  {% include "partials/footer.html" %}
+</body>
 </html>

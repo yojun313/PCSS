@@ -4,166 +4,142 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <title>PCSS 게시판</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f9f9f9; color: #333; margin:0; padding:0; }
-        .container { max-width: 1100px; margin: 40px auto; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        h1 { color: #c80150; text-align: center; margin-bottom: 30px; }
-        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 40px; color: #34495e; display: flex; justify-content: space-between; align-items: center; }
-        
-        /* 버튼 스타일 */
-        .btn { display: inline-block; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 13px; font-weight: bold; background-color: #34495e; color: #fff; border:none; cursor: pointer; }
-        .btn:hover { opacity: 0.9; }
-        .btn-write { background-color: #c80150; font-size: 14px; padding: 8px 16px; }
-        
-        /* 관리자용 미니 버튼 */
-        .btn-mini { padding: 4px 8px; font-size: 11px; margin-left: 3px; }
-        .btn-edit { background-color: #34495e; }
-        .btn-delete { background-color: #555; }
-        .btn-update { background-color: #27ae60; border: none; color: white; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 12px; }
-
-        /* 테이블 스타일 */
-        .table-responsive { width: 100%; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; min-width: 500px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
-        th { background-color: #f8f9fa; color: #555; font-weight: bold; }
-        tr:hover { background-color: #f1f1f1; }
-        
-        /* 상태 변경 폼 */
-        .status-form { display: flex; align-items: center; gap: 5px; margin: 0; }
-        .status-select { padding: 4px; font-size: 12px; border-radius: 4px; border: 1px solid #ccc; }
-
-        .title a { text-decoration: none; color: #333; display: block; overflow: hidden; text-overflow: ellipsis; }
-        .title a:hover { color: #c80150; text-decoration: underline; }
-        .no-data { text-align: center; padding: 20px; color: #999; }
-        .home-link { display: block; text-align: center; margin-top: 30px; color: #666; text-decoration: none; }
-
-        /* 반응형 디자인 */
-        @media (max-width: 768px) {
-            /* footer.html 이 body 를 flex column 으로 만들어서, margin:auto 로 가운데 둔 컨테이너는
-               표의 min-width 만큼 넓어져 화면 밖으로 넘친다 → 폭을 화면에 고정 */
-            .container {
-                width: 100%;
-                box-sizing: border-box;
-                margin: 15px auto;
-                padding: 15px;
-            }
-            h2 {
-                flex-wrap: wrap;
-                gap: 10px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="/static/board.css">
   {% include "partials/pwa_head.html" %}
 </head>
 <body>
-    <div class="container">
-        <h1>PCSS 게시판</h1>
+    {% include "partials/app_sidebar.html" %}
+    {% set st_cls = {'처리 중': 'st-doing', '처리 완료': 'st-done'} %}
+    {% set n_new = bugs|selectattr('status', 'equalto', '접수됨')|list|length %}
+    {% set n_doing = bugs|selectattr('status', 'equalto', '처리 중')|list|length %}
+    {% set n_done = bugs|selectattr('status', 'equalto', '처리 완료')|list|length %}
 
-        <h2>
-            공지사항
-            {% if is_admin %}
-                <a href="/board/notice/write" class="btn btn-write">공지 작성</a>
-            {% endif %}
-        </h2>
-        <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 50%;">제목</th>
-                    <th style="width: 15%;">작성자</th>
-                    <th style="width: 15%;">작성일</th>
-                    <th style="width: 10%;">조회</th>
-                    {% if is_admin %}
-                    <th style="width: 10%;">관리</th>
-                    {% endif %}
-                </tr>
-            </thead>
-            <tbody>
-                {% if notices %}
-                    {% for n in notices %}
-                    <tr>
-                        <td class="title">
-                            <a href="/board/notice/{{ n['_id'] }}">{{ n.title }}</a>
-                        </td>
-                        <td>{{ n.author.split('@')[0] if n.author else '관리자' }}</td>
-                        <td style="color: #888; font-size: 0.9em;">{{ n.created_at.strftime('%Y-%m-%d') }}</td>
-                        <td>{{ n.get('views', 0) }}</td>
+    <div class="container pcss-page">
+        <div class="pcss-ph">
+            <div>
+                <h1>게시판</h1>
+                <p>PCSS 공지사항과 버그 제보 · 기능 건의를 모아 둔 곳입니다. 불편한 점이나 바라는 기능이 있으면 편하게 남겨 주세요.</p>
+            </div>
+            <div class="pcss-ph-actions">
+                {% if is_admin %}<a href="/board/notice/write" class="btn btn-navy">공지 작성</a>{% endif %}
+                <a href="/board/bug/write" class="btn btn-primary">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>제보 · 건의하기
+                </a>
+            </div>
+        </div>
 
-                        {% if is_admin %}
-                        <td>
-                            <div style="display: flex;">
-                                <a href="/board/notice/edit/{{ n['_id'] }}" class="btn btn-mini btn-edit">수정</a>
-                                <form action="/board/notice/delete/{{ n['_id'] }}" method="post" onsubmit="return confirm('삭제하시겠습니까?');" style="margin:0;">
+        <div class="board-layout">
+            <section class="card">
+                <div class="card-head">
+                    <h2>버그 제보 / 건의 <span class="count">{{ bugs|length }}</span></h2>
+                </div>
+                {% if bugs %}
+                <div class="toolbar">
+                    <input type="search" class="search" id="bug-q" placeholder="제목이나 작성자로 찾기">
+                    <div class="seg" id="bug-filter">
+                        <button type="button" class="active" data-f="">전체<span class="n">{{ bugs|length }}</span></button>
+                        <button type="button" data-f="접수됨">접수됨<span class="n">{{ n_new }}</span></button>
+                        <button type="button" data-f="처리 중">처리 중<span class="n">{{ n_doing }}</span></button>
+                        <button type="button" data-f="처리 완료">처리 완료<span class="n">{{ n_done }}</span></button>
+                    </div>
+                </div>
+                <ul class="rows" id="bug-rows">
+                    {% for b in bugs %}
+                    {% set who = b.author.split('@')[0] if b.author else '익명' %}
+                    <li class="row" data-status="{{ b.status or '접수됨' }}" data-q="{{ (b.title ~ ' ' ~ who)|lower }}">
+                        <div class="row-main">
+                            <a class="row-title" href="/board/bug/{{ b['_id'] }}">{{ b.title }}</a>
+                            <div class="row-meta"><span>{{ who }}</span><span>{{ b.created_at.strftime('%Y-%m-%d') }}</span></div>
+                        </div>
+                        <div class="row-side">
+                            {% if is_admin %}
+                            <form action="/board/bug/status/{{ b['_id'] }}" method="post">
+                                <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
+                                <select name="status" class="status-select" onchange="this.form.submit()" aria-label="처리 상태">
+                                    {% for s in ['접수됨', '처리 중', '처리 완료'] %}
+                                    <option value="{{ s }}" {% if (b.status or '접수됨') == s %}selected{% endif %}>{{ s }}</option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                            {% else %}
+                            <span class="badge {{ st_cls.get(b.status, 'st-new') }}">{{ b.status or '접수됨' }}</span>
+                            {% endif %}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div class="empty" id="bug-none" hidden>조건에 맞는 글이 없습니다.</div>
+                {% else %}
+                <div class="empty">
+                    <b>아직 등록된 글이 없습니다</b>
+                    버그를 발견했거나 있었으면 하는 기능이 있다면 첫 글을 남겨 주세요.<br>
+                    <a href="/board/bug/write" class="btn btn-primary btn-sm" style="margin-top: 12px;">제보 · 건의하기</a>
+                </div>
+                {% endif %}
+            </section>
+
+            <aside class="board-side">
+                <section class="card">
+                    <div class="card-head">
+                        <h2>공지사항 <span class="count">{{ notices|length }}</span></h2>
+                    </div>
+                    {% if notices %}
+                    <ul class="rows">
+                        {% for n in notices %}
+                        <li class="row notice-row">
+                            <div class="row-main">
+                                <a class="row-title" href="/board/notice/{{ n['_id'] }}">{{ n.title }}</a>
+                                <div class="row-meta">
+                                    <span>{{ n.created_at.strftime('%Y-%m-%d') }}</span>
+                                    <span>조회 {{ n.get('views', 0) }}</span>
+                                </div>
+                            </div>
+                            {% if is_admin %}
+                            <div class="row-side">
+                                <a href="/board/notice/edit/{{ n['_id'] }}" class="btn btn-sm">수정</a>
+                                <form action="/board/notice/delete/{{ n['_id'] }}" method="post" onsubmit="return confirm('이 공지를 삭제할까요?');">
                                     <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
-                                    <button type="submit" class="btn btn-mini btn-delete">삭제</button>
+                                    <button type="submit" class="btn btn-sm btn-danger">삭제</button>
                                 </form>
                             </div>
-                        </td>
-                        {% endif %}
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr><td colspan="{% if is_admin %}5{% else %}4{% endif %}" class="no-data">등록된 공지사항이 없습니다.</td></tr>
-                {% endif %}
-            </tbody>
-        </table>
-        </div>
-
-        <h2 style="margin-top: 50px;">
-            버그 제보 / 건의
-            <a href="/board/bug/write" class="btn btn-write">글쓰기</a>
-        </h2>
-        <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 50%;">제목</th>
-                    <th style="width: 15%;">작성자</th>
-                    <th style="width: 15%;">작성일</th>
-                    <th style="width: 20%;">상태</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if bugs %}
-                    {% for b in bugs %}
-                    <tr>
-                        <td class="title">
-                            <a href="/board/bug/{{ b['_id'] }}">{{ b.title }}</a>
-                        </td>
-                        <td>{{ b.author.split('@')[0] if b.author else '익명' }}</td>
-                        <td style="color: #888; font-size: 0.9em;">{{ b.created_at.strftime('%Y-%m-%d') }}</td>
-                        <td>
-                            {% if is_admin %}
-                                <form action="/board/bug/status/{{ b['_id'] }}" method="post" class="status-form">
-                                    <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
-                                    <select name="status" class="status-select">
-                                        <option value="접수됨" {% if b.status == '접수됨' %}selected{% endif %}>접수됨</option>
-                                        <option value="처리 중" {% if b.status == '처리 중' %}selected{% endif %}>처리 중</option>
-                                        <option value="처리 완료" {% if b.status == '처리 완료' %}selected{% endif %}>처리 완료</option>
-                                    </select>
-                                    <button type="submit" class="btn-update">변경</button>
-                                </form>
-                            {% else %}
-                                {% if b.status == '처리 중' %}
-                                    <span style="font-size:12px; padding:3px 6px; border-radius:4px; background:#f39c12; color:white;">처리 중</span>
-                                {% elif b.status == '처리 완료' %}
-                                    <span style="font-size:12px; padding:3px 6px; border-radius:4px; background:#27ae60; color:white;">처리 완료</span>
-                                {% else %}
-                                    <span style="font-size:12px; padding:3px 6px; border-radius:4px; background:#95a5a6; color:white;">접수됨</span>
-                                {% endif %}
                             {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr><td colspan="4" class="no-data">등록된 글이 없습니다.</td></tr>
-                {% endif %}
-            </tbody>
-        </table>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="empty" style="padding: 32px 18px;">등록된 공지사항이 없습니다.</div>
+                    {% endif %}
+                </section>
+            </aside>
         </div>
-
-        <a href="/" class="home-link">← 메인 페이지로 돌아가기</a>
     </div>
+
+    <script>
+      (function () {
+        const q = document.getElementById("bug-q"), seg = document.getElementById("bug-filter");
+        if (!q || !seg) return;
+        const rows = Array.from(document.querySelectorAll("#bug-rows .row"));
+        let f = "";
+        function apply() {
+          const v = q.value.trim().toLowerCase();
+          let shown = 0;
+          rows.forEach((r) => {
+            const ok = (!v || r.dataset.q.includes(v)) && (!f || r.dataset.status === f);
+            r.hidden = !ok;
+            if (ok) shown++;
+          });
+          document.getElementById("bug-none").hidden = shown > 0;
+        }
+        q.addEventListener("input", apply);
+        seg.addEventListener("click", (e) => {
+          const b = e.target.closest("button");
+          if (!b) return;
+          seg.querySelectorAll("button").forEach((x) => x.classList.toggle("active", x === b));
+          f = b.dataset.f;
+          apply();
+        });
+      })();
+    </script>
     {% include "partials/footer.html" %}
   </body>
 </html>

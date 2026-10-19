@@ -3,105 +3,54 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
-    <title>버그 제보 - PCSS</title>
-    <style>
-      /* 기본 스타일은 공지 작성과 동일 */
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f9f9f9;
-        padding: 20px;
-      }
-      .container {
-        max-width: 800px;
-        margin: 0 auto;
-        background: #fff;
-        padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      }
-      h1 {
-        color: #34495e;
-        margin-top: 0;
-      }
-      label {
-        font-weight: bold;
-        display: block;
-        margin-top: 15px;
-        margin-bottom: 5px;
-      }
-      input[type="text"],
-      textarea {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        box-sizing: border-box;
-      }
-      textarea {
-        height: 200px;
-        resize: vertical;
-      }
-      .btn-group {
-        margin-top: 20px;
-        text-align: right;
-      }
-      button {
-        padding: 10px 20px;
-        background: #34495e;
-        color: #fff;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 16px;
-      }
-      button:hover {
-        background: #2c3e50;
-      }
-      a.cancel {
-        color: #666;
-        text-decoration: none;
-        margin-right: 15px;
-      }
-
-      /* 반응형 디자인 */
-      @media (max-width: 768px) {
-        body {
-          padding: 10px;
-        }
-        .container {
-          padding: 20px;
-        }
-      }
-    </style>
+    <title>{% if mode == 'edit' %}글 수정{% else %}버그 제보 / 건의{% endif %} - PCSS</title>
+    <link rel="stylesheet" href="/static/board.css">
     {% include "partials/pwa_head.html" %}
   </head>
   <body>
-    <div class="container">
-      <h1>
-        {% if mode == 'edit' %}글 수정{% else %}버그 제보 / 건의{% endif %}
-      </h1>
-      <form method="post">
-        <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
-        <label>제목</label>
-        <input
-          type="text"
-          name="title"
-          required
-          value="{{ bug.title if bug else '' }}"
-        />
+    {% include "partials/app_sidebar.html" %}
+    <div class="container narrow">
+      <nav class="crumb"><a href="/board">게시판</a><span>›</span><span>{% if mode == 'edit' %}글 수정{% else %}새 글{% endif %}</span></nav>
 
-        <label>내용</label>
-        <textarea name="content" required>
-{{ bug.content if bug else '' }}</textarea
-        >
-
-        <div class="btn-group">
-          <a href="/board" class="cancel">취소</a>
-          <button type="submit">
-            {% if mode == 'edit' %}수정 완료{% else %}등록{% endif %}
-          </button>
+      <div class="card">
+        <div class="post-head" style="padding-bottom: 14px;">
+          <h1 style="margin-top: 0;">{% if mode == 'edit' %}글 수정{% else %}버그 제보 / 건의{% endif %}</h1>
+          <div class="post-meta"><span>작성자 {{ email }}</span></div>
         </div>
-      </form>
+
+        <form method="post">
+          <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
+          <div class="form-body">
+            {% if mode != 'edit' %}
+            <div class="tips">
+              <b>이렇게 적어 주시면 빨리 확인할 수 있어요</b>
+              <ul>
+                <li>버그라면: 어떤 페이지에서, 무엇을 했을 때, 어떤 결과가 나왔는지</li>
+                <li>검색 결과 문제라면: 학회 · 연도 · 기준값 등 검색 조건 (검색 조건 링크 복사를 붙여 넣으면 좋습니다)</li>
+                <li>기능 건의라면: 어떤 상황에서 왜 필요한지</li>
+              </ul>
+            </div>
+            {% endif %}
+
+            <div class="field">
+              <label for="title">제목</label>
+              <input class="input" id="title" type="text" name="title" required maxlength="200" placeholder="한 줄로 요약해 주세요" value="{{ bug.title if bug else '' }}" />
+            </div>
+
+            <div class="field">
+              <label for="content">내용</label>
+              <textarea class="input" id="content" name="content" required placeholder="내용을 입력하세요">{{ bug.content if bug else '' }}</textarea>
+              <div class="hint">작성한 글은 다른 사용자도 볼 수 있습니다. 개인정보는 적지 말아 주세요.</div>
+            </div>
+          </div>
+
+          <div class="post-foot">
+            <a href="{{ '/board/bug/' ~ bug['_id'] if mode == 'edit' and bug else '/board' }}" class="btn">취소</a>
+            <span class="spacer"></span>
+            <button type="submit" class="btn btn-primary">{% if mode == 'edit' %}수정 완료{% else %}등록{% endif %}</button>
+          </div>
+        </form>
+      </div>
     </div>
     {% include "partials/footer.html" %}
   </body>

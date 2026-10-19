@@ -392,6 +392,7 @@
     {% include "partials/pwa_head.html" %}
   </head>
   <body>
+    {% include "partials/app_sidebar.html" %}
     <div class="container">
       <div class="main-content">
         
@@ -507,22 +508,6 @@
 
         <div class="select-all-container">
           <button class="select-btn" id="toggle-select-btn">전체 선택</button>
-          <a class="select-btn" id="ranking-btn" href="/rankings">연구자 랭킹</a>
-
-          {% if email %}
-            <a class="select-btn" href="/profile">프로필</a>
-            <form action="/auth/logout" method="post" style="display: inline-block;" onsubmit="return confirm('로그아웃 하시겠습니까?');">
-              <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
-              <button type="submit" class="select-btn">로그아웃</button>
-            </form>
-          {% else %}
-            <a class="select-btn" href="/auth/login">로그인</a>
-            <a class="select-btn" href="/auth/signup">회원가입</a>
-          {% endif %}
-        
-          <a class="select-btn" id="subscription-manage-btn" href="/subscriptions/manage">구독 관리</a>
-          <a class="select-btn" id="board-btn" href="/board">게시판</a>
-          <a class="select-btn" id="author-search-btn" href="/author/search">저자 검색</a>
         </div>        
 
         <div class="grid" id="conference-grid"></div>

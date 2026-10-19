@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Form
+from fastapi import APIRouter, Request, Form, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from datetime import datetime, timedelta, timezone
 from app.core.templates import templates
@@ -7,6 +7,7 @@ from app.libs.email import config_summary, probe, send_mail
 from app.db import (
     admin_col,
     conf_col,
+    conf_stats_col,
     log_col,
     req_korean_col,
     subscription_col,
@@ -342,4 +343,116 @@ async def mail_test_send(request: Request, receiver: str = Form(...)):
         email,
         receiver=receiver,
         message=f"{receiver} 주소로 테스트 메일을 발송했습니다. 수신함을 확인해 주세요.",
+    )
+
+
+# ---------------------------
+# 학회 제출/채택 통계 입력
+# ---------------------------
+def _stats_guard(request: Request, path: str = "/admin/conf-stats"):
+    email, status_or_resp = _require_admin_or_redirect(request, path)
+    if isinstance(status_or_resp, RedirectResponse):
+        return None, status_or_resp
+    if status_or_resp is None:
+        return None, templates.TemplateResponse(
+            request=request,
+            name="admin/access_denied.html",
+            context={"error": "관리자 권한이 없습니다."},
+            status_code=403,
+        )
+    return email, None
+
+
+def _opt_int(v: str):
+    v = (v or "").strip().replace(",", "")
+    return int(v) if v.isdigit() else None
+
+
+@router.get("/conf-stats", response_class=HTMLResponse)
+async def conf_stats_page(
+    request: Request, conference: str = Query(""), msg: str = Query("")
+):
+    from app.services.conf_stats_service import list_rows
+
+    email, err = _stats_guard(request)
+    if err:
+        return err
+    names = sorted(
+        {(c.get("name") or "").strip() for c in conf_col.find({}, {"name": 1})} - {""}
+    )
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/conf_stats.html",
+        context={
+            "email": email,
+            "names": names,
+            "conference": conference,
+            "rows": list_rows(conference),
+            "total": conf_stats_col.count_documents({}),
+            "msg": msg,
+            "this_year": datetime.now().year,
+        },
+    )
+
+
+@router.post("/conf-stats/save")
+async def conf_stats_save(
+    request: Request,
+    conference: str = Form(...),
+    year: int = Form(...),
+    submitted: str = Form(""),
+    accepted: str = Form(""),
+    rate: str = Form(""),
+    source: str = Form(""),
+    note: str = Form(""),
+):
+    email, err = _stats_guard(request)
+    if err:
+        return err
+    s, a = _opt_int(submitted), _opt_int(accepted)
+    try:
+        r = float(rate) if rate.strip() else None
+    except ValueError:
+        r = None
+    back = f"/admin/conf-stats?conference={conference}"
+    if s is None and a is None and r is None:
+        return RedirectResponse(
+            f"{back}&msg=값을 하나 이상 입력하세요", status_code=303
+        )
+    if s is not None and a is not None and a > s:
+        return RedirectResponse(
+            f"{back}&msg=채택 수가 제출 수보다 클 수 없습니다", status_code=303
+        )
+    conf_stats_col.update_one(
+        {"conference": conference, "year": year},
+        {
+            "$set": {
+                "submitted": s,
+                "accepted": a,
+                "rate": r,
+                "source": source.strip(),
+                "confidence": "official" if source.strip() else "",
+                "note": note.strip(),
+                "manual": True,  # 일괄 적재 스크립트가 덮어쓰지 않는다
+                "updated_at": datetime.now(timezone.utc),
+            }
+        },
+        upsert=True,
+    )
+    return RedirectResponse(
+        f"{back}&msg={conference} {year} 저장했습니다", status_code=303
+    )
+
+
+@router.post("/conf-stats/delete")
+async def conf_stats_delete(
+    request: Request, conference: str = Form(...), year: int = Form(...)
+):
+    email, err = _stats_guard(request)
+    if err:
+        return err
+    conf_stats_col.delete_one({"conference": conference, "year": year})
+    return RedirectResponse(
+        f"/admin/conf-stats?conference={conference}&msg={conference} {year} 삭제했습니다",
+        status_code=303,
     )

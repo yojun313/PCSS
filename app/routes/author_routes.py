@@ -3,11 +3,17 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from urllib.parse import quote
 from fastapi import Form
 from app.core.templates import templates
-from app.services.insights_service import ROLE_LABELS, compute_author_page, get_profiles
+from app.services.insights_service import (
+    ROLE_LABELS,
+    compute_author_page,
+    compute_rankings,
+    get_profiles,
+)
 from app.db import name_col, req_korean_col, authors_col
 from app.data import name_dict, author_list
 from datetime import datetime, timezone
 from app.libs.auth import _require_admin_or_redirect
+import asyncio
 import re
 import math
 
@@ -61,10 +67,21 @@ async def author_search_input_page(request: Request):
     """
     저자 이름을 검색하여 통계 페이지로 이동하기 위한 입력 폼 페이지
     """
+    # 검색창 아래에 보여 줄 '최근 5년 1저자 논문이 많은 연구자' - 랭킹 집계 캐시를 그대로 쓴다.
+    # 캐시가 비어 있으면 집계가 길어질 수 있어 잠깐만 기다리고, 넘치면 그냥 비워 둔다.
+    top = []
+    try:
+        end = datetime.now().year
+        data = await asyncio.wait_for(
+            compute_rankings("all", end - 4, end, "first", 0.7, False, limit=12), 3
+        )
+        top = data.get("rows", [])
+    except Exception:
+        top = []
     return templates.TemplateResponse(
         request=request,
         name="search/author_search_input.html",
-        context={"request": request},
+        context={"request": request, "top": top, "top_start": datetime.now().year - 4},
     )
 
 

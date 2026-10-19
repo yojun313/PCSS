@@ -3,57 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
-    <title>{{ bug.title }} - 버그제보</title>
-    <style>
-        body { font-family: Arial, sans-serif; background: #f9f9f9; padding: 20px; box-sizing: border-box; }
-        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); box-sizing: border-box; }
-        .header { border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
-        h1 { margin: 0; color: #34495e; font-size: 24px; }
-        .meta { color: #888; font-size: 13px; margin-top: 10px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 5px; }
-        .content { line-height: 1.6; min-height: 150px; white-space: pre-wrap; color: #333; }
-
-        .actions { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
-        .btn { text-decoration: none; padding: 8px 15px; border-radius: 4px; font-size: 14px; cursor: pointer; border: none; }
-        .btn-back { background: #eee; color: #333; }
-        .btn-edit { background: #34495e; color: #fff; }
-        .btn-delete { background: #c80150; color: #fff; }
-
-        /* 반응형 디자인 */
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            .container {
-                padding: 20px;
-            }
-        }
-    </style>
+    <title>{{ bug.title }} - 버그 제보</title>
+    <link rel="stylesheet" href="/static/board.css">
   {% include "partials/pwa_head.html" %}
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>{{ bug.title }}</h1>
-            <div class="meta">
-                <span>작성자: {{ bug.author }}</span>
-                <span>{{ bug.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
-            </div>
-        </div>
-        
-        <div class="content">{{ bug.content }}</div>
+    {% include "partials/app_sidebar.html" %}
+    {% set st_cls = {'처리 중': 'st-doing', '처리 완료': 'st-done'} %}
+    <div class="container narrow">
+        <nav class="crumb"><a href="/board">게시판</a><span>›</span><span>버그 제보 / 건의</span></nav>
 
-        <div class="actions">
-            <a href="/board" class="btn btn-back">목록</a>
-            
-            {% if is_owner %}
-                <a href="/board/bug/edit/{{ bug['_id'] }}" class="btn btn-edit">수정</a>
-                
+        <article class="card">
+            <header class="post-head">
+                <span class="badge {{ st_cls.get(bug.status, 'st-new') }}">{{ bug.status or '접수됨' }}</span>
+                <h1>{{ bug.title }}</h1>
+                <div class="post-meta">
+                    <span>{{ bug.author.split('@')[0] if bug.author else '익명' }}</span>
+                    <span>작성 {{ bug.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    {% if bug.updated_at and bug.updated_at.strftime('%Y%m%d%H%M') != bug.created_at.strftime('%Y%m%d%H%M') %}
+                    <span>수정 {{ bug.updated_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    {% endif %}
+                </div>
+            </header>
+
+            <div class="post-body">{{ bug.content }}</div>
+
+            <footer class="post-foot">
+                <a href="/board" class="btn">← 목록</a>
+                <span class="spacer"></span>
+                {% if is_owner %}
+                <a href="/board/bug/edit/{{ bug['_id'] }}" class="btn">수정</a>
                 <form action="/board/bug/delete/{{ bug['_id'] }}" method="post" onsubmit="return confirm('정말 삭제하시겠습니까?');">
                     <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
-                    <button type="submit" class="btn btn-delete">삭제</button>
+                    <button type="submit" class="btn btn-danger">삭제</button>
                 </form>
-            {% endif %}
-        </div>
+                {% endif %}
+            </footer>
+        </article>
     </div>
     {% include "partials/footer.html" %}
   </body>

@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+    <title>PCSS 학회 통계</title>
+    <script src="/static/vendor/chart.umd.min.js"></script>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background-color: #f9f9f9; color: #333; font-size: 14px; }
+      .container { max-width: 2400px; width: 100%; box-sizing: border-box; margin: 24px auto; padding: 0 20px; }
+      .panel { background: #fff; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,.06); padding: 20px; margin-bottom: 16px; }
+      h1 { color: #c80150; margin: 0 0 6px; font-size: 26px; }
+      .lead { color: #666; font-size: 13px; line-height: 1.6; margin: 0; }
+      .topnav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+      .topnav a { padding: 7px 14px; background: #34495e; color: #fff; border-radius: 4px; text-decoration: none; font-size: 13px; }
+      .topnav a:hover { background: #2c3e50; }
+
+      .controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+      .controls select, .controls input[type=search] { height: 36px; padding: 0 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; background: #fff; color: #333; box-sizing: border-box; }
+      .controls input[type=search] { flex: 1 1 200px; max-width: 280px; }
+      .seg { max-width: 100%; overflow-x: auto; display: inline-flex; padding: 3px; border: 1px solid #ddd; border-radius: 6px; background: #fff; }
+      .seg button { border: none; background: transparent; padding: 6px 14px; border-radius: 4px; font-size: 13px; font-weight: 700; color: #666; cursor: pointer; white-space: nowrap; }
+      .seg button.active { background: #34495e; color: #fff; }
+      .meta { margin-left: auto; font-size: 12px; color: #999; }
+
+      .chart-box { position: relative; height: 320px; }
+      .chart-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+      .chart-head h2 { margin: 0; font-size: 16px; color: #34495e; }
+      .chart-head button { border: none; background: #f1f3f5; color: #495057; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+      .hint { color: #999; font-size: 13px; padding: 30px 0; text-align: center; }
+
+      .matrix-wrap { overflow: auto; max-height: 75vh; border: 1px solid #eee; border-radius: 6px; }
+      table.matrix { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13px; }
+      .matrix th, .matrix td { padding: 7px 10px; border-bottom: 1px solid #f0f0f0; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+      .matrix thead th { position: sticky; top: 0; z-index: 2; background: #fafafa; color: #777; font-size: 12px; border-bottom: 1px solid #ddd; }
+      .matrix .name { position: sticky; left: 0; z-index: 1; background: #fff; text-align: left; font-weight: 700; color: #34495e; min-width: 150px; border-right: 1px solid #eee; }
+      .matrix thead .name { z-index: 3; background: #fafafa; }
+      .matrix tr.sel .name { background: #fff1f6; }
+      .matrix .kind { text-align: left; color: #999; font-size: 12px; font-weight: 400; max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
+      .matrix .name label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+      .matrix .name input { accent-color: #c80150; }
+      .matrix td.none { color: #ccc; }
+      .matrix tbody tr:hover td { filter: brightness(.97); }
+      .matrix tr.groupRow td { background: #f5f6f8; color: #34495e; font-weight: 700; text-align: left; font-size: 12px; position: sticky; left: 0; }
+      .sparkcol { width: 90px; }
+      .legend { font-size: 12px; color: #777; margin-top: 10px; line-height: 1.7; }
+
+      table.detail { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px; margin-top: 14px; }
+      .detail th, .detail td { padding: 8px 10px; border-bottom: 1px solid #eee; text-align: right; font-variant-numeric: tabular-nums; }
+      .detail th { color: #888; font-size: 12px; background: #fafafa; }
+      .detail td:first-child, .detail th:first-child, .detail td.l, .detail th.l { text-align: left; }
+      .detail a { color: #c80150; text-decoration: none; }
+      .matrix td a.cl { color: inherit; text-decoration: none; display: block; position: relative; }
+      .matrix td a.cl:hover { text-decoration: underline; }
+      .matrix td a.cl::after { content: ""; position: absolute; top: -3px; right: -4px; width: 5px; height: 5px; border-radius: 50%; background: #e8a13c; }
+      .matrix td a.cl.off::after { background: #2e7d32; }
+      .matrix td .nsrc { cursor: help; }
+      .srcs h3 { font-size: 14px; margin: 18px 0 0; color: #34495e; }
+      .badge { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+      .b-off { background: rgba(46,125,50,.1); color: #2e7d32; }
+      .b-agg { background: #fdf3d9; color: #7a5b0a; }
+
+      .workspace { display: block; }
+      @media (min-width: 1500px) {
+        .container { padding: 0 28px; }
+        .workspace { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+        .workspace > .panel { margin-bottom: 0; }
+        #matrix-panel { order: 1; }
+        #chart-panel { order: 2; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+        .matrix-wrap { max-height: calc(100vh - 150px); }
+        .chart-box { height: 340px; }
+      }
+
+      @media (max-width: 767.98px) {
+        .container { padding: 0 12px; margin: 14px auto; }
+        .panel { padding: 14px; }
+        h1 { font-size: 21px; }
+        .meta { margin-left: 0; width: 100%; }
+        .controls select { flex: 1 1 140px; min-width: 0; }
+        .seg button { padding: 6px 10px; }
+        .controls input[type=search] { max-width: none; flex-basis: 100%; }
+        .chart-box { height: 260px; }
+        .matrix .name { min-width: 112px; }
+        .matrix .kind { display: none; }
+      }
+    </style>
+    {% include "partials/pwa_head.html" %}
+  </head>
+  <body>
+    {% include "partials/app_sidebar.html" %}
+    <div class="container pcss-page">
+      <div class="pcss-ph">
+        <div>
+          <h1>학회 통계</h1>
+          <p>주요 학회가 공개한 연도별 제출 수와 채택 수입니다. 값은 각 학회의 main/research track 기준이고, 숫자를 누르면 근거 자료가 열립니다. '논문 수(DBLP)'는 DBLP에 수록된 논문 수라 워크숍 등이 섞여 공식 채택 수와 다를 수 있습니다.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="controls">
+          <div class="seg" id="metric">
+            <button type="button" data-m="r" class="active">채택률</button>
+            <button type="button" data-m="s">제출 수</button>
+            <button type="button" data-m="a">채택 수</button>
+            <button type="button" data-m="d">논문 수(DBLP)</button>
+          </div>
+          <select id="kind"><option value="">모든 분야</option></select>
+          <select id="sort">
+            <option value="kind">분야 · 이름순</option>
+            <option value="name">이름순</option>
+            <option value="s">최근 제출 많은 순</option>
+            <option value="rlow">최근 채택률 낮은 순</option>
+            <option value="rhigh">최근 채택률 높은 순</option>
+            <option value="growth">제출 증가율 높은 순</option>
+          </select>
+          <input type="search" id="q" placeholder="학회 이름" />
+          <span class="meta" id="meta"></span>
+        </div>
+      </div>
+
+      <div class="workspace">
+      <div class="panel" id="chart-panel">
+        <div class="chart-head">
+          <h2 id="chart-title">학회 비교</h2>
+          <button type="button" id="clear" hidden>선택 해제</button>
+        </div>
+        <div class="chart-box"><canvas id="chart"></canvas></div>
+        <div class="hint" id="chart-hint">표에서 학회를 체크하면 여기에 추이가 나옵니다. 하나만 고르면 제출·채택·채택률을, 여럿을 고르면 선택한 지표를 겹쳐 비교합니다.</div>
+        <div id="detail" style="overflow-x: auto;"></div>
+      </div>
+
+      <div class="panel" id="matrix-panel">
+        <div class="matrix-wrap"><table class="matrix" id="matrix"></table></div>
+        <div class="legend">
+          채택률은 채택 수 ÷ 제출 수입니다(비율만 공개된 해는 그 값). 색이 진할수록 큰 값이고, 비어 있는 칸은 공개된 자료를 찾지 못한 해입니다.<br>숫자를 누르면 근거 자료 페이지가 새 탭으로 열립니다. 모서리의 <span style="color:#2e7d32">●초록 점</span>은 학회 공식 자료, <span style="color:#e8a13c">●주황 점</span>은 집계 사이트 자료입니다. 칸에 마우스를 올리면 출처 종류와 메모가 보입니다. 학회를 체크하면 차트 영역에 연도별 출처 목록이 나옵니다.
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <script>
+      const DATA = {{ data | tojson }};
+      const COLORS = ["#c80150", "#34495e", "#e8a13c", "#2e7d32", "#3498db", "#9b59b6", "#e74c3c", "#16a085", "#7f8c8d", "#d35400"];
+      const LABEL = { r: "채택률 (%)", s: "제출 수", a: "채택 수", d: "논문 수 (DBLP)" };
+      const $ = (id) => document.getElementById(id);
+      const state = { m: "r", kind: "", sort: "kind", q: "", sel: new Set() };
+      let chart = null;
+
+      const years = [];
+      for (let y = DATA.year_min; y <= DATA.year_max; y++) years.push(y);
+
+      DATA.kinds.forEach((k) => $("kind").insertAdjacentHTML("beforeend", `<option>${esc(k)}</option>`));
+      function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+      const val = (c, y, m) => { const v = (c.years[y] || {})[m]; return v === undefined ? null : v; };
+      const fmt = (v, m) => v === null ? "–" : m === "r" ? v.toFixed(1) + "%" : v.toLocaleString();
+      function latest(c, m) {
+        for (let i = years.length - 1; i >= 0; i--) { const v = val(c, years[i], m); if (v !== null) return { y: years[i], v }; }
+        return null;
+      }
+      function growth(c) {
+        const a = latest(c, "s"); if (!a) return -Infinity;
+        const b = val(c, a.y - 1, "s"); return b ? a.v / b - 1 : -Infinity;
+      }
+
+      function rows() {
+        let list = DATA.confs.filter((c) => (!state.kind || c.kind === state.kind) && (!state.q || c.name.toLowerCase().includes(state.q)));
+        const cmp = {
+          kind: (a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name),
+          name: (a, b) => a.name.localeCompare(b.name),
+          s: (a, b) => (latest(b, "s")?.v ?? -1) - (latest(a, "s")?.v ?? -1),
+          rlow: (a, b) => (latest(a, "r")?.v ?? 1e9) - (latest(b, "r")?.v ?? 1e9),
+          rhigh: (a, b) => (latest(b, "r")?.v ?? -1) - (latest(a, "r")?.v ?? -1),
+          growth: (a, b) => growth(b) - growth(a),
+        }[state.sort];
+        return list.sort(cmp);
+      }
+
+      function cellStyle(c, v, m) {
+        if (v === null) return "";
+        if (m === "r") return `background:rgba(52,73,94,${Math.min(0.55, Math.max(0.04, v / 100)).toFixed(2)});${v > 38 ? "color:#fff" : ""}`;
+        const max = Math.max(...years.map((y) => val(c, y, m) ?? 0)) || 1;
+        const t = Math.max(0.05, v / max) * 0.5;
+        return `background:rgba(200,1,80,${t.toFixed(2)});${t > 0.36 ? "color:#fff" : ""}`;
+      }
+
+      function renderMatrix() {
+        const list = rows();
+        const m = state.m, grouped = state.sort === "kind";
+        let h = `<thead><tr><th class="name">학회</th>` + (grouped ? "" : `<th class="kind" style="text-align:left">분야</th>`) + years.map((y) => `<th>${y}</th>`).join("") + `</tr></thead><tbody>`;
+        let lastKind = null;
+        const span = years.length + 1 + (grouped ? 0 : 1);
+        list.forEach((c) => {
+          if (grouped && c.kind !== lastKind) { h += `<tr class="groupRow"><td colspan="${span}">${esc(c.kind || "기타")}</td></tr>`; lastKind = c.kind; }
+          h += `<tr class="${state.sel.has(c.name) ? "sel" : ""}"><td class="name"><label><input type="checkbox" data-c="${esc(c.name)}" ${state.sel.has(c.name) ? "checked" : ""}>${esc(c.name)}</label></td>`;
+          if (!grouped) h += `<td class="kind">${esc(c.kind)}</td>`;
+          years.forEach((y) => {
+            const v = val(c, y, m);
+            if (v === null) { h += `<td class="none">–</td>`; return; }
+            const r = c.years[y] || {};
+            const tip = `${c.name} ${y} · ${r.conf === "official" ? "공식 자료" : r.conf ? "집계 사이트" : "출처 미상"}${r.note ? " · " + r.note : ""}`;
+            const inner = m !== "d" && r.src
+              ? `<a class="cl ${r.conf === "official" ? "off" : ""}" href="${esc(r.src)}" target="_blank" rel="noopener" title="${esc(tip)}">${fmt(v, m)}</a>`
+              : `<span class="nsrc" title="${esc(m === "d" ? c.name + " " + y + " · DBLP 수록 논문 수" : tip)}">${fmt(v, m)}</span>`;
+            h += `<td style="${cellStyle(c, v, m)}">${inner}</td>`;
+          });
+          h += `</tr>`;
+        });
+        if (!list.length) h += `<tr><td colspan="${span}" style="text-align:center;color:#999;padding:30px">조건에 맞는 학회가 없습니다.</td></tr>`;
+        $("matrix").innerHTML = h + "</tbody>";
+        const cells = DATA.confs.reduce((n, c) => n + Object.values(c.years).filter((v) => v.s != null || v.a != null || v.r != null).length, 0);
+        $("meta").textContent = `${list.length}개 학회 표시 · 전체 ${DATA.confs.length}개 학회 / ${cells}개 학회-연도 자료`;
+      }
+
+      function srcTable(c, ys) {
+        let t = `<table class="detail"><thead><tr><th>연도</th><th>제출</th><th>채택</th><th>채택률</th><th>DBLP 수록</th><th class="l">출처</th></tr></thead><tbody>`;
+        [...ys].reverse().forEach((y) => {
+          const r = c.years[y];
+          const badge = r.conf === "official" ? `<span class="badge b-off">공식</span>` : r.conf ? `<span class="badge b-agg">집계 사이트</span>` : "";
+          let host = ""; try { host = new URL(r.src, location.href).hostname; } catch (e) { host = r.src || ""; }
+          const link = r.src ? `<a href="${esc(r.src)}" target="_blank" rel="noopener">${esc(host)}</a>` : "";
+          t += `<tr><td>${y}</td><td>${fmt(r.s ?? null, "s")}</td><td>${fmt(r.a ?? null, "a")}</td><td>${fmt(r.r ?? null, "r")}</td><td>${fmt(r.d ?? null, "d")}</td><td class="l">${badge} ${link} ${r.note ? `<span style="color:#999">${esc(r.note)}</span>` : ""}</td></tr>`;
+        });
+        return t + "</tbody></table>";
+      }
+
+      function renderChart() {
+        const sel = DATA.confs.filter((c) => state.sel.has(c.name));
+        $("chart-hint").hidden = sel.length > 0;
+        $("clear").hidden = sel.length === 0;
+        $("detail").innerHTML = "";
+        if (chart) { chart.destroy(); chart = null; }
+        document.querySelector(".chart-box").hidden = sel.length === 0;
+        if (!sel.length) { $("chart-title").textContent = "학회 비교"; return; }
+        const ctx = $("chart");
+        const opt = { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, spanGaps: true,
+          plugins: { legend: { position: "top", labels: { boxWidth: 12, font: { size: 12 } } } } };
+        if (sel.length === 1) {
+          const c = sel[0];
+          $("chart-title").textContent = `${c.name} — 제출 · 채택 · 채택률`;
+          const ys = years.filter((y) => c.years[y] && (c.years[y].s != null || c.years[y].a != null || c.years[y].r != null));
+          chart = new Chart(ctx, { data: { labels: ys, datasets: [
+            { type: "bar", label: "제출 수", data: ys.map((y) => val(c, y, "s")), backgroundColor: "rgba(52,73,94,.35)", borderRadius: 3, yAxisID: "y", order: 2 },
+            { type: "bar", label: "채택 수", data: ys.map((y) => val(c, y, "a")), backgroundColor: "rgba(200,1,80,.75)", borderRadius: 3, yAxisID: "y", order: 2 },
+            { type: "line", label: "채택률 (%)", data: ys.map((y) => val(c, y, "r")), borderColor: "#e8a13c", backgroundColor: "#e8a13c", borderWidth: 2, pointRadius: 3, tension: .25, yAxisID: "y1", order: 1 },
+          ] }, options: { ...opt, scales: { y: { beginAtZero: true, title: { display: true, text: "논문 수" } }, y1: { position: "right", beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: "%" } } } } });
+          $("detail").innerHTML = srcTable(c, ys);
+        } else {
+          $("chart-title").textContent = `${LABEL[state.m]} 비교 (${sel.length}개 학회)`;
+          $("detail").innerHTML = `<div class="srcs">` + sel.map((c) => `<h3>${esc(c.name)} 근거 자료</h3>` + srcTable(c, years.filter((y) => c.years[y] && (c.years[y].s != null || c.years[y].a != null || c.years[y].r != null)))).join("") + `</div>`;
+          chart = new Chart(ctx, { type: "line", data: { labels: years, datasets: sel.map((c, i) => ({
+            label: c.name, data: years.map((y) => val(c, y, state.m)), borderColor: COLORS[i % COLORS.length], backgroundColor: COLORS[i % COLORS.length], borderWidth: 2, pointRadius: 3, tension: .25,
+          })) }, options: { ...opt, scales: { y: { beginAtZero: state.m !== "r" || true, title: { display: true, text: LABEL[state.m] } } } } });
+        }
+      }
+
+      function renderAll() { renderMatrix(); renderChart(); }
+
+      $("metric").addEventListener("click", (e) => {
+        const b = e.target.closest("button"); if (!b) return;
+        state.m = b.dataset.m;
+        document.querySelectorAll("#metric button").forEach((x) => x.classList.toggle("active", x === b));
+        renderAll();
+      });
+      $("kind").addEventListener("change", (e) => { state.kind = e.target.value; renderMatrix(); });
+      $("sort").addEventListener("change", (e) => { state.sort = e.target.value; renderMatrix(); });
+      $("q").addEventListener("input", (e) => { state.q = e.target.value.trim().toLowerCase(); renderMatrix(); });
+      $("matrix").addEventListener("change", (e) => {
+        const n = e.target.dataset.c; if (!n) return;
+        e.target.checked ? state.sel.add(n) : state.sel.delete(n);
+        e.target.closest("tr").classList.toggle("sel", e.target.checked);
+        renderChart();
+      });
+      $("clear").addEventListener("click", () => { state.sel.clear(); renderAll(); });
+      renderAll();
+    </script>
+    {% include "partials/footer.html" %}
+  </body>
+</html>

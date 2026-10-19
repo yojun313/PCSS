@@ -35,6 +35,7 @@
         line-height: 1.5;
       }
 
+      .rk-card { background: #fff; border: 1px solid #e3e3e3; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.04); padding: 20px; }
       .filters {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
@@ -201,6 +202,7 @@
         h1 {
           font-size: 24px;
         }
+        .rk-card { padding: 14px; }
         .filters {
           grid-template-columns: repeat(2, minmax(0, 1fr));
           padding: 10px;
@@ -235,11 +237,15 @@
     {% include "partials/pwa_head.html" %}
   </head>
   <body>
-    <div class="container">
-      <h1>연구자 랭킹</h1>
-      <p class="lead">
-        PCSS 대상 학회에서 최근 {{ years }}년({{ start }}–{{ end }}) 동안 <b>{{ metric_label }}</b> 논문이 많은 한국인 연구자 순위입니다.
-      </p>
+    {% include "partials/app_sidebar.html" %}
+    <div class="container pcss-page">
+      <div class="pcss-ph">
+        <div>
+          <h1>연구자 랭킹</h1>
+          <p>PCSS 대상 학회에서 최근 {{ years }}년({{ start }}–{{ end }}) 동안 <b>{{ metric_label }}</b> 논문이 많은 한국인 연구자 순위입니다.</p>
+        </div>
+      </div>
+      <div class="rk-card">
 
       <form class="filters" id="ranking-form" method="get" action="/rankings">
         <label>
@@ -327,8 +333,7 @@
         · "첫 논문"은 PCSS 대상 학회 기준입니다. 소속은 DBLP 개인 페이지에 등록된 정보입니다.<br />
         · 같은 논문 수는 같은 순위로 표시하고, 기간 내 전체 논문 수가 많은 순으로 나열합니다.
       </p>
-
-      <a href="/" class="home-link">← 메인 페이지로 돌아가기</a>
+      </div>
     </div>
 
     <script>

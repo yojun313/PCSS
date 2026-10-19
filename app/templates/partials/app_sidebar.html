@@ -1,0 +1,188 @@
+{# 메인 · 부가기능 페이지가 함께 쓰는 사이드바.
+   데스크톱(1024px 이상)에서는 왼쪽에 고정되고, 좁은 화면에서는 상단 바의 메뉴 버튼으로 연다.
+   <body> 바로 안쪽에 include 한다. #}
+{% set _email = session_email(request) %}
+{% set _path = request.url.path %}
+{% macro _item(href, label, icon, active) -%}
+<a class="ps-item {{ 'is-active' if active else '' }}" href="{{ href }}" title="{{ label }}"{% if active %} aria-current="page"{% endif %}>
+  <svg viewBox="0 0 24 24" aria-hidden="true">{{ icon|safe }}</svg><span>{{ label }}</span>
+</a>
+{%- endmacro %}
+{% set I_SEARCH = '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>' %}
+{% set I_RANK = '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>' %}
+{% set I_STATS = '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>' %}
+{% set I_AUTHOR = '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>' %}
+{% set I_BOARD = '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' %}
+{% set I_BELL = '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>' %}
+{% set I_PROFILE = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>' %}
+{% set I_ADMIN = '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>' %}
+{% set I_OUT = '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>' %}
+{% set I_IN = '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/>' %}
+{% set I_PLUS = '<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/>' %}
+
+<script>
+  try { if (localStorage.getItem("pcss_sidebar_mini") === "1") document.documentElement.classList.add("ps-mini"); } catch (e) {}
+</script>
+<style>
+  .ps-top { display: none; }
+  .ps-side {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 70; width: 232px; box-sizing: border-box;
+    display: flex; flex-direction: column; background: #fff; border-right: 1px solid #e6e6e6;
+    font-family: 'Noto Sans KR', Arial, sans-serif; overflow-y: auto;
+  }
+  .ps-head { display: flex; align-items: flex-start; gap: 6px; padding: 18px 10px 16px 20px; border-bottom: 1px solid #f0f0f0; }
+  .ps-brand { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding-top: 4px; text-decoration: none; }
+  .ps-fold { flex: none; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: 6px; background: none; color: #8a96a3; cursor: pointer; }
+  .ps-fold:hover { background: #f4f5f7; color: #34495e; }
+  .ps-fold svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; }
+  .ps-brand b { font-size: 20px; color: #c80150; letter-spacing: .02em; line-height: 1; }
+  .ps-brand small { font-size: 11px; color: #999; line-height: 1.3; }
+  .ps-sec { padding: 14px 12px 4px; }
+  .ps-sec-title { padding: 0 10px 6px; font-size: 11px; font-weight: 700; color: #aaa; letter-spacing: .04em; }
+  .ps-item {
+    display: flex; align-items: center; gap: 11px; width: 100%; box-sizing: border-box; padding: 9px 10px; margin-bottom: 2px;
+    border: none; border-radius: 6px; background: none; color: #34495e; font: inherit; font-size: 14px; font-weight: 500;
+    text-decoration: none; cursor: pointer; text-align: left;
+  }
+  .ps-item svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; opacity: .8; }
+  .ps-item:hover { background: #f4f5f7; }
+  .ps-item.is-active { background: #fdecf2; color: #c80150; font-weight: 700; }
+  .ps-item.is-active svg { opacity: 1; }
+  .ps-foot { margin-top: auto; padding: 12px; border-top: 1px solid #f0f0f0; }
+  .ps-who { padding: 4px 10px 10px; font-size: 12px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ps-who b { display: block; margin-bottom: 2px; font-size: 11px; color: #aaa; font-weight: 700; }
+  .ps-foot form { margin: 0; }
+  .ps-item.ps-out:hover { background: #fdecef; color: #b3261e; }
+  .ps-item.ps-cta { background: #c80150; color: #fff; justify-content: center; font-weight: 700; margin-top: 4px; }
+  .ps-item.ps-cta svg { display: none; }
+  .ps-item.ps-cta:hover { background: #a80044; }
+  .ps-scrim { display: none; }
+
+  @media (min-width: 1024px) {
+    body { padding-left: 232px !important; box-sizing: border-box; }
+    .mobile-search-bar { left: 232px !important; }
+  }
+  /* 접힌 상태(데스크톱): 아이콘만 남긴 64px 레일 */
+  @media (min-width: 1024px) {
+    .ps-side { transition: width .18s ease; }
+    body { transition: padding-left .18s ease; }
+    .ps-mini body { padding-left: 64px !important; }
+    .ps-mini .mobile-search-bar { left: 64px !important; }
+    .ps-mini .ps-side { width: 64px; overflow-x: hidden; }
+    .ps-mini .ps-head { flex-direction: column; align-items: center; padding: 14px 0 12px; }
+    .ps-mini .ps-brand { padding: 0; align-items: center; }
+    .ps-mini .ps-brand b { font-size: 13px; }
+    .ps-mini .ps-brand small, .ps-mini .ps-sec-title, .ps-mini .ps-who, .ps-mini .ps-item span { display: none; }
+    .ps-mini .ps-fold svg { transform: scaleX(-1); }
+    .ps-mini .ps-sec, .ps-mini .ps-foot { padding-left: 10px; padding-right: 10px; }
+    .ps-mini .ps-item { justify-content: center; padding: 10px 0; }
+    .ps-mini .ps-item.ps-cta svg { display: block; }
+  }
+  @media (max-width: 1023.98px) {
+    .ps-fold { display: none; }
+    .ps-top {
+      display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 60;
+      height: 52px; padding: 0 max(12px, env(safe-area-inset-left)); background: rgba(255,255,255,.97);
+      border-bottom: 1px solid #e6e6e6; font-family: 'Noto Sans KR', Arial, sans-serif;
+    }
+    .ps-burger { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border: none; background: none; border-radius: 6px; color: #34495e; cursor: pointer; }
+    .ps-burger:hover { background: #f4f5f7; }
+    .ps-burger svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+    .ps-top a { font-size: 18px; font-weight: 800; color: #c80150; text-decoration: none; letter-spacing: .02em; }
+    .ps-top .ps-cur { margin-left: auto; font-size: 13px; color: #888; }
+    .ps-side { transform: translateX(-100%); transition: transform .2s ease; box-shadow: none; width: min(280px, 84vw); padding-bottom: env(safe-area-inset-bottom); }
+    .ps-open .ps-side { transform: none; box-shadow: 0 0 40px rgba(0,0,0,.18); }
+    .ps-scrim { display: block; position: fixed; inset: 0; z-index: 69; background: rgba(0,0,0,.35); opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .ps-open .ps-scrim { opacity: 1; pointer-events: auto; }
+    .ps-item { padding: 11px 10px; }
+  }
+  /* 사이드바 메뉴 페이지들이 함께 쓰는 본문 틀과 제목 (위치 · 크기 통일) */
+  .pcss-page { width: 100% !important; max-width: 1680px !important; margin: 0 auto !important; padding: 26px 28px 44px !important; box-sizing: border-box; background: none !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; min-height: 0 !important; }
+  .pcss-ph { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap; margin: 0 0 18px; font-family: 'Noto Sans KR', Arial, sans-serif; }
+  .pcss-ph h1 { margin: 0 0 5px; padding: 0; border: none; font-size: 24px; font-weight: 800; line-height: 1.3; color: #c80150; text-align: left; letter-spacing: -0.01em; }
+  .pcss-ph p { margin: 0; max-width: 1000px; font-size: 13px; line-height: 1.6; color: #777; text-align: left; }
+  .pcss-ph-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  @media (max-width: 767.98px) {
+    .pcss-page { padding: 16px 12px 28px !important; }
+    .pcss-ph { margin-bottom: 14px; }
+    .pcss-ph h1 { font-size: 21px; }
+    .pcss-ph-actions { width: 100%; }
+    .pcss-ph-actions > * { flex: 1; }
+  }
+  @media print { .ps-side, .ps-top, .ps-scrim { display: none !important; } body { padding-left: 0 !important; } }
+</style>
+
+{% set _nav = [
+  ('/', '학회 검색', I_SEARCH, _path == '/' or _path.startswith('/api/search')),
+  ('/rankings', '연구자 랭킹', I_RANK, _path.startswith('/rankings')),
+  ('/stats', '학회 통계', I_STATS, _path.startswith('/stats')),
+  ('/author/search', '저자 검색', I_AUTHOR, _path.startswith('/author/')),
+  ('/board', '게시판', I_BOARD, _path.startswith('/board')),
+  ('/subscriptions/manage', '구독 관리', I_BELL, _path.startswith('/subscriptions') or _path.startswith('/subscribe')),
+] %}
+
+<div class="ps-top">
+  <button type="button" class="ps-burger" id="ps-burger" aria-label="메뉴 열기" aria-controls="ps-side" aria-expanded="false">
+    <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+  <a href="/">PCSS</a>
+  <span class="ps-cur">{% for n in _nav if n[3] %}{{ n[1] }}{% endfor %}</span>
+</div>
+<div class="ps-scrim" id="ps-scrim"></div>
+
+<nav class="ps-side" id="ps-side" aria-label="PCSS 메뉴">
+  <div class="ps-head">
+    <a class="ps-brand" href="/">
+      <b>PCSS</b>
+      <small>POSTECH Computer Scientist Search</small>
+    </a>
+    <button type="button" class="ps-fold" id="ps-fold" aria-label="사이드바 접기" title="사이드바 접기">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 10l-2 2 2 2"/></svg>
+    </button>
+  </div>
+
+  <div class="ps-sec">
+    <div class="ps-sec-title">메뉴</div>
+    {% for n in _nav %}{{ _item(n[0], n[1], n[2], n[3]) }}{% endfor %}
+  </div>
+
+  <div class="ps-foot">
+    {% if _email %}
+      <div class="ps-who"><b>로그인 계정</b>{{ _email }}</div>
+      {{ _item('/profile', '프로필 관리', I_PROFILE, _path.startswith('/profile')) }}
+      {% if session_is_admin(_email) %}{{ _item('/admin/dashboard', '관리자', I_ADMIN, False) }}{% endif %}
+      <form action="/auth/logout" method="post" onsubmit="return confirm('로그아웃 하시겠습니까?');">
+        <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
+        <button type="submit" class="ps-item ps-out" title="로그아웃"><svg viewBox="0 0 24 24" aria-hidden="true">{{ I_OUT|safe }}</svg><span>로그아웃</span></button>
+      </form>
+    {% else %}
+      {{ _item('/auth/login' if _path.startswith('/auth') or _path.startswith('/api/') else '/auth/login?next=' ~ (_path|urlencode), '로그인', I_IN, _path.startswith('/auth/login')) }}
+      <a class="ps-item ps-cta" href="/auth/signup" title="회원가입"><svg viewBox="0 0 24 24" aria-hidden="true">{{ I_PLUS|safe }}</svg><span>회원가입</span></a>
+    {% endif %}
+  </div>
+</nav>
+
+<script>
+  (function () {
+    const root = document.documentElement, btn = document.getElementById("ps-burger");
+    function set(open) { root.classList.toggle("ps-open", open); btn.setAttribute("aria-expanded", String(open)); }
+    btn.addEventListener("click", () => set(!root.classList.contains("ps-open")));
+    document.getElementById("ps-scrim").addEventListener("click", () => set(false));
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") set(false); });
+
+    // 데스크톱 접기/펴기 - 브라우저에 기억해 둔다
+    const fold = document.getElementById("ps-fold");
+    function syncFold() {
+      const mini = root.classList.contains("ps-mini");
+      const t = mini ? "사이드바 펼치기" : "사이드바 접기";
+      fold.setAttribute("aria-label", t); fold.title = t;
+    }
+    fold.addEventListener("click", () => {
+      const mini = root.classList.toggle("ps-mini");
+      try { localStorage.setItem("pcss_sidebar_mini", mini ? "1" : "0"); } catch (e) {}
+      syncFold();
+      setTimeout(() => window.dispatchEvent(new Event("resize")), 200);  // 차트 폭 다시 맞춤
+    });
+    syncFold();
+  })();
+</script>

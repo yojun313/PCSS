@@ -69,3 +69,6 @@ authors_col = mongo_db["authors"]
 blocked_ip_col = mongo_db["blocked_ips"]
 notifier_state_col = mongo_db["notifier_state"]
 scheduler_state_col = mongo_db["scheduler_state"]
+conf_stats_col = mongo_db[
+    "conf_stats"
+]  # 학회·연도별 제출/채택 수 (공식 발표값, 관리자가 입력)

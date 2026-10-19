@@ -4,223 +4,145 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <title>PCSS 저자 실적 검색</title>
+    <link rel="stylesheet" href="/static/board.css">
     <style>
-        /* --- Base Styles (from Board Design) --- */
-        body { font-family: Arial, sans-serif; background-color: #f9f9f9; color: #333; margin:0; padding:0; }
-        
-        /* 컨테이너: 게시판과 동일한 카드 스타일 */
-        .container { 
-            max-width: 800px; /* 검색창이므로 게시판(1100px)보다는 약간 좁게 설정 */
-            margin: 60px auto; 
-            padding: 40px; 
-            background: #fff; 
-            border-radius: 8px; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
-            min-height: 400px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
+        /* 검색 상단 */
+        .hero { padding: 20px; margin-bottom: 18px; }
+        .hero h1 { margin: 0 0 4px; font-size: 24px; color: var(--primary); }
+        .hero p { margin: 0 0 18px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+        .search-row { display: flex; gap: 10px; align-items: stretch; }
+        .search-box { position: relative; flex: 1; min-width: 0; }
+        .search-box svg { position: absolute; left: 15px; top: 50%; width: 20px; height: 20px; transform: translateY(-50%); fill: none; stroke: #9aa4ae; stroke-width: 2; stroke-linecap: round; pointer-events: none; }
+        .form-input { width: 100%; height: 52px; padding: 0 16px 0 46px; border: 1px solid #ccc; border-radius: 9px; font: inherit; font-size: 16px; background: #fff; }
+        .form-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(200,1,80,.1); }
+        .btn-search { flex: none; height: 52px; padding: 0 26px; border: none; border-radius: 9px; background: var(--primary); color: #fff; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+        .btn-search:hover { background: var(--primary-dark); }
+        .hint-row { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font-size: 12.5px; color: var(--faint); }
+        .hint-row b { color: var(--muted); }
 
-        h1 { color: #c80150; text-align: center; margin-bottom: 40px; }
-        
-        /* --- Search Form Styles --- */
-        .search-wrapper {
-            width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
+        /* 자동완성 */
+        .autocomplete-items { position: absolute; z-index: 99; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid var(--line); border-radius: 9px; box-shadow: 0 10px 28px rgba(0,0,0,.12); max-height: 340px; overflow-y: auto; }
+        .autocomplete-items:empty { display: none; }
+        .autocomplete-items div { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 16px; cursor: pointer; font-size: 15px; border-bottom: 1px solid var(--line-soft); }
+        .autocomplete-items div:last-child { border-bottom: none; }
+        .autocomplete-items div:hover { background: #f6f7f9; }
+        .autocomplete-active { background: var(--navy) !important; color: #fff; }
+        .autocomplete-active .pid-hint { color: rgba(255,255,255,.75); }
+        .pid-hint { font-size: 12px; color: var(--faint); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        .form-group {
-            position: relative; /* Anchor for autocomplete */
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
+        /* 아래 2단 */
+        .below { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 18px; align-items: start; }
+        .below .side { display: flex; flex-direction: column; gap: 18px; }
+        .recent { list-style: none; margin: 0; padding: 6px 8px 10px; }
+        .recent li { display: flex; align-items: center; gap: 6px; }
+        .recent a { flex: 1; min-width: 0; display: block; padding: 8px 10px; border-radius: 6px; text-decoration: none; font-weight: 700; color: var(--navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .recent a small { display: block; font-weight: 400; color: var(--faint); font-size: 11.5px; }
+        .recent a:hover { background: #f4f5f7; color: var(--primary); }
+        .recent button { flex: none; width: 24px; height: 24px; border: none; border-radius: 50%; background: none; color: var(--faint); cursor: pointer; font-size: 15px; }
+        .recent button:hover { background: #fdecef; color: #b3261e; }
+        .guide { margin: 0; padding: 14px 18px 16px 34px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+        .guide b { color: var(--navy); }
 
-        .form-label {
-            font-weight: bold;
-            color: #34495e;
-            font-size: 16px;
-        }
+        .people { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; padding: 16px 18px 18px; }
+        .person { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line-soft); border-radius: 9px; background: #fcfcfd; text-decoration: none; color: inherit; min-width: 0; }
+        .person:hover { border-color: rgba(200,1,80,.3); background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+        .rank { flex: none; width: 28px; height: 28px; border-radius: 50%; background: #f1f3f5; color: var(--navy); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }
+        .person:nth-child(-n+3) .rank { background: var(--primary-pale); color: var(--primary); }
+        .p-main { min-width: 0; flex: 1; }
+        .p-name { font-weight: 800; color: var(--navy); font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .p-aff { font-size: 12px; color: var(--faint); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .p-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; align-items: center; }
+        .p-n { font-size: 12px; font-weight: 700; color: var(--primary); margin-right: 4px; }
+        .tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: #f1f3f5; color: #5d6b78; }
+        .more { font-size: 12.5px; font-weight: 700; color: var(--primary); text-decoration: none; }
+        .more:hover { text-decoration: underline; }
 
-        /* 입력창 스타일 */
-        .form-input {
-            width: 100%;
-            padding: 14px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 16px;
-            box-sizing: border-box;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        
-        .form-input:focus {
-            outline: none;
-            border-color: #c80150;
-            box-shadow: 0 0 0 3px rgba(200, 1, 80, 0.1);
-        }
-
-        /* 검색 버튼 스타일 (게시판의 '글쓰기' 버튼 스타일 응용) */
-        .btn-search {
-            width: 100%;
-            padding: 14px;
-            background-color: #c80150;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            margin-top: 10px;
-        }
-
-        .btn-search:hover {
-            background-color: #a00140;
-        }
-
-        /* --- Autocomplete List Style (Fixed) --- */
-        .autocomplete-items {
-            position: absolute;
-            border-bottom: none;
-            border-top: none;
-            z-index: 99;
-            top: 100%;
-            left: 0;
-            right: 0;
-            border-radius: 0 0 4px 4px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            max-height: 250px;
-            overflow-y: auto;
-        }
-
-        .autocomplete-items div {
-            padding: 12px;
-            cursor: pointer;
-            background-color: #fff;
-            border-bottom: 1px solid #eee;
-            border-left: 1px solid #eee;
-            border-right: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 15px;
-        }
-
-        .autocomplete-items div:last-child {
-            border-bottom-left-radius: 4px;
-            border-bottom-right-radius: 4px;
-        }
-
-        .autocomplete-items div:hover {
-            background-color: #f1f1f1;
-        }
-
-        .autocomplete-active {
-            background-color: #34495e !important; /* 게시판 버튼색 활용 */
-            color: #ffffff;
-        }
-
-        .pid-hint {
-            font-size: 12px;
-            color: #888;
-        }
-        
-        /* --- Helper Text & Footer --- */
-        .helper-text {
-            font-size: 13px;
-            color: #777;
-            line-height: 1.6;
-            margin-top: 10px;
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 4px;
-            border: 1px solid #eee;
-        }
-
-        .footer-credits {
-            text-align: center;
-            font-size: 12px;
-            color: #999;
-            margin-top: 30px;
-        }
-        .footer-credits a { color: #777; text-decoration: none; }
-        .footer-credits a:hover { text-decoration: underline; color: #c80150; }
-
-        .home-link { 
-            display: block; 
-            text-align: center; 
-            margin-top: 20px; 
-            color: #666; 
-            text-decoration: none;
-            font-size: 14px;
-        }
-        .home-link:hover { color: #c80150; text-decoration: underline; }
-
-        /* 반응형 디자인 */
-        @media (max-width: 768px) {
-            .container {
-                max-width: 100%;
-                margin: 20px auto;
-                padding: 20px;
-                box-sizing: border-box;
-            }
-            h1 {
-                margin-bottom: 24px;
-                font-size: 1.5rem;
-            }
-            .search-wrapper {
-                max-width: 100%;
-            }
+        @media (max-width: 1100px) { .below { grid-template-columns: minmax(0, 1fr); } .below .side { display: grid; grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 767.98px) {
+            .hero { padding: 14px; }
+            .search-row { flex-direction: column; }
+            .btn-search { width: 100%; }
+            .below .side { grid-template-columns: minmax(0, 1fr); }
+            .people { grid-template-columns: minmax(0, 1fr); padding: 12px; }
         }
     </style>
   {% include "partials/pwa_head.html" %}
 </head>
 <body>
+    {% include "partials/app_sidebar.html" %}
 
-    <div class="container">
-        <div>
-            <h1>PCSS 저자 실적 검색</h1>
-
-            <div class="search-wrapper">
-                <form id="author-search-form" action="/author/stats/page" method="POST" autocomplete="off">
-                    <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
-                
-                    <div class="form-group">
-                        <label for="author-input" class="form-label">저자 이름</label>
-                        <div style="position: relative;">
-                          <input 
-                              type="text" 
-                              id="author-input" 
-                              name="target_author" 
-                              class="form-input" 
-                              placeholder="이름 또는 PID를 입력하세요 (예: Gildong Hong, 12/34567)" 
-                              required
-                          >
-                            <div id="autocomplete-list" class="autocomplete-items"></div>
-                        </div>
-                        
-                        <input type="hidden" id="pid-input" name="target_pid">
-                        <input type="hidden" name="url" value=""> 
-                        <input type="hidden" name="probability" value="0.8"> 
-                    </div>
-
-                    <button type="submit" id="submit-btn" class="btn-search">실적 통계 확인</button>
-                </form>
-
-                <div class="helper-text">
-                    * <strong>자동완성 목록</strong>에서 저자를 선택해야 정확한 검색이 가능합니다.<br>
-                    * 목록에 없는 경우, DB에 해당 저자 정보가 아직 수집되지 않았을 수 있습니다.
-                </div>
+    <div class="container pcss-page">
+        <div class="pcss-ph">
+            <div>
+                <h1>저자 검색</h1>
+                <p>저자 이름이나 DBLP PID로 찾으면 그 사람의 학회별 · 연도별 실적, 저자 순서, 공저자 네트워크를 볼 수 있습니다.</p>
             </div>
         </div>
+        <section class="card hero">
+            <form id="author-search-form" action="/author/stats/page" method="POST" autocomplete="off">
+                <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
+                <div class="search-row">
+                    <div class="search-box">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                        <input type="text" id="author-input" name="target_author" class="form-input" aria-label="저자 이름 또는 PID"
+                               placeholder="이름 또는 PID (예: Gildong Hong, 12/34567)" required autofocus>
+                        <div id="autocomplete-list" class="autocomplete-items"></div>
+                    </div>
+                    <button type="submit" id="submit-btn" class="btn-search">실적 보기</button>
+                </div>
+                <input type="hidden" id="pid-input" name="target_pid">
+                <input type="hidden" name="url" value="">
+                <input type="hidden" name="probability" value="0.8">
+            </form>
+            <div class="hint-row">
+                <span><b>자동완성 목록</b>에서 저자를 골라야 정확히 찾을 수 있습니다 (↑↓ 로 고르고 Enter).</span>
+                <span>목록에 없다면 아직 DB에 수집되지 않은 저자일 수 있습니다.</span>
+            </div>
+        </section>
 
-        <div>
-            <a href="/" class="home-link">← 메인 페이지로 돌아가기</a>
+        <div class="below">
+            <div class="side">
+                <section class="card">
+                    <div class="card-head"><h2>최근 본 저자</h2><button type="button" class="btn btn-sm" id="recent-clear" hidden>지우기</button></div>
+                    <ul class="recent" id="recent"></ul>
+                    <div class="empty" id="recent-empty" style="padding: 26px 18px;">검색해서 열어 본 저자가 여기에 남습니다.<br><small>이 브라우저에만 저장됩니다.</small></div>
+                </section>
+                <section class="card">
+                    <div class="card-head"><h2>저자 페이지에서 볼 수 있는 것</h2></div>
+                    <ul class="guide">
+                        <li><b>연도별 · 학회별</b> 논문 수 추이</li>
+                        <li><b>저자 순서</b> (1저자 · 2저자 · 마지막 저자 · 공저자) 비율</li>
+                        <li>자주 함께 쓴 <b>공저자 네트워크</b></li>
+                        <li>소속 정보와 전체 논문 목록</li>
+                    </ul>
+                </section>
+            </div>
+
+            <section class="card">
+                <div class="card-head">
+                    <h2>최근 5년 1저자 논문이 많은 연구자 <span class="count">{{ top_start }}–{{ top_start + 4 }}</span></h2>
+                    <a class="more" href="/rankings">랭킹 전체 보기 →</a>
+                </div>
+                {% if top %}
+                <div class="people">
+                    {% for r in top %}
+                    <a class="person" href="/author/p/{{ r.pid }}">
+                        <span class="rank">{{ r.rank }}</span>
+                        <span class="p-main">
+                            <span class="p-name" style="display:block">{{ r.name }}</span>
+                            <span class="p-aff" style="display:block">{{ r.affiliation or 'PID ' ~ r.pid }}</span>
+                            <span class="p-meta">
+                                <span class="p-n">1저자 {{ r.metric }}편</span>
+                                {% for v in r.top_venues %}<span class="tag">{{ v }}</span>{% endfor %}
+                            </span>
+                        </span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty">랭킹 집계를 준비하고 있습니다. 잠시 후 새로고침하거나 <a class="more" href="/rankings">랭킹 페이지</a>를 열어 보세요.</div>
+                {% endif %}
+            </section>
         </div>
     </div>
 
@@ -262,6 +184,7 @@
           }
           // 공유 · 북마크할 수 있는 저자 페이지 주소로 이동 (pid 의 '/' 는 그대로 둔다)
           const pidPath = pidInp.value.split("/").map(encodeURIComponent).join("/");
+          saveRecent({ name: inp.value, pid: pidInp.value, aff: inp.dataset.aff || "" });
           window.location.href = `/author/p/${pidPath}`;
       });
 
@@ -300,6 +223,7 @@
               div.addEventListener("click", function(e) {
                   inp.value = item.name;
                   pidInp.value = item.pid; // PID 주입
+                  inp.dataset.aff = item.affiliation || "";
                   
                   closeAllLists();
               });
@@ -348,6 +272,34 @@
               listContainer.innerHTML = "";
           }
       }
+
+      // 최근 본 저자 (이 브라우저에만 저장)
+      const RECENT_KEY = "pcss_recent_authors";
+      function loadRecent() { try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch (e) { return []; } }
+      function storeRecent(list) { try { localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 8))); } catch (e) {} }
+      function saveRecent(a) { storeRecent([a, ...loadRecent().filter((x) => x.pid !== a.pid)]); }
+      function renderRecent() {
+          const list = loadRecent(), ul = document.getElementById("recent");
+          ul.innerHTML = "";
+          list.forEach((a) => {
+              const li = document.createElement("li");
+              const link = document.createElement("a");
+              link.href = "/author/p/" + a.pid.split("/").map(encodeURIComponent).join("/");
+              link.textContent = a.name;
+              const sm = document.createElement("small");
+              sm.textContent = a.aff || "PID " + a.pid;
+              link.appendChild(sm);
+              const del = document.createElement("button");
+              del.type = "button"; del.textContent = "×"; del.setAttribute("aria-label", a.name + " 지우기");
+              del.addEventListener("click", () => { storeRecent(loadRecent().filter((x) => x.pid !== a.pid)); renderRecent(); });
+              li.append(link, del);
+              ul.appendChild(li);
+          });
+          document.getElementById("recent-empty").hidden = list.length > 0;
+          document.getElementById("recent-clear").hidden = list.length === 0;
+      }
+      document.getElementById("recent-clear").addEventListener("click", () => { storeRecent([]); renderRecent(); });
+      renderRecent();
 
       // 외부 클릭 시 닫기
       document.addEventListener("click", function (e) {

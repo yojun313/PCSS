@@ -5,293 +5,140 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>PCSS 프로필</title>
 
+    <link rel="stylesheet" href="/static/board.css">
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        background-color: #f9f9f9;
-        color: #333;
-      }
+      .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-weight: 700; border: 1px solid; }
+      .alert-ok { background: #e9f5ea; color: #2e7d32; border-color: rgba(46,125,50,.25); }
+      .alert-err { background: #fdecef; color: #b3261e; border-color: rgba(179,38,30,.25); }
 
-      .container {
-        max-width: 620px;
-        margin: auto;
-        padding: 20px;
-      }
+      .pf-layout { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 18px; align-items: start; }
+      .pf-side { position: sticky; top: 18px; display: flex; flex-direction: column; gap: 18px; }
+      .pf-main { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px; align-items: start; }
 
-      h1 {
-        text-align: center;
-        margin: 26px 0 18px;
-        color: rgba(200, 1, 80, 1);
-      }
+      .who { display: flex; align-items: center; gap: 14px; padding: 20px 18px 16px; }
+      .avatar { flex: none; width: 52px; height: 52px; border-radius: 50%; background: var(--primary-pale); color: var(--primary); display: inline-flex; align-items: center; justify-content: center; font-size: 21px; font-weight: 800; }
+      .who-name { font-size: 17px; font-weight: 800; color: var(--navy); }
+      .who-mail { font-size: 13px; color: var(--muted); word-break: break-all; margin-top: 2px; }
+      .role { display: inline-flex; margin-top: 6px; height: 21px; padding: 0 9px; align-items: center; border-radius: 999px; background: var(--primary); color: #fff; font-size: 11px; font-weight: 700; }
+      .kv { margin: 0; padding: 4px 18px 8px; }
+      .kv div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line-soft); font-size: 13.5px; }
+      .kv dt { color: var(--faint); }
+      .kv dd { margin: 0; font-weight: 700; color: var(--navy); text-align: right; word-break: break-all; }
+      .card-foot { padding: 12px 18px 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+      .card-foot form { margin: 0; flex: 1; }
+      .card-foot .btn { width: 100%; }
 
-      .error-msg {
-        background-color: #ffebee;
-        color: #c62828;
-        border: 1px solid #ef9a9a;
-        padding: 14px 18px;
-        margin: 0 0 18px 0;
-        border-radius: 8px;
-        font-weight: bold;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-      }
+      .links { list-style: none; margin: 0; padding: 6px 8px 8px; }
+      .links a { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 10px; border-radius: 6px; text-decoration: none; color: var(--navy); font-weight: 700; }
+      .links a small { display: block; font-weight: 400; color: var(--faint); font-size: 12px; margin-top: 1px; }
+      .links a:hover { background: #f4f5f7; color: var(--primary); }
+      .links a::after { content: "›"; color: var(--faint); font-size: 18px; }
 
-      .ok-msg {
-        background-color: #e8f5e9;
-        color: #2e7d32;
-        border: 1px solid #a5d6a7;
-        padding: 14px 18px;
-        margin: 0 0 18px 0;
-        border-radius: 8px;
-        font-weight: bold;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-      }
+      .form-pad { padding: 18px 18px 4px; }
+      .form-pad .field:last-child { margin-bottom: 14px; }
+      .form-actions { padding: 12px 18px 16px; border-top: 1px solid var(--line-soft); display: flex; justify-content: flex-end; }
+      .card-desc { margin: 0; padding: 12px 18px 0; color: var(--muted); font-size: 12.5px; line-height: 1.6; }
 
-      .card {
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 18px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        display: flex;
-        flex-direction: column;
+      @media (max-width: 1100px) {
+        .pf-layout { grid-template-columns: minmax(0, 1fr); }
+        .pf-side { position: static; display: grid; grid-template-columns: 1fr 1fr; }
       }
-
-      .card h2 {
-        margin: 0 0 14px 0;
-        color: #34495e;
-        font-size: 18px;
-        border-bottom: 2px solid rgba(200, 1, 80, 0.1);
-        padding-bottom: 10px;
-      }
-
-      .info-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-        padding: 8px 0;
-        border-bottom: 1px solid #f0f0f0;
-        font-size: 15px;
-      }
-
-      .info-row:last-child {
-        border-bottom: none;
-      }
-
-      .info-row .k {
-        color: #888;
-        font-size: 14px;
-      }
-
-      .info-row .v {
-        font-weight: bold;
-        color: #34495e;
-        word-break: break-all;
-      }
-
-      .badge {
-        display: inline-block;
-        background: rgba(200, 1, 80, 1);
-        color: #fff;
-        font-size: 12px;
-        font-weight: bold;
-        padding: 3px 10px;
-        border-radius: 999px;
-      }
-
-      .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        margin-bottom: 14px;
-      }
-
-      .form-group label {
-        font-weight: bold;
-        color: #34495e;
-        font-size: 14px;
-      }
-
-      .form-group input {
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        background-color: #fff;
-        color: #333;
-        font-size: 15px;
-        width: 100%;
-        box-sizing: border-box;
-      }
-
-      .hint {
-        font-size: 12px;
-        color: #888;
-      }
-
-      .row {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-
-      .btn {
-        padding: 11px 18px;
-        background-color: rgba(200, 1, 80, 1);
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 700;
-        font-size: 15px;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .btn:hover {
-        background-color: rgb(194, 50, 108);
-      }
-
-      .btn-secondary {
-        background-color: #34495e;
-      }
-
-      .btn-secondary:hover {
-        background-color: #2c3e50;
-      }
-
-      .btn-block {
-        width: 100%;
-      }
-
-      .nav-row {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-bottom: 18px;
-      }
-
-      /* 반응형 디자인 */
-      @media (max-width: 768px) {
-        .container {
-          padding: 12px;
-        }
-        .info-row {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 4px;
-        }
+      @media (max-width: 767.98px) {
+        .pf-side, .pf-main { grid-template-columns: minmax(0, 1fr); }
+        .form-actions .btn { width: 100%; }
       }
     </style>
     {% include "partials/pwa_head.html" %}
   </head>
 
   <body>
-    <div class="container">
-      <h1>내 프로필</h1>
-
-      <div class="nav-row">
-        <a class="btn btn-secondary" href="/">← 홈으로</a>
-        <a class="btn btn-secondary" href="/subscriptions/manage">구독 관리</a>
-        {% if is_admin %}
-        <a class="btn btn-secondary" href="/admin/dashboard">관리자 대시보드</a>
-        {% endif %}
+    {% include "partials/app_sidebar.html" %}
+    <div class="container pcss-page">
+      <div class="pcss-ph">
+        <div>
+          <h1>프로필 관리</h1>
+          <p>계정 정보를 확인하고 이름과 비밀번호를 바꿀 수 있습니다.</p>
+        </div>
       </div>
 
-      {% if message %}
-      <div class="ok-msg">{{ message }}</div>
-      {% endif %}
+      {% if message %}<div class="alert alert-ok">{{ message }}</div>{% endif %}
+      {% if error %}<div class="alert alert-err">{{ error }}</div>{% endif %}
 
-      {% if error %}
-      <div class="error-msg">{{ error }}</div>
-      {% endif %}
+      <div class="pf-layout">
+        <aside class="pf-side">
+          <section class="card">
+            <div class="who">
+              <span class="avatar" aria-hidden="true">{{ ((name or email or '?')[:1])|upper }}</span>
+              <div style="min-width: 0;">
+                <div class="who-name">{{ name or '이름 미설정' }}</div>
+                <div class="who-mail">{{ email }}</div>
+                {% if is_admin %}<span class="role">관리자</span>{% endif %}
+              </div>
+            </div>
+            <dl class="kv">
+              <div><dt>이메일</dt><dd>{{ email }}</dd></div>
+              <div><dt>이름</dt><dd>{{ name or '(미설정)' }}</dd></div>
+              <div><dt>가입일</dt><dd>{{ created_at.strftime('%Y-%m-%d') if created_at else '-' }}</dd></div>
+              <div><dt>권한</dt><dd>{{ '관리자' if is_admin else '일반 사용자' }}</dd></div>
+            </dl>
+            <div class="card-foot">
+              <form method="post" action="/auth/logout" onsubmit="return confirm('로그아웃 하시겠습니까?');">
+                <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
+                <button class="btn" type="submit">로그아웃</button>
+              </form>
+            </div>
+          </section>
 
-      <div class="card">
-        <h2>계정 정보</h2>
-        <div class="info-row">
-          <span class="k">이메일</span>
-          <span class="v">{{ email }}</span>
+          <section class="card">
+            <div class="card-head"><h2>바로가기</h2></div>
+            <ul class="links">
+              <li><a href="/subscriptions/manage"><span>구독 관리<small>새 논문 메일 알림 설정</small></span></a></li>
+              <li><a href="/board"><span>게시판<small>공지 확인 · 버그 제보</small></span></a></li>
+              {% if is_admin %}<li><a href="/admin/dashboard"><span>관리자 대시보드<small>사이트 관리</small></span></a></li>{% endif %}
+            </ul>
+          </section>
+        </aside>
+
+        <div class="pf-main">
+          <section class="card">
+            <div class="card-head"><h2>이름 변경</h2></div>
+            <p class="card-desc">게시판 등에 표시되는 이름입니다.</p>
+            <form method="post" action="/profile/name">
+              <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
+              <div class="form-pad">
+                <div class="field">
+                  <label for="name">이름</label>
+                  <input class="input" id="name" name="name" type="text" value="{{ name or '' }}" autocomplete="name" maxlength="50" placeholder="홍길동">
+                </div>
+              </div>
+              <div class="form-actions"><button class="btn btn-primary" type="submit">이름 저장</button></div>
+            </form>
+          </section>
+
+          <section class="card">
+            <div class="card-head"><h2>비밀번호 변경</h2></div>
+            <p class="card-desc">비밀번호를 바꾸면 지금 쓰는 기기를 뺀 다른 기기의 로그인이 모두 해제됩니다.</p>
+            <form method="post" action="/profile/password">
+              <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
+              <div class="form-pad">
+                <div class="field">
+                  <label for="current_password">현재 비밀번호</label>
+                  <input class="input" id="current_password" name="current_password" type="password" autocomplete="current-password" required>
+                </div>
+                <div class="field">
+                  <label for="new_password">새 비밀번호</label>
+                  <input class="input" id="new_password" name="new_password" type="password" autocomplete="new-password" minlength="8" required>
+                  <div class="hint">최소 8자 이상</div>
+                </div>
+                <div class="field">
+                  <label for="new_password2">새 비밀번호 확인</label>
+                  <input class="input" id="new_password2" name="new_password2" type="password" autocomplete="new-password" minlength="8" required>
+                </div>
+              </div>
+              <div class="form-actions"><button class="btn btn-primary" type="submit">비밀번호 변경</button></div>
+            </form>
+          </section>
         </div>
-        <div class="info-row">
-          <span class="k">이름</span>
-          <span class="v">{{ name or '(미설정)' }}</span>
-        </div>
-        <div class="info-row">
-          <span class="k">가입일</span>
-          <span class="v">{{ created_at.strftime('%Y-%m-%d') if created_at else '-' }}</span>
-        </div>
-        {% if is_admin %}
-        <div class="info-row">
-          <span class="k">권한</span>
-          <span class="v"><span class="badge">관리자</span></span>
-        </div>
-        {% endif %}
-      </div>
-
-      <div class="card">
-        <h2>이름 변경</h2>
-        <form method="post" action="/profile/name">
-          <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
-
-          <div class="form-group">
-            <label for="name">이름</label>
-            <input id="name" name="name" type="text" value="{{ name or '' }}"
-                   autocomplete="name" maxlength="50" placeholder="홍길동" />
-          </div>
-
-          <div class="row">
-            <button class="btn" type="submit">이름 저장</button>
-          </div>
-        </form>
-      </div>
-
-      <div class="card">
-        <h2>비밀번호 변경</h2>
-        <form method="post" action="/profile/password">
-          <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
-
-          <div class="form-group">
-            <label for="current_password">현재 비밀번호</label>
-            <input id="current_password" name="current_password" type="password"
-                   autocomplete="current-password" required />
-          </div>
-
-          <div class="form-group">
-            <label for="new_password">새 비밀번호</label>
-            <input id="new_password" name="new_password" type="password"
-                   autocomplete="new-password" minlength="8" required />
-            <span class="hint">최소 8자 이상</span>
-          </div>
-
-          <div class="form-group">
-            <label for="new_password2">새 비밀번호 확인</label>
-            <input id="new_password2" name="new_password2" type="password"
-                   autocomplete="new-password" minlength="8" required />
-          </div>
-
-          <div class="row">
-            <button class="btn" type="submit">비밀번호 변경</button>
-          </div>
-        </form>
-        <p class="hint" style="margin-top: 12px;">
-          비밀번호를 변경하면 지금 사용 중인 기기를 제외한 다른 기기의 로그인이 모두 해제됩니다.
-        </p>
-      </div>
-
-      <div class="card">
-        <h2>로그아웃</h2>
-        <form method="post" action="/auth/logout" onsubmit="return confirm('로그아웃 하시겠습니까?');">
-          <input type="hidden" name="csrftoken" value="{{ request.scope['csrftoken']() }}">
-          <div class="row">
-            <button class="btn btn-secondary btn-block" type="submit">로그아웃</button>
-          </div>
-        </form>
       </div>
     </div>
     {% include "partials/footer.html" %}

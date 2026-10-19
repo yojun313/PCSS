@@ -16,6 +16,7 @@ from app.routes.board_routes import router as board_router
 from app.routes.log_routes import router as log_router
 from app.routes.user_routes import router as user_router
 from app.routes.ranking_routes import router as ranking_router
+from app.routes.stats_routes import router as stats_router
 from app.db.mongo import get_mongo_client
 from app.db import errors_col
 from app.libs.logger import get_client_ip
@@ -93,11 +94,19 @@ async def _startup():
 
     papers_col.create_index("author_pids")
 
+    from app.db import conf_stats_col
+
+    conf_stats_col.create_index([("conference", 1), ("year", 1)], unique=True)
+
     # 랭킹 집계는 무거워서(수 초) 백그라운드로 미리 캐시해 둔다
     import asyncio
     from app.services.insights_service import warm_ranking_cache
 
     asyncio.create_task(warm_ranking_cache())
+
+    from app.services.conf_stats_service import warm_dblp_counts
+
+    asyncio.create_task(warm_dblp_counts())
 
 
 @app.exception_handler(RequestValidationError)
@@ -153,6 +162,7 @@ app.include_router(board_router, prefix="/board")
 app.include_router(log_router, prefix="/logs")
 app.include_router(user_router)
 app.include_router(ranking_router, prefix="/rankings")
+app.include_router(stats_router, prefix="/stats")
 
 
 @app.exception_handler(404)

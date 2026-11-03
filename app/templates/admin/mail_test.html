@@ -46,7 +46,7 @@
           </div>
 
           {% if config.backend == 'postech' %}
-          <div class="alert alert-warning" style="margin: 16px 0 0; display: block;">
+          <div class="alert alert-warning" style="margin: 16px 0 0; display: block;" data-i18n-en="<b>The campus unauthenticated relay only works from a registered IP.</b><br>Registered IP: <span class=&quot;mono&quot;>141.223.145.21</span> (= pcss.postech.ac.kr). From other servers it is rejected with <span class=&quot;mono&quot;>421 4.3.2 Service not available</span>; in that case switch to <span class=&quot;mono&quot;>MAIL_BACKEND=gmail</span>.">
             <b>학교 무인증 릴레이는 등록된 IP에서만 동작합니다.</b><br>
             등록 IP: <span class="mono">141.223.145.21</span> (= pcss.postech.ac.kr).
             다른 서버에서 시도하면 <span class="mono">421 4.3.2 Service not available</span>로 거절되니,
@@ -70,7 +70,7 @@
                       onclick="return confirm('실제로 테스트 메일을 발송합니다. 진행할까요?');">실제 발송</button>
             </div>
           </form>
-          <p class="hint" style="margin-top: 16px;">
+          <p class="hint" style="margin-top: 16px;" data-i18n-en="<b>Diagnose connection</b> runs from the SMTP connection up to the recipient check (RCPT) and then rolls back, so no mail is delivered. Use it to verify the settings first.">
             <b>연결 진단</b>은 SMTP 연결부터 수신자 확인(RCPT)까지만 진행하고 되돌리므로 상대방에게 메일이 가지 않습니다.
             설정이 맞는지 먼저 확인할 때 쓰세요.
           </p>

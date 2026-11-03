@@ -95,7 +95,7 @@
                 <input type="hidden" name="probability" value="0.8">
             </form>
             <div class="hint-row">
-                <span><b>자동완성 목록</b>에서 저자를 골라야 정확히 찾을 수 있습니다 (↑↓ 로 고르고 Enter).</span>
+                <span data-i18n-en="Pick an author from the <b>autocomplete list</b> for an exact match (↑↓ then Enter)."><b>자동완성 목록</b>에서 저자를 골라야 정확히 찾을 수 있습니다 (↑↓ 로 고르고 Enter).</span>
                 <span>목록에 없다면 아직 DB에 수집되지 않은 저자일 수 있습니다.</span>
             </div>
         </section>
@@ -140,7 +140,7 @@
                     {% endfor %}
                 </div>
                 {% else %}
-                <div class="empty">랭킹 집계를 준비하고 있습니다. 잠시 후 새로고침하거나 <a class="more" href="/rankings">랭킹 페이지</a>를 열어 보세요.</div>
+                <div class="empty" data-i18n-en="Rankings are being prepared. Refresh in a moment or open the &lt;a class=&quot;more&quot; href=&quot;/rankings&quot;&gt;rankings page&lt;/a&gt;.">랭킹 집계를 준비하고 있습니다. 잠시 후 새로고침하거나 <a class="more" href="/rankings">랭킹 페이지</a>를 열어 보세요.</div>
                 {% endif %}
             </section>
         </div>

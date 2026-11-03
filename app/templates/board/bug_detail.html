@@ -16,7 +16,7 @@
         <article class="card">
             <header class="post-head">
                 <span class="badge {{ st_cls.get(bug.status, 'st-new') }}">{{ bug.status or '접수됨' }}</span>
-                <h1>{{ bug.title }}</h1>
+                <h1 translate="no">{{ bug.title }}</h1>
                 <div class="post-meta">
                     <span>{{ bug.author.split('@')[0] if bug.author else '익명' }}</span>
                     <span>작성 {{ bug.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
@@ -26,7 +26,7 @@
                 </div>
             </header>
 
-            <div class="post-body">{{ bug.content }}</div>
+            <div class="post-body" translate="no">{{ bug.content }}</div>
 
             <footer class="post-foot">
                 <a href="/board" class="btn">← 목록</a>

@@ -15,7 +15,7 @@
         <article class="card">
             <header class="post-head">
                 <span class="badge badge-notice">공지</span>
-                <h1>{{ notice.title }}</h1>
+                <h1 translate="no">{{ notice.title }}</h1>
                 <div class="post-meta">
                     <span>{{ notice.author.split('@')[0] if notice.author else '관리자' }}</span>
                     <span>{{ notice.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
@@ -23,7 +23,7 @@
                 </div>
             </header>
 
-            <div class="post-body">{{ notice.content }}</div>
+            <div class="post-body" translate="no">{{ notice.content }}</div>
 
             <footer class="post-foot">
                 <a href="/board" class="btn">← 목록</a>

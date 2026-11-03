@@ -48,7 +48,7 @@
                     {% set who = b.author.split('@')[0] if b.author else '익명' %}
                     <li class="row" data-status="{{ b.status or '접수됨' }}" data-q="{{ (b.title ~ ' ' ~ who)|lower }}">
                         <div class="row-main">
-                            <a class="row-title" href="/board/bug/{{ b['_id'] }}">{{ b.title }}</a>
+                            <a class="row-title" translate="no" href="/board/bug/{{ b['_id'] }}">{{ b.title }}</a>
                             <div class="row-meta"><span>{{ who }}</span><span>{{ b.created_at.strftime('%Y-%m-%d') }}</span></div>
                         </div>
                         <div class="row-side">
@@ -88,7 +88,7 @@
                         {% for n in notices %}
                         <li class="row notice-row">
                             <div class="row-main">
-                                <a class="row-title" href="/board/notice/{{ n['_id'] }}">{{ n.title }}</a>
+                                <a class="row-title" translate="no" href="/board/notice/{{ n['_id'] }}">{{ n.title }}</a>
                                 <div class="row-meta">
                                     <span>{{ n.created_at.strftime('%Y-%m-%d') }}</span>
                                     <span>조회 {{ n.get('views', 0) }}</span>

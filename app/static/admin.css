@@ -135,6 +135,7 @@ h1, h2, h3 { margin: 0; color: var(--heading); font-weight: 700; line-height: 1.
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.admin-lang { display: inline-flex; flex: none; }
 .admin-avatar {
   flex-shrink: 0;
   width: 28px;
@@ -624,7 +625,9 @@ select.input {
   .admin-brand img { height: 18px; }
   .admin-brand-name { font-size: 15px; }
   .admin-brand-name small { display: none; }
-  .admin-account-email span:last-child { display: none; }
+  .admin-account-email { display: none; }  /* 좁은 화면: 이메일·아바타 대신 메인으로 · 언어 버튼만 */
+  .admin-account { gap: 8px; flex: none; }
+  .admin-brand { overflow: hidden; }
   .admin-nav a { padding: 8px 10px 11px; font-size: 13.5px; }
   .admin-nav a.active::after { left: 10px; right: 10px; }
 

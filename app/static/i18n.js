@@ -252,23 +252,26 @@
   // ---------- 전환 버튼 ----------
   var css = document.createElement("style");
   css.textContent =
-    ".pcss-lang{position:fixed;top:14px;right:16px;z-index:65;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;" +
+    ".pcss-lang{position:fixed;top:14px;right:16px;z-index:65;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;flex:none;" +
     "border:1px solid #dcdfe4;border-radius:16px;background:rgba(255,255,255,.96);color:#34495e;font:600 13px/1 'Noto Sans KR',Arial,sans-serif;" +
-    "cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.06);-webkit-tap-highlight-color:transparent}" +
+    "cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.06);-webkit-tap-highlight-color:transparent;touch-action:manipulation}" +
     ".pcss-lang:hover{border-color:#c80150;color:#c80150}" +
-    ".pcss-lang svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2}" +
-    ".pcss-lang b{font-weight:800}.pcss-lang span{opacity:.45;font-weight:600}" +
+    ".pcss-lang:focus-visible{outline:2px solid #c80150;outline-offset:2px}" +
+    ".pcss-lang svg{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:2}" +
+    ".pcss-lang b{font-weight:800}.pcss-lang span{opacity:.45;font-weight:600}.pcss-lang .l-code{display:none}" +
+    ".pcss-lang.is-inline{position:static;box-shadow:none;background:#fff}" +
     "@media (min-width:1024px){.pcss-ph{padding-right:104px}}" +
-    ".admin-header-top{padding-right:128px}" +
-    "@media (max-width:1023.98px){.pcss-lang{top:10px;right:max(12px,env(safe-area-inset-right));padding:0 10px}.pcss-lang span{display:none}" +
-    ".ps-top .ps-cur{margin-right:72px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.admin-header-top{padding-right:84px}}" +
+    /* 좁은 화면: 상단 바 안에 들어간 버튼만 쓰고, 언어는 짧은 코드로 */
+    "@media (max-width:1023.98px){.has-lang-slot .pcss-lang.is-fixed{display:none}" +
+    ".pcss-lang{top:10px;right:max(12px,env(safe-area-inset-right));height:34px;padding:0 11px}" +
+    ".pcss-lang span,.pcss-lang .l-full{display:none}.pcss-lang .l-code{display:inline}}" +
     "@media print{.pcss-lang{display:none!important}}";
   document.head.appendChild(css);
 
   function paintBtn(btn) {
     btn.innerHTML =
       '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>' +
-      (lang === "en" ? "<b>EN</b><span>/ 한국어</span>" : "<b>한국어</b><span>/ EN</span>");
+      (lang === "en" ? '<b class="l-full">EN</b><b class="l-code">EN</b><span>/ 한국어</span>' : '<b class="l-full">한국어</b><b class="l-code">KO</b><span>/ EN</span>');
     btn.setAttribute("translate", "no");
     btn.title = lang === "en" ? "한국어로 보기" : "View in English";
     btn.setAttribute("aria-label", btn.title);
@@ -282,17 +285,31 @@
     root.classList.toggle("lang-en", next === "en");
     if (hasCharts()) { location.reload(); return; }  // 차트는 새로 그려야 해서 GET 화면만 다시 연다
     if (next === "en") applyEn(); else revertKo();
-    paintBtn(document.getElementById("pcss-lang"));
+    document.querySelectorAll(".pcss-lang").forEach(paintBtn);
     window.dispatchEvent(new CustomEvent("pcss:lang", { detail: next }));
   }
 
-  function mountBtn() {
-    if (document.getElementById("pcss-lang") || window.PCSS_NO_LANG_BTN) return;
+  // 헤더 안에 [data-lang-slot] 자리가 있으면 거기에 넣는다 (모바일 상단 바 · 관리자 헤더).
+  // 사이드바 페이지의 데스크톱 화면은 상단 바가 없어서 오른쪽 위 고정 버튼을 따로 둔다.
+  function makeBtn(cls) {
     var btn = document.createElement("button");
-    btn.type = "button"; btn.id = "pcss-lang"; btn.className = "pcss-lang";
+    btn.type = "button"; btn.className = "pcss-lang " + cls;
     paintBtn(btn);
     btn.addEventListener("click", function () { setLang(lang === "en" ? "ko" : "en"); });
-    document.body.appendChild(btn);
+    return btn;
+  }
+  function mountBtn() {
+    if (document.querySelector(".pcss-lang") || window.PCSS_NO_LANG_BTN) return;
+    var slots = document.querySelectorAll("[data-lang-slot]"), fixed = true;
+    for (var i = 0; i < slots.length; i++) {
+      slots[i].appendChild(makeBtn("is-inline"));
+      if (slots[i].getAttribute("data-lang-slot") === "all") fixed = false;
+    }
+    if (slots.length) root.classList.add("has-lang-slot");
+    if (fixed) {
+      var f = makeBtn("is-fixed"); f.id = "pcss-lang";
+      document.body.appendChild(f);
+    }
   }
 
   window.PCSS_T = function (s) { return lang === "en" ? translate(s) : s; };

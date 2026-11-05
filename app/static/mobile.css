@@ -28,3 +28,10 @@ html {
   pre, code { overflow-wrap: anywhere; }
   pre { white-space: pre-wrap; }
 }
+
+/* 터치 화면: 기본 13px 체크박스 · 라디오는 손가락으로 맞히기 어렵다.
+   :where() 라 명시도 0 → 페이지가 따로 크기를 준 스위치 · 칩은 그대로 둔다. */
+@media (pointer: coarse), (max-width: 767.98px) {
+  :where(input[type="checkbox"], input[type="radio"]) { width: 18px; height: 18px; flex: none; }
+  :where(summary) { padding-block: 6px; }
+}
